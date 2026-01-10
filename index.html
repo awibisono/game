@@ -5,15 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CPSC 4860: The Chthonic Kernel</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=VT323&display=swap');
+
         :root {
-            --bg-color: #0a0a12;
-            --term-color: #1a1a24;
-            --text-color: #e0e0e0;
-            --accent-color: #aaddff;
-            --highlight-color: #ffcc00;
-            --danger-color: #ff5555;
-            --font-main: 'Courier New', Courier, monospace;
-            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --bg-color: #050508;
+            --term-color: #111116;
+            --text-color: #d0d0e0;
+            --accent-color: #88ccff;
+            --highlight-color: #ffd700;
+            --danger-color: #ff6b6b;
+            --magic-color: #e0aaff;
+            --font-main: 'VT323', monospace; /* Retro Terminal Font */
+            --font-code: 'Fira Code', monospace;
         }
 
         * { box-sizing: border-box; }
@@ -22,34 +25,81 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
+            font-size: 1.2rem;
             margin: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* --- CRT SCANLINE EFFECT --- */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        /* Flicker Animation */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            15% { opacity: 0.95; }
+            20% { opacity: 0.98; }
+            50% { opacity: 0.95; }
+            100% { opacity: 0.98; }
+        }
+
+        /* Shake Animation for Damage */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .shake-screen {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
 
         /* --- HUD (Heads Up Display) --- */
         #hud {
-            background-color: #111;
+            background-color: #0a0a10;
             border-bottom: 2px solid #333;
-            padding: 10px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            font-family: var(--font-ui);
-            font-size: 0.9rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
-        .stat-box { display: flex; gap: 15px; }
-        .stat { font-weight: bold; }
-        .stat-label { color: #888; font-size: 0.8em; text-transform: uppercase; }
-        .val-hp { color: #ff5555; }
-        .val-mp { color: #55aaff; }
+        .stat-box { display: flex; gap: 20px; }
+        .stat-label { color: #666; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
+        .val-hp { color: var(--danger-color); text-shadow: 0 0 5px rgba(255, 107, 107, 0.5); }
+        .val-mp { color: var(--accent-color); text-shadow: 0 0 5px rgba(136, 204, 255, 0.5); }
         
-        #location-display { color: var(--highlight-color); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        #location-display { 
+            color: var(--highlight-color); 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
 
         /* --- TERMINAL (Game Log) --- */
         #terminal {
@@ -58,32 +108,47 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             scroll-behavior: smooth;
-            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 2px, 3px 100%;
+            background-color: var(--bg-color);
+            position: relative;
+            z-index: 1;
         }
 
-        .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; }
-        .log-entry.old { color: #888; }
-        
-        .msg-narrator { color: #ccc; }
-        .msg-player { color: #aaddff; font-weight: bold; }
-        .msg-npc { color: var(--highlight-color); }
-        .msg-danger { color: var(--danger-color); font-weight: bold; }
-        .msg-system { color: #55ff55; font-style: italic; font-size: 0.9em; border-left: 2px solid #55ff55; padding-left: 10px; }
+        /* Custom Scrollbar */
+        #terminal::-webkit-scrollbar { width: 8px; }
+        #terminal::-webkit-scrollbar-track { background: #111; }
+        #terminal::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        #terminal::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .log-entry { 
+            opacity: 0; 
+            animation: fadeIn 0.4s ease-out forwards; 
+            line-height: 1.5;
+        }
+
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .msg-narrator { color: #bbbbcc; }
+        .msg-player { color: var(--accent-color); font-weight: bold; border-left: 2px solid var(--accent-color); padding-left: 10px; }
+        .msg-npc { color: var(--highlight-color); font-style: italic; }
+        .msg-danger { color: var(--danger-color); font-weight: bold; text-shadow: 0 0 3px rgba(255, 0, 0, 0.3); }
+        .msg-magic { color: var(--magic-color); text-shadow: 0 0 5px rgba(224, 170, 255, 0.4); }
+        .msg-system { color: #55ff55; font-size: 0.9em; font-family: var(--font-code); opacity: 0.8; }
 
         /* --- CONTROLS --- */
         #controls {
             background-color: var(--term-color);
-            border-top: 1px solid #333;
-            padding: 10px;
+            border-top: 1px solid #222;
+            padding: 15px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
+            z-index: 10;
         }
 
         #input-line {
@@ -93,54 +158,84 @@
 
         #cmd-input {
             flex-grow: 1;
-            background: #000;
-            border: 1px solid #444;
-            color: white;
-            padding: 10px;
-            font-family: var(--font-main);
+            background: #08080c;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 12px;
+            font-family: var(--font-code);
             border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
         }
+        #cmd-input:focus { outline: none; border-color: var(--accent-color); }
 
         #send-btn {
-            background: #333;
-            color: white;
-            border: none;
-            padding: 0 20px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 0 25px;
             border-radius: 4px;
             cursor: pointer;
+            font-family: var(--font-code);
             font-weight: bold;
+            transition: all 0.2s;
         }
+        #send-btn:hover { background: #333; border-color: #666; }
+        #send-btn:active { transform: scale(0.95); }
 
         /* --- MOBILE BUTTON GRID --- */
         #quick-actions {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            gap: 10px;
         }
 
         .btn {
-            background: #2a2a35;
+            background: linear-gradient(145deg, #2a2a35, #22222d);
             color: #ccc;
-            border: 1px solid #444;
-            padding: 12px 5px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            border: 1px solid #3a3a45;
+            padding: 15px 5px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: var(--font-main);
             cursor: pointer;
             text-transform: uppercase;
             font-weight: bold;
-            transition: background 0.2s;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
-            touch-action: manipulation; /* Improves touch response */
+            touch-action: manipulation;
+            box-shadow: 0 4px 0 #15151a;
         }
 
-        .btn:active { background: #444; transform: translateY(1px); }
-        .btn-move { background: #223; border-color: #446; }
-        .btn-act { background: #322; border-color: #644; }
+        .btn:active { 
+            transform: translateY(4px); 
+            box-shadow: 0 0 0 #15151a; 
+        }
 
-        /* Media Query for larger screens (Laptop) */
+        .btn-move { border-bottom: 3px solid #446; }
+        .btn-act { border-bottom: 3px solid #644; color: #ffcccc; }
+        
+        /* Combat Buttons Glow */
+        .btn-combat { 
+            background: linear-gradient(145deg, #422, #311); 
+            border-color: #a44; 
+            color: #ffa; 
+            display: none; 
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 85, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); }
+        }
+
+        /* Media Query for larger screens */
         @media (min-width: 768px) {
             .container { max-width: 800px; margin: 0 auto; border: 1px solid #333; height: 90vh; margin-top: 5vh; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
-            body { background-color: #000; justify-content: center; }
+            body { background-color: #020202; justify-content: center; align-items: center; }
+            #hud, #terminal, #controls { width: 800px; max-width: 100%; border-left: 1px solid #222; border-right: 1px solid #222; }
+            #terminal { height: 60vh; }
             #quick-actions { grid-template-columns: repeat(6, 1fr); }
         }
     </style>
@@ -165,34 +260,56 @@
     <div id="controls">
         <!-- Quick Action Buttons for Mobile/Tablet -->
         <div id="quick-actions">
-            <button class="btn btn-move" onclick="engine.handleInput('north')">N</button>
-            <button class="btn btn-move" onclick="engine.handleInput('south')">S</button>
-            <button class="btn btn-move" onclick="engine.handleInput('west')">W</button>
-            <button class="btn btn-move" onclick="engine.handleInput('east')">E</button>
+            <!-- Exploration Buttons -->
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('north')">N</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('south')">S</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('west')">W</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('east')">E</button>
+            <button class="btn expl-btn" onclick="engine.handleInput('look')">Look</button>
+            <button class="btn expl-btn" onclick="engine.handleInput('talk')">Talk</button>
             
-            <button class="btn" onclick="engine.handleInput('look')">Look</button>
-            <button class="btn" onclick="engine.handleInput('talk')">Talk</button>
-            <button class="btn btn-act" onclick="engine.handleInput('attack')">Argue</button>
-            <button class="btn btn-act" onclick="engine.handleInput('magic')">Invoke</button>
+            <!-- Combat Buttons -->
+            <button class="btn btn-combat" onclick="engine.handleInput('argue')">Argue</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('logic')">Logic</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('thesis')">Thesis</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('flee')">Flee</button>
         </div>
 
         <!-- Text Input Line -->
         <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="Enter command (e.g. 'traverse north')..." autocomplete="off">
+            <input type="text" id="cmd-input" placeholder="Enter command..." autocomplete="off">
             <button id="send-btn" onclick="submitCommand()">RUN</button>
         </div>
     </div>
 
     <script>
-        // --- GAME ENGINE ---
-        
+        // --- CONSTANTS & CONFIG ---
+        const ELEMENTS = {
+            FIRE: "Phlegethon", // Beats Ice
+            ICE: "Cocytus",     // Beats Fire
+            SKY: "Aether",      // Beats Earth/Void
+            VOID: "Styx"        // Beats Light? (Simplifying: Fire<>Ice, Sky<>Void)
+        };
+
+        // --- GAME STATE ---
         const GameState = {
+            mode: "EXPLORE", // EXPLORE, COMBAT
             player: {
-                hp: 30, maxHp: 30,
-                mp: 10, maxMp: 10,
                 name: "Neophyte",
-                inventory: ["Student ID", "Laptop"],
+                // Stats from Design Doc
+                psyche: 30, maxPsyche: 30, // HP
+                techne: 15, maxTechne: 15, // MP
+                rhetoric: 5,  // Attack
+                dialect: 3,   // Defense
+                theory: 4,    // Magic
+                latency: 10,  // Speed (Lower is better)
+                
+                inventory: ["Student ID", "Broken Laptop"],
                 location: "hub"
+            },
+            combat: {
+                target: null, // Current enemy object
+                turn: 0
             },
             flags: {
                 metDan: false,
@@ -203,27 +320,30 @@
         const World = {
             "hub": {
                 name: "The Great Hall of Harkness",
-                desc: "You stand in the central hub of the Underworld Campus. The ceiling is a digital star chart. To the NORTH is the Spire (Sky). To the SOUTH is the Sunken Library (Sea). To the EAST is the Forge (Fire). To the WEST is the Crypt (Spirit).",
+                desc: "You stand in the central hub. To the NORTH is the Sky Spire. To the SOUTH is the Sunken Library. To the EAST is the Silicon Furnace. To the WEST is the Crypt.",
                 exits: { "north": "sky_gate", "south": "sea_gate", "east": "fire_gate", "west": "spirit_gate" },
-                npc: "Cerberus Dan"
+                npc: "Cerberus Dan",
+                encounterRate: 0
             },
             
             // --- SKY KINGDOM (North) ---
             "sky_gate": {
                 name: "Gate of Aether",
-                desc: "A floating platform of marble. Clouds swirl around you. The Spire rises infinitely upwards.",
+                desc: "A floating platform. Clouds swirl. The Spire rises infinitely.",
                 exits: { "south": "hub", "north": "cloud_campus" },
-                npc: null
+                encounterRate: 0.3,
+                enemies: ["Syntax Harpy"]
             },
             "cloud_campus": {
                 name: "The Cloud Campus",
-                desc: "Data packets rain from the sky like hail. The air smells of ozone and arrogance.",
+                desc: "Data packets rain like hail. The air smells of ozone.",
                 exits: { "south": "sky_gate", "north": "spire_top" },
-                npc: null
+                encounterRate: 0.5,
+                enemies: ["Syntax Harpy", "Cloud Demon"]
             },
             "spire_top": {
                 name: "Peak of the Spire",
-                desc: "You are at the edge of the atmosphere. The Archon of the Clouds awaits.",
+                desc: "You are at the edge of the atmosphere.",
                 exits: { "south": "cloud_campus" },
                 npc: "Prof. Nephele"
             },
@@ -231,19 +351,21 @@
             // --- SEA KINGDOM (South) ---
             "sea_gate": {
                 name: "The Sunken Library Entry",
-                desc: "Steps lead down into dark, churning water. The books here are damp and swollen.",
+                desc: "Steps lead down into dark water.",
                 exits: { "north": "hub", "south": "river_styx" },
-                npc: null
+                encounterRate: 0.3,
+                enemies: ["Memory Minotaur"]
             },
             "river_styx": {
                 name: "The River Styx",
-                desc: "Black water flows through the corridors. You hear the whispers of drowning students.",
+                desc: "Black water flows through the corridors.",
                 exits: { "north": "sea_gate", "south": "abyssal_lab" },
-                npc: null
+                encounterRate: 0.5,
+                enemies: ["Memory Minotaur", "Leakage Spirit"]
             },
             "abyssal_lab": {
                 name: "The Abyssal Lab",
-                desc: "A bioluminescent cavern filled with strange specimens in jars.",
+                desc: "Bioluminescent specimens float in jars.",
                 exits: { "north": "river_styx" },
                 npc: "Coach Pontus"
             },
@@ -251,19 +373,21 @@
             // --- FIRE KINGDOM (East) ---
             "fire_gate": {
                 name: "Entrance to Phlegethon",
-                desc: "The heat is oppressive. The walls are made of burning silicon.",
+                desc: "The heat is oppressive.",
                 exits: { "west": "hub", "east": "silicon_furnace" },
-                npc: null
+                encounterRate: 0.3,
+                enemies: ["Overheat Imp"]
             },
             "silicon_furnace": {
                 name: "The Silicon Furnace",
-                desc: "Lava flows in circuit patterns on the floor. Everything is overheating.",
+                desc: "Lava flows in circuit patterns.",
                 exits: { "west": "fire_gate", "east": "core_foundry" },
-                npc: null
+                encounterRate: 0.5,
+                enemies: ["Overheat Imp", "Slag Golem"]
             },
             "core_foundry": {
                 name: "The Core Foundry",
-                desc: "The heart of the machine. The Dean hammers away at a soul on an anvil.",
+                desc: "The heart of the machine.",
                 exits: { "west": "silicon_furnace" },
                 npc: "Dean Hephaestus"
             },
@@ -271,83 +395,50 @@
             // --- SPIRIT KINGDOM (West) ---
             "spirit_gate": {
                 name: "Crypt of Erebus",
-                desc: "The light fades here. The silence is deafening.",
+                desc: "The light fades here.",
                 exits: { "east": "hub", "west": "null_void" },
-                npc: null
+                encounterRate: 0.3,
+                enemies: ["Null Shade"]
             },
             "null_void": {
                 name: "The Null Void",
-                desc: "A place where pointers reference nothing. Reality flickers.",
+                desc: "Pointers reference nothing here.",
                 exits: { "east": "spirit_gate", "west": "necropolis" },
-                npc: null
+                encounterRate: 0.5,
+                enemies: ["Null Shade", "Segmentation Ghost"]
             },
             "necropolis": {
                 name: "The Sterling Necropolis",
                 desc: "Rows of tombstones labeled with deprecated functions.",
                 exits: { "east": "null_void" },
                 npc: "Librarian Persephone"
-            },
-
-            // --- END GAME ---
-            "woodbridge": {
-                name: "Woodbridge Hall of Judgment",
-                desc: "The final chamber. The Provost awaits to grade your soul.",
-                exits: { "south": "hub" }, // Secret exit unlocked later
-                npc: "Provost of Entropy"
             }
         };
 
+        const Bestiary = {
+            "Syntax Harpy": { hp: 20, att: 4, def: 2, element: ELEMENTS.SKY, xp: 10, desc: "A screeching bird made of broken brackets." },
+            "Memory Minotaur": { hp: 35, att: 6, def: 4, element: ELEMENTS.ICE, xp: 20, desc: "A beast wandering the labyrinth of the heap." },
+            "Overheat Imp": { hp: 15, att: 8, def: 1, element: ELEMENTS.FIRE, xp: 10, desc: "A fast, burning glitch." },
+            "Null Shade": { hp: 25, att: 5, def: 5, element: ELEMENTS.VOID, xp: 15, desc: "A shadow that consumes data." },
+            // Archons
+            "Prof. Nephele": { hp: 100, att: 12, def: 8, element: ELEMENTS.SKY, boss: true, desc: "Archon of the Cloud." },
+            "Coach Pontus": { hp: 120, att: 10, def: 10, element: ELEMENTS.ICE, boss: true, desc: "Archon of the Stream." },
+            "Dean Hephaestus": { hp: 140, att: 15, def: 12, element: ELEMENTS.FIRE, boss: true, desc: "Archon of the Forge." },
+            "Librarian Persephone": { hp: 90, att: 18, def: 5, element: ELEMENTS.VOID, boss: true, desc: "Archon of the Deep." }
+        };
+
         const NPCs = {
-            "Cerberus Dan": {
-                name: "Cerberus Dan",
-                dialogue: [
-                    "Woof. Logic error detected. Welcome to the Chthonic Kernel.",
-                    "The Archons hold the four Essences. Retrieve them.",
-                    "Do not fear the segfault. Embrace the reboot."
-                ]
-            },
-            "Prof. Nephele": {
-                name: "Archon Nephele",
-                dialogue: [
-                    "You dare ascend my tower? My intellect is in the cloud!",
-                    "Taste the voltage of my Storm of Pointers!"
-                ]
-            },
-            "Coach Pontus": {
-                name: "Archon Pontus",
-                dialogue: [
-                    "The current is strong today. You will drown in coursework.",
-                    "Row! Row for your life!"
-                ]
-            },
-            "Dean Hephaestus": {
-                name: "Archon Hephaestus",
-                dialogue: [
-                    "I forge engineers from the raw ore of freshmen.",
-                    "Can you withstand the thermal throttling?"
-                ]
-            },
-            "Librarian Persephone": {
-                name: "Archon Persephone",
-                dialogue: [
-                    "Shhh. Quiet hours are in effect... forever.",
-                    "Your citations are missing. Return to the void."
-                ]
-            },
-            "Provost of Entropy": {
-                name: "The Provost",
-                dialogue: [
-                    "Your thesis is due. The deadline is... NOW.",
-                    "I am the Administrator of Endings."
-                ]
-            }
+            "Cerberus Dan": { name: "Cerberus Dan", dialogue: ["Woof. Logic error detected.", "The Archons hold the keys."] },
+            "Prof. Nephele": { name: "Archon Nephele", dialogue: ["You cannot comprehend the altitude of my intellect!", "PREPARE TO BE DEPRECATED!"], hostile: true },
+            "Coach Pontus": { name: "Archon Pontus", dialogue: ["Row for your life!", "I will drown you in work!"], hostile: true },
+            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["I forge engineers from raw ore!", "Burn!"], hostile: true },
+            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Shhh. Quiet hours.", "Fade into silence."], hostile: true }
         };
 
         const Engine = {
             init: function() {
-                this.log("System Initialized...", "system");
-                this.log("Connection established to CHTHONIC_KERNEL_V4.0", "system");
-                this.log("Welcome, Neophyte. You awake with your face on your keyboard.", "narrator");
+                this.log("System Initialized... CHTHONIC_KERNEL_V4.1", "system");
+                this.log("Welcome, Neophyte. You have segfaulted into the Underworld.", "narrator");
                 this.handleInput("look");
                 this.updateHUD();
             },
@@ -356,46 +447,50 @@
                 const term = document.getElementById('terminal');
                 const entry = document.createElement('div');
                 entry.className = `log-entry msg-${type}`;
-                entry.innerHTML = text; // Allow HTML for formatting
+                entry.innerHTML = text;
                 term.appendChild(entry);
                 term.scrollTop = term.scrollHeight;
             },
 
             handleInput: function(cmd) {
+                if (GameState.player.psyche <= 0) return; // Dead
+                
                 cmd = cmd.toLowerCase().trim();
                 if (!cmd) return;
 
-                this.log(`> ${cmd}`, "player");
+                if (GameState.mode === "COMBAT") {
+                    this.combatInput(cmd);
+                } else {
+                    this.exploreInput(cmd);
+                }
+            },
 
+            exploreInput: function(cmd) {
+                this.log(`> ${cmd}`, "player");
                 const loc = World[GameState.player.location];
 
-                // --- PARSER ---
-                if (["n", "north", "go north", "traverse north"].includes(cmd)) this.move("north");
-                else if (["s", "south", "go south", "traverse south"].includes(cmd)) this.move("south");
-                else if (["e", "east", "go east", "traverse east"].includes(cmd)) this.move("east");
-                else if (["w", "west", "go west", "traverse west"].includes(cmd)) this.move("west");
-                else if (["look", "inspect", "analyze"].includes(cmd)) {
+                if (["n", "north"].includes(cmd)) this.move("north");
+                else if (["s", "south"].includes(cmd)) this.move("south");
+                else if (["e", "east"].includes(cmd)) this.move("east");
+                else if (["w", "west"].includes(cmd)) this.move("west");
+                else if (["look", "l"].includes(cmd)) {
                     this.log(`<strong>[${loc.name}]</strong>`, "system");
                     this.log(loc.desc, "narrator");
                     if (loc.npc) this.log(`You see <strong>${NPCs[loc.npc].name}</strong> here.`, "narrator");
                 }
-                else if (["talk", "speak", "query"].includes(cmd)) {
+                else if (["talk", "t"].includes(cmd)) {
                     if (loc.npc) {
                         const npc = NPCs[loc.npc];
-                        const line = npc.dialogue[Math.floor(Math.random() * npc.dialogue.length)];
-                        this.log(`[${npc.name}]: "${line}"`, "npc");
+                        this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "npc");
+                        if (npc.hostile) {
+                            this.startCombat(loc.npc);
+                        }
                     } else {
-                        this.log("There is no one here to query.", "narrator");
+                        this.log("No one to talk to.", "narrator");
                     }
                 }
-                else if (["inv", "inventory", "i"].includes(cmd)) {
-                    this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
-                }
-                else if (["help", "?"].includes(cmd)) {
-                    this.log("Commands: LOOK, NORTH/SOUTH/EAST/WEST, TALK, ARGUE, INVOKE", "system");
-                }
                 else {
-                    this.log("Syntax Error: Unknown command.", "danger");
+                    this.log("Unknown command. Try: NORTH, LOOK, TALK", "system");
                 }
             },
 
@@ -403,18 +498,167 @@
                 const loc = World[GameState.player.location];
                 if (loc.exits[dir]) {
                     GameState.player.location = loc.exits[dir];
+                    this.log(`You traverse ${dir}...`, "narrator");
                     this.handleInput("look");
-                    // Random flavor text
-                    if (Math.random() > 0.7) this.log("The code streams around you...", "system");
+                    this.checkEncounter();
                 } else {
-                    this.log("Access Denied: You cannot traverse that way.", "danger");
+                    this.log("You cannot go that way.", "danger");
                 }
                 this.updateHUD();
             },
 
+            checkEncounter: function() {
+                const loc = World[GameState.player.location];
+                if (loc.encounterRate && Math.random() < loc.encounterRate) {
+                    const enemyName = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
+                    this.startCombat(enemyName);
+                }
+            },
+
+            // --- COMBAT ENGINE ---
+            startCombat: function(enemyKey) {
+                GameState.mode = "COMBAT";
+                this.toggleControls(true);
+                
+                const template = Bestiary[enemyKey];
+                GameState.combat.target = { 
+                    ...template, 
+                    name: enemyKey,
+                    currentHp: template.hp 
+                };
+                
+                this.log(`<br><strong>--- ENCOUNTER INITIATED ---</strong>`, "system");
+                this.log(`A <strong>${enemyKey}</strong> emerges from the gloom.`, "danger");
+                this.log(`<em>"${template.desc}"</em>`, "narrator");
+                this.log("The air grows heavy with the weight of imminent debate.", "narrator");
+            },
+
+            combatInput: function(cmd) {
+                const player = GameState.player;
+                const enemy = GameState.combat.target;
+
+                if (["argue", "attack", "a"].includes(cmd)) {
+                    // Physical/Rhetoric (The "Game of Thrones" visceral verbal spar)
+                    const dmg = Math.max(1, player.rhetoric - (enemy.def / 2) + Math.floor(Math.random() * 3));
+                    enemy.currentHp -= dmg;
+                    
+                    const attackDescs = [
+                        `You lunge with a scathing critique, piercing the ${enemy.name}'s defense.`,
+                        `"Your premise is flawed!" you shout, striking with the weight of certainty.`,
+                        `You parry a logical fallacy and riposte with a brutal fact.`,
+                        `Like a bravo of Braavos, you dance around the argument, landing a stinging point.`
+                    ];
+                    this.log(attackDescs[Math.floor(Math.random() * attackDescs.length)], "player");
+                    this.log(`(The argument lands for <strong>${dmg}</strong> Rhetoric damage.)`, "system");
+                    this.nextTurn();
+                } 
+                else if (["logic", "magic", "m"].includes(cmd)) {
+                    // Magic/Theory (The "Name of the Wind" Sympathy/Will)
+                    if (player.techne >= 3) {
+                        player.techne -= 3;
+                        const dmg = Math.max(1, (player.theory * 2) - (enemy.def / 2));
+                        enemy.currentHp -= dmg;
+                        
+                        const magicDescs = [
+                            `You slip into your Heart of Stone. You bind the heat of the server room to the ${enemy.name}'s logic gates.`,
+                            `Muttering a binding spell, you link the ${enemy.name} to a Null Pointer. The connection snaps efficiently.`,
+                            `You speak the Name of the Function. The code obeys, tearing at the enemy's structure.`,
+                            `Alar firm as a diamond, you force your will upon reality. "Break," you whisper.`
+                        ];
+                        
+                        this.log(magicDescs[Math.floor(Math.random() * magicDescs.length)], "msg-magic");
+                        this.log(`(The Sympathy link deals <span style='color:violet'>${dmg}</span> Theory damage.)`, "system");
+                        this.nextTurn();
+                    } else {
+                        this.log("Your Alar is weak. You lack the Techne (MP) to maintain the binding.", "danger");
+                    }
+                }
+                else if (["thesis", "scan"].includes(cmd)) {
+                     this.log(`You analyze the opponent's structure...`, "system");
+                     this.log(`Target: <strong>${enemy.name}</strong>`, "narrator");
+                     this.log(`Integrity: ${enemy.currentHp}/${enemy.hp}`, "narrator");
+                     this.log(`Affinity: ${enemy.element}`, "narrator");
+                }
+                else if (["flee", "run"].includes(cmd)) {
+                    if (Math.random() > 0.5) {
+                        this.log("You break the engagement and fade into the shadows.", "system");
+                        this.endCombat(false);
+                    } else {
+                        this.log("The enemy anticipates your retreat. You are pinned by their logic.", "danger");
+                        this.enemyTurn();
+                    }
+                }
+                else {
+                    this.log("Combat Commands: ARGUE (Attack), LOGIC (Magic), THESIS (Scan), FLEE", "system");
+                }
+                this.updateHUD();
+            },
+
+            nextTurn: function() {
+                const enemy = GameState.combat.target;
+                if (enemy.currentHp <= 0) {
+                    this.log(`<br>The ${enemy.name}'s argument crumbles. It dissolves into static.`, "system");
+                    this.log(`<strong>VICTORY.</strong> You verify your axioms.`, "msg-player");
+                    this.endCombat(true);
+                } else {
+                    this.enemyTurn();
+                }
+            },
+
+            enemyTurn: function() {
+                const player = GameState.player;
+                const enemy = GameState.combat.target;
+                
+                setTimeout(() => {
+                    const dmg = Math.max(1, enemy.att - (player.dialect / 2) + Math.floor(Math.random() * 2));
+                    player.psyche -= dmg;
+                    
+                    // Trigger Shake
+                    document.body.classList.add('shake-screen');
+                    setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+                    
+                    const enemyDescs = [
+                        `The ${enemy.name} retaliates with a blistering counter-point.`,
+                        `"Wrong!" it screeches, tearing at your confidence.`,
+                        `A wave of raw dissonance washes over you. Your Alar wavers.`,
+                        `The ${enemy.name} cites a forbidden text. Your mind reels.`
+                    ];
+                    
+                    this.log(enemyDescs[Math.floor(Math.random() * enemyDescs.length)], "danger");
+                    this.log(`(You take <strong>${dmg}</strong> damage to your Psyche.)`, "system");
+                    
+                    if (player.psyche <= 0) {
+                        this.log("<br><strong>CRITICAL FAILURE</strong>", "danger");
+                        this.log("Your mind fractures under the strain. You have dropped out.", "danger");
+                        this.log("Refresh the page to re-apply.", "system");
+                    }
+                    this.updateHUD();
+                }, 800);
+            },
+
+            endCombat: function(won) {
+                GameState.mode = "EXPLORE";
+                GameState.combat.target = null;
+                this.toggleControls(false); // Hide combat buttons
+                if (won) {
+                    // Heal slightly?
+                    GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 2);
+                    this.log("You recover some mental focus (Techne).", "system");
+                }
+                this.updateHUD();
+            },
+
+            toggleControls: function(isCombat) {
+                const explBtns = document.querySelectorAll('.expl-btn');
+                const cmbtBtns = document.querySelectorAll('.btn-combat');
+                
+                explBtns.forEach(b => b.style.display = isCombat ? 'none' : 'block');
+                cmbtBtns.forEach(b => b.style.display = isCombat ? 'block' : 'none');
+            },
+
             updateHUD: function() {
-                document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
-                document.getElementById('mp-val').innerText = `${GameState.player.mp}/${GameState.player.maxMp}`;
+                document.getElementById('hp-val').innerText = `${GameState.player.psyche}/${GameState.player.maxPsyche}`;
+                document.getElementById('mp-val').innerText = `${GameState.player.techne}/${GameState.player.maxTechne}`;
                 document.getElementById('location-display').innerText = World[GameState.player.location].name;
             }
         };
