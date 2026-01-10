@@ -223,15 +223,17 @@
         const Engine = {
             init: function() {
                 document.getElementById('loading-msg').style.display = 'none';
-                this.log("Protocol 0 initiated.", "system");
+                this.log("In the beginning was the Null Set...", "narrator");
                 setTimeout(() => {
-                    this.log("You are a function.", "narrator");
-                    this.log("Your return value is undefined.", "narrator");
-                    this.log("Choose your parameter:", "narrator");
-                    this.log("1. CONSTANT (Immutable)", "highlight");
-                    this.log("2. VARIABLE (Chaotic)", "danger");
+                    this.log("Then came the Separation. The One became Two.", "narrator");
+                    this.log("You wake on the Battlefield of Dharma (Kurukshetra).", "narrator");
+                    this.log("You are the Code that Weeps. You seek the Base Case.", "narrator");
+                    this.log("<br>CHOOSE YOUR METHOD:", "msg-system");
+                    this.log("1. 🔮 MYSTIC (Theorist) - Insight into the Void.", "msg-magic");
+                    this.log("2. ⚔️ WARRIOR (Engineer) - Action without Attachment.", "danger");
+                    this.log("3. 📜 SCRIBE (Historian) - Memory of the Logos.", "msg-npc");
                     GameState.mode = "INTRO";
-                }, 800);
+                }, 1000);
             },
 
             log: function(text, type = "narrator") {
