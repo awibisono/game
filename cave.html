@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPSC 4860: The Chthonic Kernel</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #0f0f15;
+            color: #dcdcdc;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-image: linear-gradient(#0f0f15 50%, #1a1a25 50%);
+            background-size: 100% 4px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #1a1a20;
+            padding: 50px;
+            border: 2px solid #5544aa;
+            box-shadow: 0 0 30px rgba(85, 68, 170, 0.3);
+        }
+        h1, h2, h3 {
+            color: #aaddff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        h1 { text-align: center; color: #ffcc00; border-bottom: 3px double #ffcc00; padding-bottom: 20px; }
+        .section { margin-bottom: 50px; }
+        .stat-block {
+            background-color: #222229;
+            padding: 20px;
+            border-left: 4px solid #993333;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .dialogue {
+            background-color: #15151a;
+            padding: 15px 25px;
+            border-radius: 2px;
+            margin: 15px 0;
+            border-left: 3px solid #5544aa;
+        }
+        .speaker { font-weight: bold; color: #ffcc00; text-transform: uppercase; font-size: 0.9em; }
+        .action { color: #8888aa; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95em; }
+        th, td { border: 1px solid #444; padding: 12px; text-align: left; }
+        th { background-color: #222229; color: #ffcc00; text-transform: uppercase; letter-spacing: 1px; }
+        code { background-color: #000; padding: 2px 6px; border: 1px solid #333; color: #00ff00; font-family: 'Courier New', monospace; }
+        .toc { background-color: #222229; padding: 20px; border: 1px solid #444; }
+        .toc a { color: #aaddff; text-decoration: none; display: block; margin: 5px 0; transition: color 0.3s; }
+        .toc a:hover { color: #ffcc00; padding-left: 5px; }
+        .latin { font-style: italic; color: #cc99ff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CPSC 4860: The Chthonic Kernel</h1>
+    <p style="text-align: center; color: #888;"><em>"Knowledge is Light and Truth (Lux et Veritas)... but the Kernel is Dark and Deep."</em></p>
+    
+    <div class="toc">
+        <h3>Syllabus (Table of Contents)</h3>
+        <a href="#overview">1. Course Overview (Game Concept)</a>
+        <a href="#mechanics">2. Digital-Mythic Systems</a>
+        <a href="#scholar">3. The Neophyte's Ledger (Stats)</a>
+        <a href="#underworld">4. The Campus Underworld (Bestiary)</a>
+        <a href="#artifacts">5. Relics & Patrons</a>
+        <a href="#script">6. The Dialogue of Souls</a>
+    </div>
+
+    <div id="overview" class="section">
+        <h2>1. Course Overview</h2>
+        <p><strong>Genre:</strong> Mythic-Academic RPG.</p>
+        <p><strong>Premise:</strong> You are a Freshman Neophyte in the elite "Computer Science & Chthonic Studies" program at Yale. During a late-night coding session in the Sterling Library, you uncover a recursive error in reality—a <em>Segfault</em> that drags you into the <strong>Chthonic Kernel</strong>, a dark reflection of the university located deep within the digital River Styx.</p>
+        <p><strong>The Guide:</strong> You are guided by <strong>Cerberus Dan</strong> (Handsome Dan), the three-headed bulldog guardian who demands "Treats of Logic" to pass between memory sectors.</p>
+        <p><strong>Goal:</strong> Restore the <strong>Lux et Veritas</strong> (Light and Truth) by defeating the four <strong>Corrupted Archons</strong> (Tenured Professors of the Underworld) and debugging the Source Code of Fate.</p>
+    </div>
+
+    <div id="mechanics" class="section">
+        <h2>2. Digital-Mythic Systems</h2>
+        
+        <h3>States of Being</h3>
+        <ul>
+            <li><strong>Dialectic Mode (Normal):</strong> Explore the twisted campus. Debate ghosts. Commands: <code>QUERY</code>, <code>ANALYZE</code>, <code>TRAVERSE</code>.</li>
+            <li><strong>Eristic Mode (Battle):</strong> Debate combat. Commands: <code>ARGUE</code> (Attack), <code>INVOKE</code> (Magic), <code>CITE</code> (Item), <code>THESIS</code> (Scan).</li>
+            <li><strong>Symposium Mode (Home):</strong> The Common Room. Rest, converse with Cerberus Dan, save progress.</li>
+        </ul>
+
+        <h3>The Four Humors of Code</h3>
+        <table>
+            <tr>
+                <th>Element/Humor</th>
+                <th>Represents</th>
+                <th>Countered By</th>
+            </tr>
+            <tr>
+                <td><strong>Phlegethon (Fire)</strong></td>
+                <td>Runtime Errors, Overheating, Passion</td>
+                <td>Cocytus (Ice/Logic)</td>
+            </tr>
+            <tr>
+                <td><strong>Cocytus (Ice)</strong></td>
+                <td>Infinite Loops, Freezing, Cold Logic</td>
+                <td>Phlegethon (Fire/Passion)</td>
+            </tr>
+            <tr>
+                <td><strong>Aether (Sky)</strong></td>
+                <td>Cloud Data, High Concepts, Pride</td>
+                <td>Gaia (Earth/Grounding)</td>
+            </tr>
+            <tr>
+                <td><strong>Styx (Void)</strong></td>
+                <td>Null Pointers, Oblivion, Despair</td>
+                <td>Lux (Light/Truth)</td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="scholar" class="section">
+        <h2>3. The Neophyte's Ledger</h2>
+        
+        <div class="stat-block">
+            <h3>Scholar Stats</h3>
+            <ul>
+                <li><strong>PSYCHE (HP):</strong> Mental fortitude. If 0, you drop out (Game Over).</li>
+                <li><strong>TECHNE (MP):</strong> Skill points for invoking Patrons/Functions.</li>
+                <li><strong>RHETORIC (ATT):</strong> Power of argument and physical force.</li>
+                <li><strong>DIALECTIC (DEF):</strong> Ability to withstand criticism and damage.</li>
+                <li><strong>THEORY (INT):</strong> Magic power and understanding of the Kernel.</li>
+                <li><strong>MOIRA (LCK):</strong> Fate, critical hits, and RNG seed manipulation.</li>
+                <li><strong>LATENCY (SPD):</strong> Reaction time. Lower is better/faster turns.</li>
+            </ul>
+        </div>
+
+        <h3>Academic Progression</h3>
+        <p>Instead of "Leveling Up," you gain <strong>Credits</strong>. Accumulating Credits advances your year:</p>
+        <ul>
+            <li><strong>Freshman (Lvl 1-10):</strong> Basic syntax spells.</li>
+            <li><strong>Sophomore (Lvl 11-20):</strong> Object-Oriented Mythos.</li>
+            <li><strong>Junior (Lvl 21-30):</strong> System Architecture.</li>
+            <li><strong>Senior (Lvl 31-40):</strong> Thesis Defense (Endgame skills).</li>
+        </ul>
+    </div>
+
+    <div id="underworld" class="section">
+        <h2>4. The Campus Underworld</h2>
+
+        <h3>Common Shades (Enemies)</h3>
+        <ul>
+            <li><strong>Syntax Harpies:</strong> Screeching birds made of jagged code brackets.</li>
+            <li><strong>Memory Minotaurs:</strong> Beasts wandering the labyrinths of the Heap.</li>
+            <li><strong>Logic Hydras:</strong> Cut off one head (fix one bug), two more appear.</li>
+            <li><strong>Tenure Wraiths:</strong> Spirits of grad students who never graduated.</li>
+        </ul>
+
+        <h3>The Archons (Bosses)</h3>
+        
+        <div class="stat-block">
+            <h4>Archon of the Clouds: Prof. Nephele (Aiolos)</h4>
+            <p><strong>Domain:</strong> Harkness Tower of Babel (Sky Kingdom).</p>
+            <p><strong>Lore:</strong> A scholar of Cloud Computing who ascended too high, losing touch with the ground. He rains down data packets like thunderbolts.</p>
+            <p><strong>Signature Move:</strong> <span class="latin">"Storm of Pointers"</span> (Drains Techne).</p>
+        </div>
+
+        <div class="stat-block">
+            <h4>Archon of the Stream: Coach Pontus</h4>
+            <p><strong>Domain:</strong> The Flooded Old Campus (Sea Kingdom).</p>
+            <p><strong>Lore:</strong> The rowing coach who navigates the River Styx. He controls the flow of information and drowns students in work.</p>
+            <p><strong>Signature Move:</strong> <span class="latin">"Regatta of Souls"</span> (High water damage).</p>
+        </div>
+
+        <div class="stat-block">
+            <h4>Archon of the Forge: Dean Hephaestus</h4>
+            <p><strong>Domain:</strong> The Silicon Furnace (Engineering Dept).</p>
+            <p><strong>Lore:</strong> Forges hardware from the souls of the damned. His hammer strikes with the weight of failing grades.</p>
+            <p><strong>Signature Move:</strong> <span class="latin">"Thermal Throttling"</span> (Slows Latency).</p>
+        </div>
+
+        <div class="stat-block">
+            <h4>Archon of the Deep: Librarian Persephone</h4>
+            <p><strong>Domain:</strong> Sterling Necropolis (Spirit Kingdom).</p>
+            <p><strong>Lore:</strong> Keeper of forbidden texts. She silences all who enter. To defeat her, you must cite sources she has forgotten.</p>
+            <p><strong>Signature Move:</strong> <span class="latin">"Quiet Hours"</span> (Silences all magic).</p>
+        </div>
+
+        <div class="stat-block">
+            <h4>The Provost of Entropy (Final Boss)</h4>
+            <p><strong>Domain:</strong> The Woodbridge Hall of Judgment.</p>
+            <p><strong>Lore:</strong> The administrative entity that schedules the end of the semester. A being of pure bureaucracy and chaos.</p>
+        </div>
+    </div>
+
+    <div id="artifacts" class="section">
+        <h2>5. Relics & Patrons</h2>
+
+        <h3>The Patrons (Guardian Forces)</h3>
+        <p>Invoke these ancient deities for aid in your defense:</p>
+        <ul>
+            <li><strong>Athena (Wisdom):</strong> Debugs code instantly. Nullifies confusion.</li>
+            <li><strong>Apollo (Light):</strong> Compiles healing rays. Restores Psyche.</li>
+            <li><strong>Hermes (Speed):</strong> Overclocks your Latency. Grants extra turns.</li>
+            <li><strong>Dionysus (Chaos):</strong> Randomizes variables. Confuses enemies.</li>
+        </ul>
+
+        <h3>Consumables</h3>
+        <ul>
+            <li><strong>Ambrosia:</strong> Restores Psyche (HP).</li>
+            <li><strong>Nectar:</strong> Restores Techne (MP).</li>
+            <li><strong>Logic Bomb:</strong> Deals massive damage to logic-based enemies.</li>
+            <li><strong>Cheat Sheet:</strong> Revives a fallen ally (if multiplayer) or grants auto-life.</li>
+        </ul>
+    </div>
+
+    <div id="script" class="section">
+        <h2>6. The Dialogue of Souls</h2>
+
+        <h3>Initialization (The Awakening)</h3>
+        <div class="dialogue">
+            <span class="action">*The screen flickers. Green code cascades over the Gothic architecture of the library. A low growl echoes.*</span><br>
+            <span class="speaker">Cerberus Dan (Left Head):</span> Woof. Logic error detected.<br>
+            <span class="speaker">Cerberus Dan (Right Head):</span> Grrr. Unauthorized access to the Underworld Kernel.<br>
+            <span class="speaker">Cerberus Dan (Middle Head):</span> <strong>WELCOME, SCHOLAR.</strong><br>
+            <span class="speaker">Player:</span> Handsome Dan? You have... three heads?<br>
+            <span class="speaker">Cerberus Dan:</span> I am the Guardian of the Gateway. You have segfaulted, Neophyte. Your body is in the library, but your soul is in the Stack. To return, you must compile the <strong>Lux et Veritas</strong>.
+        </div>
+
+        <h3>Meeting Prof. Nephele (Sky Archon)</h3>
+        <div class="dialogue">
+            <span class="speaker">Nephele:</span> You dare ascend Harkness Tower? My data lives in the clouds, boy/girl! You cannot comprehend the altitude of my intellect!<br>
+            <span class="speaker">Player:</span> Your logic is circular, Professor! I'm here to debug your arrogance!<br>
+            <span class="speaker">Nephele:</span> Insolence! Taste the voltage of the storm! <span class="latin">Fulmen Aetherius!</span>
+        </div>
+
+        <h3>Meeting Librarian Persephone (Spirit Archon)</h3>
+        <div class="dialogue">
+            <span class="speaker">Persephone:</span> <span class="action">*Whispering*</span> Shhh... This is a place of dead words. Why do you speak so loudly of "hope"?<br>
+            <span class="speaker">Player:</span> I seek the Spirit Key. The kernel must be rebooted.<br>
+            <span class="speaker">Persephone:</span> Reboot? Death is the only shutdown. Return to the void, little footnote.
+        </div>
+
+        <h3>Finale (The Provost)</h3>
+        <div class="dialogue">
+            <span class="speaker">Provost:</span> You have cited your sources well. You have argued your thesis. But can you withstand the Final Exam?<br>
+            <span class="action">*The room dissolves into binary rain and Greek fire.*</span><br>
+            <span class="speaker">Player:</span> I invoke the Founders! For God, for Country, and for Yale! <span class="latin">Boola Boola!</span><br>
+            <span class="action">*The player casts the Ultimate Function.*</span>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

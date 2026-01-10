@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CPSC 4860: The Chthonic Kernel</title>
+    <style>
+        :root {
+            --bg-color: #0a0a12;
+            --term-color: #1a1a24;
+            --text-color: #e0e0e0;
+            --accent-color: #aaddff;
+            --highlight-color: #ffcc00;
+            --danger-color: #ff5555;
+            --font-main: 'Courier New', Courier, monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HUD (Heads Up Display) --- */
+        #hud {
+            background-color: #111;
+            border-bottom: 2px solid #333;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            font-family: var(--font-ui);
+            font-size: 0.9rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .stat-box { display: flex; gap: 15px; }
+        .stat { font-weight: bold; }
+        .stat-label { color: #888; font-size: 0.8em; text-transform: uppercase; }
+        .val-hp { color: #ff5555; }
+        .val-mp { color: #55aaff; }
+        
+        #location-display { color: var(--highlight-color); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- TERMINAL (Game Log) --- */
+        #terminal {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; }
+        .log-entry.old { color: #888; }
+        
+        .msg-narrator { color: #ccc; }
+        .msg-player { color: #aaddff; font-weight: bold; }
+        .msg-npc { color: var(--highlight-color); }
+        .msg-danger { color: var(--danger-color); font-weight: bold; }
+        .msg-system { color: #55ff55; font-style: italic; font-size: 0.9em; border-left: 2px solid #55ff55; padding-left: 10px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- CONTROLS --- */
+        #controls {
+            background-color: var(--term-color);
+            border-top: 1px solid #333;
+            padding: 10px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #input-line {
+            display: flex;
+            gap: 10px;
+        }
+
+        #cmd-input {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            font-family: var(--font-main);
+            border-radius: 4px;
+        }
+
+        #send-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- MOBILE BUTTON GRID --- */
+        #quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .btn {
+            background: #2a2a35;
+            color: #ccc;
+            border: 1px solid #444;
+            padding: 12px 5px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: background 0.2s;
+            user-select: none;
+            touch-action: manipulation; /* Improves touch response */
+        }
+
+        .btn:active { background: #444; transform: translateY(1px); }
+        .btn-move { background: #223; border-color: #446; }
+        .btn-act { background: #322; border-color: #644; }
+
+        /* Media Query for larger screens (Laptop) */
+        @media (min-width: 768px) {
+            .container { max-width: 800px; margin: 0 auto; border: 1px solid #333; height: 90vh; margin-top: 5vh; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+            body { background-color: #000; justify-content: center; }
+            #quick-actions { grid-template-columns: repeat(6, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="stat-box">
+            <div><span class="stat-label">Psyche</span> <span id="hp-val" class="val-hp">30/30</span></div>
+            <div><span class="stat-label">Techne</span> <span id="mp-val" class="val-mp">10/10</span></div>
+        </div>
+        <div id="location-display">Sterling Library</div>
+    </div>
+
+    <!-- TERMINAL LOG -->
+    <div id="terminal" id="log-container">
+        <!-- Text gets injected here -->
+    </div>
+
+    <!-- CONTROLS -->
+    <div id="controls">
+        <!-- Quick Action Buttons for Mobile/Tablet -->
+        <div id="quick-actions">
+            <button class="btn btn-move" onclick="engine.handleInput('north')">N</button>
+            <button class="btn btn-move" onclick="engine.handleInput('south')">S</button>
+            <button class="btn btn-move" onclick="engine.handleInput('west')">W</button>
+            <button class="btn btn-move" onclick="engine.handleInput('east')">E</button>
+            
+            <button class="btn" onclick="engine.handleInput('look')">Look</button>
+            <button class="btn" onclick="engine.handleInput('talk')">Talk</button>
+            <button class="btn btn-act" onclick="engine.handleInput('attack')">Argue</button>
+            <button class="btn btn-act" onclick="engine.handleInput('magic')">Invoke</button>
+        </div>
+
+        <!-- Text Input Line -->
+        <div id="input-line">
+            <input type="text" id="cmd-input" placeholder="Enter command (e.g. 'traverse north')..." autocomplete="off">
+            <button id="send-btn" onclick="submitCommand()">RUN</button>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME ENGINE ---
+        
+        const GameState = {
+            player: {
+                hp: 30, maxHp: 30,
+                mp: 10, maxMp: 10,
+                name: "Neophyte",
+                inventory: ["Student ID", "Laptop"],
+                location: "library"
+            },
+            flags: {
+                metDan: false,
+                hasKey: false
+            }
+        };
+
+        const World = {
+            "library": {
+                name: "Sterling Library (The Stacks)",
+                desc: "You are in the Gothic nave of the library. Towers of books spiral into a dark void above. Green code rains from the vaulted ceiling.",
+                exits: { "north": "courtyard" },
+                npc: "Thymeus"
+            },
+            "courtyard": {
+                name: "The Cross Campus Underworld",
+                desc: "A grey, misty lawn. Gravestones shaped like computer terminals dot the grass. To the NORTH is the Spire of Aether. To the SOUTH is the Library.",
+                exits: { "south": "library", "north": "spire_base" },
+                npc: null
+            },
+            "spire_base": {
+                name: "Base of Harkness Tower",
+                desc: "The massive tower pierces the clouds. Lightning shaped like pointers strikes the ground. The door is locked with a logic puzzle.",
+                exits: { "south": "courtyard" },
+                npc: "Walter Lewin" // Just for testing
+            }
+        };
+
+        const NPCs = {
+            "Thymeus": {
+                name: "Cerberus Dan",
+                dialogue: [
+                    "Woof. Logic error detected in sector 7G.",
+                    "I am the Guardian. You have segfaulted into the Kernel, student.",
+                    "To leave, you must debug the Archons. Go NORTH to the courtyard."
+                ]
+            },
+            "Walter Lewin": {
+                name: "Archon Lewin",
+                dialogue: [
+                    "You dare approach the Spire?!",
+                    "Calculate the terminal velocity of your failure!"
+                ]
+            }
+        };
+
+        const Engine = {
+            init: function() {
+                this.log("System Initialized...", "system");
+                this.log("Connection established to CHTHONIC_KERNEL_V4.0", "system");
+                this.log("Welcome, Neophyte. You awake with your face on your keyboard.", "narrator");
+                this.handleInput("look");
+                this.updateHUD();
+            },
+
+            log: function(text, type = "narrator") {
+                const term = document.getElementById('terminal');
+                const entry = document.createElement('div');
+                entry.className = `log-entry msg-${type}`;
+                entry.innerHTML = text; // Allow HTML for formatting
+                term.appendChild(entry);
+                term.scrollTop = term.scrollHeight;
+            },
+
+            handleInput: function(cmd) {
+                cmd = cmd.toLowerCase().trim();
+                if (!cmd) return;
+
+                this.log(`> ${cmd}`, "player");
+
+                const loc = World[GameState.player.location];
+
+                // --- PARSER ---
+                if (["n", "north", "go north", "traverse north"].includes(cmd)) this.move("north");
+                else if (["s", "south", "go south", "traverse south"].includes(cmd)) this.move("south");
+                else if (["e", "east", "go east", "traverse east"].includes(cmd)) this.move("east");
+                else if (["w", "west", "go west", "traverse west"].includes(cmd)) this.move("west");
+                else if (["look", "inspect", "analyze"].includes(cmd)) {
+                    this.log(`<strong>[${loc.name}]</strong>`, "system");
+                    this.log(loc.desc, "narrator");
+                    if (loc.npc) this.log(`You see <strong>${NPCs[loc.npc].name}</strong> here.`, "narrator");
+                }
+                else if (["talk", "speak", "query"].includes(cmd)) {
+                    if (loc.npc) {
+                        const npc = NPCs[loc.npc];
+                        const line = npc.dialogue[Math.floor(Math.random() * npc.dialogue.length)];
+                        this.log(`[${npc.name}]: "${line}"`, "npc");
+                    } else {
+                        this.log("There is no one here to query.", "narrator");
+                    }
+                }
+                else if (["inv", "inventory", "i"].includes(cmd)) {
+                    this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
+                }
+                else if (["help", "?"].includes(cmd)) {
+                    this.log("Commands: LOOK, NORTH/SOUTH/EAST/WEST, TALK, ARGUE, INVOKE", "system");
+                }
+                else {
+                    this.log("Syntax Error: Unknown command.", "danger");
+                }
+            },
+
+            move: function(dir) {
+                const loc = World[GameState.player.location];
+                if (loc.exits[dir]) {
+                    GameState.player.location = loc.exits[dir];
+                    this.handleInput("look");
+                    // Random flavor text
+                    if (Math.random() > 0.7) this.log("The code streams around you...", "system");
+                } else {
+                    this.log("Access Denied: You cannot traverse that way.", "danger");
+                }
+                this.updateHUD();
+            },
+
+            updateHUD: function() {
+                document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
+                document.getElementById('mp-val').innerText = `${GameState.player.mp}/${GameState.player.maxMp}`;
+                document.getElementById('location-display').innerText = World[GameState.player.location].name;
+            }
+        };
+
+        // --- GLOBAL & EVENTS ---
+        const engine = Engine;
+
+        function submitCommand() {
+            const input = document.getElementById('cmd-input');
+            engine.handleInput(input.value);
+            input.value = "";
+            input.focus();
+        }
+
+        document.getElementById('cmd-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitCommand();
+        });
+
+        // Start Game
+        window.onload = function() {
+            engine.init();
+        };
+
+    </script>
+</body>
+</html>
