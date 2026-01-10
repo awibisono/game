@@ -9,7 +9,7 @@
 
         :root {
             --bg-color: #050508;
-            --term-color: rgba(17, 17, 22, 0.75);
+            --term-color: rgba(17, 17, 22, 0.8);
             --text-color: #d0d0e0;
             --accent-color: #88ccff;
             --highlight-color: #ffd700;
@@ -25,7 +25,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             margin: 0;
             height: 100vh;
             display: flex;
@@ -39,7 +39,7 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 0;
-            opacity: 0.4;
+            opacity: 0.5;
             pointer-events: none;
         }
 
@@ -57,15 +57,24 @@
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
             30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
             50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
             100% { transform: translate(0, 0); }
         }
-
         .shake-screen { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes flash {
+            0% { background-color: rgba(255, 255, 255, 0.3); }
+            100% { background-color: transparent; }
+        }
+        .crit-flash { animation: flash 0.3s ease-out; }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .pop-text { display: inline-block; animation: pop 0.2s ease-out; }
 
         #hud {
             background-color: var(--term-color);
@@ -84,17 +93,9 @@
         }
 
         .stat-box { display: flex; gap: 20px; }
-        .stat-label { color: #889; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
         .val-hp { color: var(--danger-color); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
         .val-mp { color: var(--accent-color); text-shadow: 0 0 8px rgba(136, 204, 255, 0.6); }
-        
-        #location-display { 
-            color: var(--highlight-color); 
-            font-weight: bold; 
-            text-transform: uppercase; 
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-        }
+        #location-display { color: var(--highlight-color); font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
 
         #terminal {
             flex-grow: 1;
@@ -108,11 +109,8 @@
             position: relative;
             z-index: 1;
         }
-
-        #terminal::-webkit-scrollbar { width: 8px; }
-        #terminal::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-        #terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        #terminal::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        #terminal::-webkit-scrollbar { width: 6px; }
+        #terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
         .log-entry { 
             opacity: 0; 
@@ -120,18 +118,15 @@
             line-height: 1.6;
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
-
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(15px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         .msg-narrator { color: #d0d0e0; }
         .msg-player { color: var(--accent-color); font-weight: bold; border-left: 3px solid var(--accent-color); padding-left: 12px; background: linear-gradient(90deg, rgba(136, 204, 255, 0.1), transparent); }
         .msg-npc { color: var(--highlight-color); font-style: italic; }
         .msg-danger { color: var(--danger-color); font-weight: bold; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
         .msg-magic { color: var(--magic-color); text-shadow: 0 0 8px rgba(224, 170, 255, 0.5); }
-        .msg-system { color: #66ff66; font-size: 0.9em; font-family: var(--font-code); opacity: 0.9; text-shadow: 0 0 5px rgba(0, 255, 0, 0.3); }
+        .msg-system { color: #66ff66; font-size: 0.9em; font-family: var(--font-code); opacity: 0.9; }
+        .emoji { font-style: normal; margin-right: 5px; }
 
         #controls {
             background-color: var(--term-color);
@@ -148,86 +143,39 @@
         }
 
         #input-line { display: flex; gap: 10px; }
-
         #cmd-input {
-            flex-grow: 1;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #444;
-            color: #fff;
-            padding: 14px;
-            font-family: var(--font-code);
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: all 0.2s;
+            flex-grow: 1; background: rgba(0, 0, 0, 0.6); border: 1px solid #444; color: #fff;
+            padding: 14px; font-family: var(--font-code); border-radius: 6px; font-size: 1rem; transition: all 0.2s;
         }
-        #cmd-input:focus { outline: none; border-color: var(--accent-color); background: rgba(0, 0, 0, 0.8); box-shadow: 0 0 10px rgba(136, 204, 255, 0.2); }
-
+        #cmd-input:focus { outline: none; border-color: var(--accent-color); background: rgba(0, 0, 0, 0.8); }
         #send-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 0 25px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: var(--font-code);
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        #send-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
-        #send-btn:active { transform: scale(0.95); }
-
-        #quick-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0 25px; border-radius: 6px; cursor: pointer; font-family: var(--font-code); font-weight: bold;
         }
 
+        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .btn {
             background: linear-gradient(145deg, rgba(60, 60, 70, 0.6), rgba(40, 40, 50, 0.6));
-            color: #e0e0e0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px 5px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: var(--font-main);
-            cursor: pointer;
-            text-transform: uppercase;
-            font-weight: bold;
-            transition: all 0.2s;
-            user-select: none;
-            touch-action: manipulation;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            color: #e0e0e0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px 5px; border-radius: 8px;
+            font-size: 1rem; font-family: var(--font-main); cursor: pointer; text-transform: uppercase; font-weight: bold;
+            transition: all 0.2s; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
-
-        .btn:hover {
-            background: linear-gradient(145deg, rgba(80, 80, 90, 0.7), rgba(50, 50, 60, 0.7));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
         .btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
         .btn-move { border-bottom: 2px solid #557; }
         .btn-act { border-bottom: 2px solid #755; color: #ffcccc; }
         
         .btn-combat { 
             background: linear-gradient(145deg, rgba(80, 40, 40, 0.8), rgba(60, 20, 20, 0.8)); 
-            border-color: #f55; 
-            color: #ffe; 
-            display: none; 
-            animation: pulse 2s infinite;
+            border-color: #f55; color: #ffe; display: none; animation: pulse 2s infinite;
         }
-        
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.6); border-color: #f55; }
             50% { border-color: #f88; }
-            70% { box-shadow: 0 0 0 10px rgba(255, 85, 85, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); border-color: #f55; }
         }
 
         @media (min-width: 768px) {
-            .container { max-width: 800px; margin: 0 auto; border: 1px solid #333; height: 90vh; margin-top: 5vh; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+            .container { max-width: 800px; margin: 0 auto; }
             body { background-color: #020202; justify-content: center; align-items: center; }
             #hud, #terminal, #controls { width: 800px; max-width: 100%; border-left: 1px solid #222; border-right: 1px solid #222; }
             #terminal { height: 60vh; }
@@ -241,8 +189,8 @@
 
     <div id="hud">
         <div class="stat-box">
-            <div><span class="stat-label">Psyche</span> <span id="hp-val" class="val-hp">30/30</span></div>
-            <div><span class="stat-label">Techne</span> <span id="mp-val" class="val-mp">10/10</span></div>
+            <div><span class="stat-label">❤️ Psyche</span> <span id="hp-val" class="val-hp">30/30</span></div>
+            <div><span class="stat-label">💠 Techne</span> <span id="mp-val" class="val-mp">10/10</span></div>
         </div>
         <div id="location-display">Sterling Library</div>
     </div>
@@ -251,200 +199,214 @@
 
     <div id="controls">
         <div id="quick-actions">
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('north')">N</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('south')">S</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('west')">W</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('east')">E</button>
-            <button class="btn expl-btn" onclick="engine.handleInput('look')">Look</button>
-            <button class="btn expl-btn" onclick="engine.handleInput('interact')">Use</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('north')">⬆️ N</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('south')">⬇️ S</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('west')">⬅️ W</button>
+            <button class="btn btn-move expl-btn" onclick="engine.handleInput('east')">➡️ E</button>
+            <button class="btn expl-btn" onclick="engine.handleInput('look')">👁️ Look</button>
+            <button class="btn expl-btn" onclick="engine.handleInput('interact')">✋ Use</button>
             
-            <button class="btn btn-combat" onclick="engine.handleInput('argue')">Argue</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('logic')">Logic</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('cite')">Cite</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('flee')">Flee</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('argue')">⚔️ Argue</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('logic')">✨ Logic</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('cite')">📜 Cite</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('flee')">🏃 Run</button>
         </div>
 
         <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="Enter command..." autocomplete="off">
+            <input type="text" id="cmd-input" placeholder="Type command..." autocomplete="off">
             <button id="send-btn" onclick="submitCommand()">RUN</button>
         </div>
     </div>
 
     <script>
+        console.log("Initializing Chthonic Kernel...");
         const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
+        
+        let ctx = null;
+        if (canvas) {
+            ctx = canvas.getContext('2d');
+        } else {
+            console.error("Canvas element not found!");
+        }
+
         let width, height, particles = [];
 
-        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        function resize() { 
+            if(!canvas) return;
+            width = canvas.width = window.innerWidth; 
+            height = canvas.height = window.innerHeight; 
+        }
+        
         class Particle {
             constructor() {
                 this.x = Math.random() * width; this.y = Math.random() * height;
                 this.size = Math.random() * 2 + 1; this.speedY = Math.random() * 0.5 + 0.1;
                 this.opacity = Math.random() * 0.5 + 0.1;
-                this.char = String.fromCharCode(0x0370 + Math.random() * 80);
+                this.char = ["0", "1", "α", "β", "Ω", "∑", "π"][Math.floor(Math.random() * 7)];
             }
             update() {
                 this.y -= this.speedY; 
                 if (this.y < 0) { this.y = height; this.x = Math.random() * width; }
             }
             draw() {
+                if(!ctx) return;
                 ctx.fillStyle = `rgba(136, 204, 255, ${this.opacity})`;
-                ctx.font = `${this.size * 8}px monospace`;
+                ctx.font = `${this.size * 10}px monospace`;
                 ctx.fillText(this.char, this.x, this.y);
             }
         }
-        function initParticles() { particles = []; for (let i = 0; i < 50; i++) particles.push(new Particle()); }
-        function animate() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
-        window.addEventListener('resize', resize); resize(); initParticles(); animate();
+        
+        function initParticles() { 
+            particles = []; 
+            for (let i = 0; i < 60; i++) particles.push(new Particle()); 
+        }
+        
+        function animate() { 
+            if(!ctx) return;
+            ctx.clearRect(0, 0, width, height); 
+            particles.forEach(p => { p.update(); p.draw(); }); 
+            requestAnimationFrame(animate); 
+        }
+        
+        if (canvas) {
+            window.addEventListener('resize', resize); 
+            resize(); 
+            initParticles(); 
+            animate();
+        }
 
-        const ELEMENTS = { FIRE: "Phlegethon", ICE: "Cocytus", SKY: "Aether", VOID: "Styx" };
-
+        // --- GAME DATA ---
         const GameState = {
             mode: "INTRO",
             player: {
                 name: "Neophyte", major: null,
                 psyche: 30, maxPsyche: 30, techne: 15, maxTechne: 15,
                 rhetoric: 5, dialect: 3, theory: 4, latency: 10,
-                memories: [], citations: [], inventory: ["Student ID"], location: "hub"
+                memories: [], citations: [], inventory: ["🆔 Student ID"], location: "hub"
             },
             combat: { target: null, turn: 0, enemyStatus: null },
             dialogue: { npc: null, node: "start" },
-            flags: { metDan: false, cycleCount: 2049 }
+            flags: { metDan: false }
         };
 
         const Citations = {
-            "OLD_CODE": { name: "The First Commit", desc: "An ancient scroll signed by the Founders. Breaks Tradition." },
-            "ROOT_ACCESS": { name: "Root Access Key", desc: "A forbidden cryptographic key. Bypasses Firewalls." },
-            "GRANT_LETTER": { name: "The Infinite Grant", desc: "A promise of endless funding. Distracts Administrators." }
+            "OLD_CODE": { name: "The First Commit", desc: "An ancient scroll." },
+            "ROOT_ACCESS": { name: "Root Access Key", desc: "Bypasses Firewalls." },
+            "GRANT_LETTER": { name: "The Infinite Grant", desc: "Endless funding." }
         };
 
         const Majors = {
-            "THEORIST": { name: "College of Aether", desc: "Followers of Pure Logic. High Magic.", bonus: { theory: 3, techne: 5, dialect: -1 } },
-            "ENGINEER": { name: "Forge of Phlegethon", desc: "Builders of the Hard Iron. High Attack.", bonus: { rhetoric: 3, psyche: 10, latency: 2 } },
-            "HISTORIAN": { name: "Library of Styx", desc: "Keepers of the Old Code. High Defense.", bonus: { dialect: 3, psyche: 5, techne: 5 } }
+            "THEORIST": { name: "🔮 College of Aether", desc: "High Magic.", bonus: { theory: 3, techne: 5, dialect: -1 } },
+            "ENGINEER": { name: "🔨 Forge of Phlegethon", desc: "High Attack.", bonus: { rhetoric: 3, psyche: 10, latency: 2 } },
+            "HISTORIAN": { name: "📜 Library of Styx", desc: "High Defense.", bonus: { dialect: 3, psyche: 5, techne: 5 } }
         };
+
+        const ELEMENTS = { FIRE: "Phlegethon", ICE: "Cocytus", SKY: "Aether", VOID: "Styx" };
 
         const World = {
             "hub": {
-                name: "The Great Hall of Harkness",
-                desc: "The floor is polished obsidian, reflecting a sky that isn't there.",
+                name: "🏛️ Great Hall of Harkness", desc: "The central hub. Obsidian floors reflect a void sky.",
                 exits: { "north": "sky_gate", "south": "sea_gate", "east": "fire_gate", "west": "spirit_gate" },
-                npc: "Cerberus Dan",
-                interact: { type: "statue", text: "A statue of a bulldog. The plaque reads: 'Loyalty is the only constant.'", item: null }
+                npc: "Cerberus Dan", interact: { type: "statue", text: "A statue of a bulldog.", item: null }
             },
             "sky_gate": {
-                name: "Gate of Aether", desc: "A platform floating in a sea of white noise.",
+                name: "☁️ Gate of Aether", desc: "Floating in white noise.",
                 exits: { "south": "hub", "north": "cloud_campus" }, encounterRate: 0.3, enemies: ["Syntax Harpy"]
             },
             "cloud_campus": {
-                name: "The Cloud Campus", desc: "Towers of server racks rise into the mist.",
+                name: "🌩️ Cloud Campus", desc: "Server racks rise into the mist.",
                 exits: { "south": "sky_gate", "north": "spire_top" }, encounterRate: 0.5, enemies: ["Syntax Harpy", "Cloud Demon"],
-                interact: { type: "server", text: "A rack glows. You download a citation.", item: "OLD_CODE" }
+                interact: { type: "server", text: "You download a citation.", item: "OLD_CODE" }
             },
             "spire_top": {
-                name: "Peak of the Spire", desc: "The air is thin. Logic breaks down here.",
+                name: "⚡ Peak of the Spire", desc: "The air is thin.",
                 exits: { "south": "cloud_campus" }, npc: "Prof. Nephele"
             },
             "sea_gate": {
-                name: "The Sunken Library", desc: "Steps lead down into dark water.",
+                name: "🌊 Sunken Library", desc: "Dark water laps at the stairs.",
                 exits: { "north": "hub", "south": "river_styx" }, encounterRate: 0.3, enemies: ["Memory Minotaur"]
             },
             "river_styx": {
-                name: "The River Styx", desc: "Black water flows through the corridors.",
+                name: "💧 River Styx", desc: "Black water flows.",
                 exits: { "north": "sea_gate", "south": "abyssal_lab" }, encounterRate: 0.5, enemies: ["Memory Minotaur", "Leakage Spirit"]
             },
             "abyssal_lab": {
-                name: "The Abyssal Lab", desc: "Bioluminescent specimens float in jars.",
+                name: "🧪 Abyssal Lab", desc: "Bioluminescent specimens.",
                 exits: { "north": "river_styx" }, npc: "Coach Pontus",
-                interact: { type: "desk", text: "A waterproof safe. Inside is a grant letter.", item: "GRANT_LETTER" }
+                interact: { type: "safe", text: "You find a grant letter.", item: "GRANT_LETTER" }
             },
             "fire_gate": {
-                name: "Entrance to Phlegethon", desc: "The heat smells of burning silicon.",
+                name: "🔥 Entrance to Phlegethon", desc: "Smells of burning silicon.",
                 exits: { "west": "hub", "east": "silicon_furnace" }, encounterRate: 0.3, enemies: ["Overheat Imp"]
             },
             "silicon_furnace": {
-                name: "The Silicon Furnace", desc: "Rivers of molten gold flow.",
+                name: "🌋 Silicon Furnace", desc: "Molten gold flows.",
                 exits: { "west": "fire_gate", "east": "core_foundry" }, encounterRate: 0.5, enemies: ["Slag Golem"],
                 interact: { type: "forge", text: "You find a key in the ash.", item: "ROOT_ACCESS" }
             },
             "core_foundry": {
-                name: "The Core Foundry", desc: "The heart of the machine.",
+                name: "⚙️ Core Foundry", desc: "The heart of the machine.",
                 exits: { "west": "silicon_furnace" }, npc: "Dean Hephaestus"
             },
             "spirit_gate": {
-                name: "Crypt of Erebus", desc: "The light fades here.",
+                name: "👻 Crypt of Erebus", desc: "Light fades here.",
                 exits: { "east": "hub", "west": "null_void" }, encounterRate: 0.3, enemies: ["Null Shade"]
             },
             "null_void": {
-                name: "The Null Void", desc: "Pointers reference nothing here.",
+                name: "⚫ The Null Void", desc: "Pointers reference nothing.",
                 exits: { "east": "spirit_gate", "west": "necropolis" }, encounterRate: 0.5, enemies: ["Null Shade", "Segmentation Ghost"]
             },
             "necropolis": {
-                name: "The Sterling Necropolis", desc: "Rows of tombstones labeled with deprecated functions.",
+                name: "🪦 Sterling Necropolis", desc: "Rows of tombstones.",
                 exits: { "east": "null_void" }, npc: "Librarian Persephone"
             },
             "woodbridge": {
-                name: "Woodbridge Hall", desc: "The final chamber. A desk stretches to infinity.",
+                name: "🎓 Woodbridge Hall", desc: "The final chamber.",
                 exits: { "south": "hub" }, npc: "The Provost"
             }
         };
 
         const Bestiary = {
-            "Syntax Harpy": { hp: 20, att: 4, def: 2, xp: 10, desc: "A screeching bird made of broken brackets." },
-            "Memory Minotaur": { hp: 35, att: 6, def: 4, xp: 20, desc: "A beast wandering the labyrinth of the heap." },
-            "Overheat Imp": { hp: 15, att: 8, def: 1, xp: 10, desc: "A fast, burning glitch." },
-            "Null Shade": { hp: 25, att: 5, def: 5, xp: 15, desc: "A shadow that consumes data." },
-            "Slag Golem": { hp: 40, att: 7, def: 6, xp: 25, desc: "Molten hardware given form." },
-            "Cloud Demon": { hp: 30, att: 6, def: 3, xp: 20, desc: "A storm of unhandled exceptions." },
-            "Leakage Spirit": { hp: 20, att: 5, def: 2, xp: 15, desc: "Drips memory onto the floor." },
-            "Segmentation Ghost": { hp: 25, att: 6, def: 4, xp: 20, desc: "Splits into two when hit." },
-            // Archons
-            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "Archon of the Cloud." },
-            "Coach Pontus": { hp: 120, att: 10, def: 10, boss: true, desc: "Archon of the Stream." },
-            "Dean Hephaestus": { hp: 140, att: 15, def: 12, boss: true, desc: "Archon of the Forge." },
-            "Librarian Persephone": { hp: 90, att: 18, def: 5, boss: true, desc: "Archon of the Deep." },
-            "The Provost": { hp: 200, att: 20, def: 15, boss: true, desc: "The Administrator of Endings." }
+            "Syntax Harpy": { hp: 20, att: 4, def: 2, desc: "🦅 A screeching bird of broken code." },
+            "Memory Minotaur": { hp: 35, att: 6, def: 4, desc: "🐂 A beast wandering the heap." },
+            "Overheat Imp": { hp: 15, att: 8, def: 1, desc: "🔥 A fast, burning glitch." },
+            "Null Shade": { hp: 25, att: 5, def: 5, desc: "👻 A shadow that consumes data." },
+            "Slag Golem": { hp: 40, att: 7, def: 6, desc: "🗿 Molten hardware." },
+            "Cloud Demon": { hp: 30, att: 6, def: 3, desc: "⛈️ A storm of exceptions." },
+            "Leakage Spirit": { hp: 20, att: 5, def: 2, desc: "💧 Drips memory." },
+            "Segmentation Ghost": { hp: 25, att: 6, def: 4, desc: "🧬 Splits when hit." },
+            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "🌩️ Archon of the Cloud." },
+            "Coach Pontus": { hp: 120, att: 10, def: 10, boss: true, desc: "🛶 Archon of the Stream." },
+            "Dean Hephaestus": { hp: 140, att: 15, def: 12, boss: true, desc: "⚒️ Archon of the Forge." },
+            "Librarian Persephone": { hp: 90, att: 18, def: 5, boss: true, desc: "📖 Archon of the Deep." },
+            "The Provost": { hp: 200, att: 20, def: 15, boss: true, desc: "⚖️ The Administrator." }
         };
 
         const NPCs = {
-            "Cerberus Dan": {
-                name: "Cerberus Dan",
-                dialogue: {
-                    "start": { text: "Woof. You are an error. But a cute one.", options: { "1": { text: "Who are you?", next: "who" }, "2": { text: "Where am I?", next: "where" }, "3": { text: "Pet.", next: "pet" } } },
-                    "who": { text: "I guard the gateway. I eat bugs.", options: { "1": { text: "Back.", next: "start" } } },
-                    "where": { text: "The Kernel. The place where code goes to die.", options: { "1": { text: "Back.", next: "start" } } },
-                    "pet": { text: "*He wags all three tails.*", options: { "1": { text: "Back.", next: "start" } } }
-                }
-            },
-            "Prof. Nephele": { name: "Archon Nephele", dialogue: ["My intellect is in the cloud!"], hostile: true },
-            "Coach Pontus": { name: "Archon Pontus", dialogue: ["Row! Or drown!"], hostile: true },
-            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["Burn in the forge!"], hostile: true },
-            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Silence."], hostile: true },
-            "The Provost": { name: "The Provost", dialogue: ["SUBMIT."], hostile: true }
+            "Cerberus Dan": { name: "🐕‍🦺 Cerberus Dan", dialogue: { "start": { text: "Woof. You are a cute error.", options: { "1": { text: "Who are you?", next: "who" }, "2": { text: "Where am I?", next: "where" }, "3": { text: "Pet.", next: "pet" } } }, "who": { text: "I guard the gateway.", options: { "1": { text: "Back.", next: "start" } } }, "where": { text: "The Kernel.", options: { "1": { text: "Back.", next: "start" } } }, "pet": { text: "*Wags tails.*", options: { "1": { text: "Back.", next: "start" } } } } },
+            "Prof. Nephele": { name: "🌩️ Archon Nephele", dialogue: ["My intellect is in the cloud!"], hostile: true },
+            "Coach Pontus": { name: "🛶 Archon Pontus", dialogue: ["Row! Or drown!"], hostile: true },
+            "Dean Hephaestus": { name: "⚒️ Archon Hephaestus", dialogue: ["Burn in the forge!"], hostile: true },
+            "Librarian Persephone": { name: "📖 Archon Persephone", dialogue: ["Silence."], hostile: true },
+            "The Provost": { name: "⚖️ The Provost", dialogue: ["SUBMIT."], hostile: true }
         };
-
-        const GlitchEvents = [
-            "A fragment of a birthday party flashes before your eyes, then vanishes.",
-            "You find a Post-It note: 'TODO: Fix gravity in sector 7.'",
-            "A ghost made of static drifts past you.",
-            "The world renders in wireframe for a split second."
-        ];
 
         const Engine = {
             init: function() {
-                this.log("System Boot... Cycle #2049.", "system");
+                console.log("Engine Init");
+                this.log("💻 System Boot... Cycle #2049.", "system");
                 this.log("Searching for <span style='color:var(--accent-color)'>User.Soul</span>... Found.", "system");
                 this.log("<br><strong>THE CHTHONIC KERNEL</strong>", "msg-player");
-                this.log("You drift in the void. You are a Neophyte, a soul undefined.", "narrator");
-                this.log("Select your Major:", "narrator");
-                this.log("1. <strong>THEORIST</strong> (College of Aether) - Logic/Magic.", "msg-magic");
-                this.log("2. <strong>ENGINEER</strong> (Forge of Phlegethon) - Hardware/Attack.", "danger");
-                this.log("3. <strong>HISTORIAN</strong> (Library of Styx) - Memory/Defense.", "msg-npc");
+                this.log("You drift in the void. Select your Major:", "narrator");
+                this.log("1. <strong>🔮 THEORIST</strong> (College of Aether) - Magic.", "msg-magic");
+                this.log("2. <strong>🔨 ENGINEER</strong> (Forge of Phlegethon) - Attack.", "danger");
+                this.log("3. <strong>📜 HISTORIAN</strong> (Library of Styx) - Defense.", "msg-npc");
                 GameState.mode = "INTRO";
             },
 
             log: function(text, type = "narrator") {
                 const term = document.getElementById('terminal');
+                if(!term) return;
                 const entry = document.createElement('div');
                 entry.className = `log-entry msg-${type}`;
                 entry.innerHTML = text;
@@ -471,12 +433,8 @@
                 if (sel) {
                     const m = Majors[sel];
                     GameState.player.major = sel;
-                    GameState.player.theory += m.bonus.theory || 0;
-                    GameState.player.rhetoric += m.bonus.rhetoric || 0;
-                    GameState.player.dialect += m.bonus.dialect || 0;
-                    GameState.player.maxPsyche += m.bonus.psyche || 0;
+                    Object.assign(GameState.player, m.bonus);
                     GameState.player.psyche = GameState.player.maxPsyche;
-                    GameState.player.maxTechne += m.bonus.techne || 0;
                     GameState.player.techne = GameState.player.maxTechne;
                     this.log(`<br>Enrolled in <strong>${m.name}</strong>.`, "system");
                     setTimeout(() => {
@@ -486,6 +444,158 @@
                         this.updateHUD();
                     }, 1000);
                 } else { this.log("Invalid selection.", "danger"); }
+            },
+
+            exploreInput: function(cmd) {
+                const loc = World[GameState.player.location];
+                if (["n", "north"].includes(cmd)) this.move("north");
+                else if (["s", "south"].includes(cmd)) this.move("south");
+                else if (["e", "east"].includes(cmd)) this.move("east");
+                else if (["w", "west"].includes(cmd)) this.move("west");
+                else if (["look", "l"].includes(cmd)) {
+                    this.log(`<strong>[${loc.name}]</strong>`, "system");
+                    this.log(loc.desc, "narrator");
+                    if (loc.npc) this.log(`<strong>${NPCs[loc.npc].name}</strong> is here.`, "narrator");
+                    if (loc.interact) this.log(`✨ There is a <strong>${loc.interact.type}</strong> here.`, "msg-player");
+                }
+                else if (["interact", "use"].includes(cmd)) {
+                    if (loc.interact) {
+                        if (loc.interact.item && !GameState.player.citations.includes(loc.interact.item)) {
+                            GameState.player.citations.push(loc.interact.item);
+                            this.log(`🎉 Obtained Citation: <strong>${Citations[loc.interact.item].name}</strong>`, "msg-system");
+                        } else {
+                            this.log(loc.interact.text, "msg-magic");
+                        }
+                    } else this.log("Nothing to use.", "narrator");
+                }
+                else if (["talk", "t"].includes(cmd)) {
+                    if (loc.npc) {
+                        const npc = NPCs[loc.npc];
+                        if (npc.hostile) { this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "msg-npc"); this.startCombat(loc.npc); }
+                        else this.showDialogue(npc, "start");
+                    } else this.log("No one here.", "narrator");
+                }
+                else if (["inv", "i"].includes(cmd)) {
+                    this.log(`🎒 Inventory: ${GameState.player.inventory.join(", ")}`, "system");
+                    if (GameState.player.citations.length) this.log(`📜 Citations: ${GameState.player.citations.map(c => Citations[c].name).join(", ")}`, "msg-magic");
+                }
+                else this.log("Unknown command.", "system");
+            },
+
+            move: function(dir) {
+                const loc = World[GameState.player.location];
+                if (loc.exits[dir]) {
+                    GameState.player.location = loc.exits[dir];
+                    this.log(`🏃 Traversing ${dir}...`, "narrator");
+                    if (GameState.player.location === "woodbridge") { this.triggerEndgame(); return; }
+                    this.handleInput("look");
+                    this.checkEncounter();
+                } else this.log("⛔ Blocked.", "danger");
+                this.updateHUD();
+            },
+
+            checkEncounter: function() {
+                const loc = World[GameState.player.location];
+                if (loc.encounterRate && Math.random() < loc.encounterRate) {
+                    const en = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
+                    this.startCombat(en);
+                }
+            },
+
+            triggerEndgame: function() {
+                this.log("<br><strong>⚠️ CRITICAL ALERT</strong>", "danger");
+                this.log("The Provost descends. 'SUBMIT.'", "msg-npc");
+                setTimeout(() => this.startCombat("The Provost"), 2000);
+            },
+
+            startCombat: function(key) {
+                GameState.mode = "COMBAT";
+                this.toggleControls(true);
+                const t = Bestiary[key];
+                GameState.combat.target = { ...t, name: key, currentHp: t.hp };
+                GameState.combat.enemyStatus = null;
+                this.log(`<br><strong>⚔️ COMBAT: ${key}</strong>`, "danger");
+                this.log(`<em>${t.desc}</em>`, "narrator");
+            },
+
+            combatInput: function(cmd) {
+                const p = GameState.player;
+                const e = GameState.combat.target;
+
+                if (["argue", "a"].includes(cmd)) {
+                    const dmg = Math.max(1, p.rhetoric - (e.def / 2) + Math.floor(Math.random() * 3));
+                    e.currentHp -= dmg;
+                    GameState.combat.enemyStatus = "EXPOSED";
+                    this.log(`🗣️ Argue: <span class='pop-text'>${dmg}</span> dmg. Enemy is <strong>EXPOSED</strong>.`, "player");
+                    this.nextTurn();
+                } 
+                else if (["logic", "m"].includes(cmd)) {
+                    if (p.techne >= 3) {
+                        p.techne -= 3;
+                        let mult = (GameState.combat.enemyStatus === "EXPOSED") ? 2.5 : 1;
+                        const dmg = Math.floor(Math.max(1, (p.theory * 2) - (e.def / 2)) * mult);
+                        e.currentHp -= dmg;
+                        if (mult > 1) { 
+                            this.log("<strong>💥 SYNERGY!</strong>", "msg-magic"); 
+                            document.body.classList.add('crit-flash');
+                            setTimeout(() => document.body.classList.remove('crit-flash'), 300);
+                            GameState.combat.enemyStatus = null; 
+                        }
+                        this.log(`✨ Logic: <span class='pop-text'>${dmg}</span> dmg.`, "msg-magic");
+                        this.nextTurn();
+                    } else this.log("⚠️ Need Techne.", "danger");
+                }
+                else if (["cite", "c"].includes(cmd)) {
+                    if (e.boss) {
+                        if (e.name.includes("Nephele") && p.citations.includes("OLD_CODE")) { e.currentHp -= 50; this.log("📜 Cited 'First Commit'!", "msg-magic"); }
+                        else if (e.name.includes("Hephaestus") && p.citations.includes("ROOT_ACCESS")) { e.currentHp -= 50; this.log("🔑 Used 'Root Access'!", "msg-magic"); }
+                        else if (e.name.includes("Pontus") && p.citations.includes("GRANT_LETTER")) { e.currentHp -= 50; this.log("💰 Used 'Infinite Grant'!", "msg-magic"); }
+                        else this.log("❌ No relevant citation.", "narrator");
+                        this.nextTurn();
+                    } else this.log("❌ Only works on Archons.", "narrator");
+                }
+                else if (["flee"].includes(cmd)) {
+                    if (Math.random() > 0.5) { this.log("🏃 Escaped.", "system"); this.endCombat(false); }
+                    else { this.log("🚫 Failed to escape.", "danger"); this.enemyTurn(); }
+                }
+                else this.log("Cmds: ARGUE, LOGIC, CITE, FLEE", "system");
+                this.updateHUD();
+            },
+
+            nextTurn: function() {
+                if (GameState.combat.target.currentHp <= 0) {
+                    this.log("🏆 Victory.", "msg-player");
+                    this.endCombat(true);
+                } else this.enemyTurn();
+            },
+
+            enemyTurn: function() {
+                setTimeout(() => {
+                    const p = GameState.player;
+                    const e = GameState.combat.target;
+                    const dmg = Math.max(1, e.att - (p.dialect / 2));
+                    p.psyche -= dmg;
+                    document.body.classList.add('shake-screen');
+                    setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+                    this.log(`💥 ${e.name} attacks! -${dmg} Psyche.`, "danger");
+                    if (p.psyche <= 0) { this.log("💀 DROPPED OUT.", "danger"); }
+                    this.updateHUD();
+                }, 600);
+            },
+
+            endCombat: function(won) {
+                const e = GameState.combat.target;
+                GameState.mode = "EXPLORE";
+                GameState.combat.target = null;
+                this.toggleControls(false);
+                if (won) {
+                    GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 5);
+                    if (e.name === "The Provost") this.triggerVictory();
+                    else if (e.boss) {
+                        this.log(`💾 Memory Unlocked.`, "msg-magic");
+                    }
+                }
+                this.updateHUD();
             },
 
             dialogueInput: function(cmd) {
@@ -507,169 +617,9 @@
                 } else { GameState.mode = "EXPLORE"; }
             },
 
-            exploreInput: function(cmd) {
-                const loc = World[GameState.player.location];
-                if (["n", "north"].includes(cmd)) this.move("north");
-                else if (["s", "south"].includes(cmd)) this.move("south");
-                else if (["e", "east"].includes(cmd)) this.move("east");
-                else if (["w", "west"].includes(cmd)) this.move("west");
-                else if (["look", "l"].includes(cmd)) {
-                    this.log(`<strong>[${loc.name}]</strong>`, "system");
-                    let desc = loc.desc;
-                    if (GameState.player.psyche < 10) desc += " <span style='color:#f55'>Reality is bleeding.</span>";
-                    this.log(desc, "narrator");
-                    if (loc.npc) this.log(`<strong>${NPCs[loc.npc].name}</strong> is here.`, "narrator");
-                    if (loc.interact) this.log(`There is a <strong>${loc.interact.type}</strong> here.`, "msg-player");
-                }
-                else if (["interact", "use"].includes(cmd)) {
-                    if (loc.interact) {
-                        this.log(loc.interact.text, "msg-magic");
-                        if (loc.interact.item && !GameState.player.citations.includes(loc.interact.item)) {
-                            GameState.player.citations.push(loc.interact.item);
-                            this.log(`Obtained Citation: <strong>${Citations[loc.interact.item].name}</strong>`, "msg-system");
-                        }
-                    } else this.log("Nothing to use.", "narrator");
-                }
-                else if (["talk", "t"].includes(cmd)) {
-                    if (loc.npc) {
-                        const npc = NPCs[loc.npc];
-                        if (npc.hostile) { this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "msg-npc"); this.startCombat(loc.npc); }
-                        else this.showDialogue(npc, "start");
-                    } else this.log("No one here.", "narrator");
-                }
-                else if (["inv", "i"].includes(cmd)) {
-                    this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
-                    if (GameState.player.citations.length) this.log(`Citations: ${GameState.player.citations.map(c => Citations[c].name).join(", ")}`, "msg-magic");
-                }
-                else this.log("Commands: LOOK, USE, TALK, INV, [N/S/E/W]", "system");
-            },
-
-            move: function(dir) {
-                const loc = World[GameState.player.location];
-                if (loc.exits[dir]) {
-                    GameState.player.location = loc.exits[dir];
-                    this.log(`Traversing ${dir}...`, "narrator");
-                    if (GameState.player.location === "woodbridge") { this.triggerEndgame(); return; }
-                    this.handleInput("look");
-                    this.checkEncounter();
-                } else this.log("Blocked.", "danger");
-                this.updateHUD();
-            },
-
-            checkEncounter: function() {
-                const loc = World[GameState.player.location];
-                if (loc.encounterRate && Math.random() < loc.encounterRate) {
-                    const en = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
-                    this.startCombat(en);
-                } else if (Math.random() > 0.7) {
-                    this.log(`<span style="color:#5f5">// GLITCH:</span> ${GlitchEvents[Math.floor(Math.random() * GlitchEvents.length)]}`, "narrator");
-                }
-            },
-
-            triggerEndgame: function() {
-                this.log("<br><strong>--- CRITICAL ALERT ---</strong>", "danger");
-                this.log("The Provost descends. 'SUBMIT.'", "msg-npc");
-                setTimeout(() => this.startCombat("The Provost"), 2000);
-            },
-
-            startCombat: function(key) {
-                GameState.mode = "COMBAT";
-                this.toggleControls(true);
-                const t = Bestiary[key];
-                GameState.combat.target = { ...t, name: key, currentHp: t.hp };
-                GameState.combat.enemyStatus = null;
-                this.log(`<br><strong>COMBAT: ${key}</strong>`, "danger");
-                this.log(`<em>${t.desc}</em>`, "narrator");
-            },
-
-            combatInput: function(cmd) {
-                const p = GameState.player;
-                const e = GameState.combat.target;
-
-                if (["argue", "a"].includes(cmd)) {
-                    const dmg = Math.max(1, p.rhetoric - (e.def / 2) + Math.floor(Math.random() * 3));
-                    e.currentHp -= dmg;
-                    GameState.combat.enemyStatus = "EXPOSED";
-                    this.log(`Argue: ${dmg} dmg. Enemy is <strong>EXPOSED</strong>.`, "player");
-                    this.nextTurn();
-                } 
-                else if (["logic", "m"].includes(cmd)) {
-                    if (p.techne >= 3) {
-                        p.techne -= 3;
-                        let mult = (GameState.combat.enemyStatus === "EXPOSED") ? 2.5 : 1;
-                        const dmg = Math.floor(Math.max(1, (p.theory * 2) - (e.def / 2)) * mult);
-                        e.currentHp -= dmg;
-                        if (mult > 1) { this.log("<strong>SYNERGY!</strong>", "msg-magic"); GameState.combat.enemyStatus = null; }
-                        this.log(`Logic: ${dmg} dmg.`, "msg-magic");
-                        this.nextTurn();
-                    } else this.log("Need Techne.", "danger");
-                }
-                else if (["cite", "c"].includes(cmd)) {
-                    if (e.boss) {
-                        if (e.name.includes("Nephele") && p.citations.includes("OLD_CODE")) { e.currentHp -= 50; this.log("Cited 'First Commit'!", "msg-magic"); }
-                        else if (e.name.includes("Hephaestus") && p.citations.includes("ROOT_ACCESS")) { e.currentHp -= 50; this.log("Used 'Root Access'!", "msg-magic"); }
-                        else if (e.name.includes("Pontus") && p.citations.includes("GRANT_LETTER")) { e.currentHp -= 50; this.log("Used 'Infinite Grant'!", "msg-magic"); }
-                        else this.log("No relevant citation.", "narrator");
-                        this.nextTurn();
-                    } else this.log("Only works on Archons.", "narrator");
-                }
-                else if (["flee"].includes(cmd)) {
-                    if (Math.random() > 0.5) { this.log("Escaped.", "system"); this.endCombat(false); }
-                    else { this.log("Failed to escape.", "danger"); this.enemyTurn(); }
-                }
-                else this.log("Cmds: ARGUE, LOGIC, CITE, FLEE", "system");
-                this.updateHUD();
-            },
-
-            nextTurn: function() {
-                if (GameState.combat.target.currentHp <= 0) {
-                    this.log("Victory.", "msg-player");
-                    this.endCombat(true);
-                } else this.enemyTurn();
-            },
-
-            enemyTurn: function() {
-                setTimeout(() => {
-                    const p = GameState.player;
-                    const e = GameState.combat.target;
-                    const dmg = Math.max(1, e.att - (p.dialect / 2));
-                    p.psyche -= dmg;
-                    document.body.classList.add('shake-screen');
-                    setTimeout(() => document.body.classList.remove('shake-screen'), 500);
-                    this.log(`${e.name} attacks! -${dmg} Psyche.`, "danger");
-                    if (p.psyche <= 0) { this.log("DROPPED OUT.", "danger"); }
-                    this.updateHUD();
-                }, 600);
-            },
-
-            endCombat: function(won) {
-                const e = GameState.combat.target;
-                GameState.mode = "EXPLORE";
-                GameState.combat.target = null;
-                this.toggleControls(false);
-                if (won) {
-                    GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 5);
-                    if (e.name === "The Provost") this.triggerVictory();
-                    else if (e.boss) {
-                        const frag = this.getMemory(e.name);
-                        this.log(`Memory: "${frag}"`, "msg-magic");
-                        GameState.player.memories.push(frag);
-                    }
-                }
-                this.updateHUD();
-            },
-
-            getMemory: function(name) {
-                if (name.includes("Nephele")) return "We tried to upload ourselves to the Cloud.";
-                if (name.includes("Pontus")) return "The River is just coolant.";
-                if (name.includes("Hephaestus")) return "We replaced hearts with GPUs.";
-                if (name.includes("Persephone")) return "Silence is the only output.";
-                return "Unknown Data.";
-            },
-
             triggerVictory: function() {
                 setTimeout(() => {
-                    document.body.innerHTML = "<h1 style='color:gold;text-align:center;margin-top:20%'>GRADUATION COMPLETE</h1><p style='color:white;text-align:center'>Cycle Broken.</p>";
+                    document.body.innerHTML = "<h1 style='color:gold;text-align:center;margin-top:20%'>🎓 GRADUATION COMPLETE</h1><p style='color:white;text-align:center'>Cycle Broken.</p>";
                 }, 2000);
             },
 
@@ -681,7 +631,7 @@
             updateHUD: function() {
                 document.getElementById('hp-val').innerText = `${GameState.player.psyche}/${GameState.player.maxPsyche}`;
                 document.getElementById('mp-val').innerText = `${GameState.player.techne}/${GameState.player.maxTechne}`;
-                document.getElementById('location-display').innerText = World[GameState.player.location].name;
+                document.getElementById('location-display').innerText = World[GameState.player.location].name.substring(2);
             }
         };
 
