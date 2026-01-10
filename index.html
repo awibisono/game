@@ -9,7 +9,7 @@
 
         :root {
             --bg-color: #050508;
-            --term-color: rgba(17, 17, 22, 0.7); /* Transparent for Glassmorphism */
+            --term-color: rgba(17, 17, 22, 0.75);
             --text-color: #d0d0e0;
             --accent-color: #88ccff;
             --highlight-color: #ffd700;
@@ -34,7 +34,6 @@
             position: relative;
         }
 
-        /* --- ANIMATED BACKGROUND --- */
         #bg-canvas {
             position: absolute;
             top: 0; left: 0;
@@ -44,7 +43,6 @@
             pointer-events: none;
         }
 
-        /* --- CRT SCANLINE EFFECT --- */
         body::before {
             content: " ";
             display: block;
@@ -56,7 +54,6 @@
             pointer-events: none;
         }
         
-        /* Shake Animation for Damage */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -68,11 +65,8 @@
             100% { transform: translate(0, 0); }
         }
 
-        .shake-screen {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
+        .shake-screen { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* --- HUD (Glassmorphism) --- */
         #hud {
             background-color: var(--term-color);
             backdrop-filter: blur(10px);
@@ -102,7 +96,6 @@
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
         }
 
-        /* --- TERMINAL (Game Log) --- */
         #terminal {
             flex-grow: 1;
             padding: 20px;
@@ -111,12 +104,11 @@
             flex-direction: column;
             gap: 12px;
             scroll-behavior: smooth;
-            background-color: transparent; /* Transparent to see particles */
+            background-color: transparent;
             position: relative;
             z-index: 1;
         }
 
-        /* Custom Scrollbar */
         #terminal::-webkit-scrollbar { width: 8px; }
         #terminal::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
         #terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
@@ -126,7 +118,7 @@
             opacity: 0; 
             animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
             line-height: 1.6;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8); /* Better contrast against particles */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
         @keyframes fadeIn { 
@@ -141,7 +133,6 @@
         .msg-magic { color: var(--magic-color); text-shadow: 0 0 8px rgba(224, 170, 255, 0.5); }
         .msg-system { color: #66ff66; font-size: 0.9em; font-family: var(--font-code); opacity: 0.9; text-shadow: 0 0 5px rgba(0, 255, 0, 0.3); }
 
-        /* --- CONTROLS (Glassmorphism) --- */
         #controls {
             background-color: var(--term-color);
             backdrop-filter: blur(10px);
@@ -156,10 +147,7 @@
             box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        #input-line {
-            display: flex;
-            gap: 10px;
-        }
+        #input-line { display: flex; gap: 10px; }
 
         #cmd-input {
             flex-grow: 1;
@@ -188,7 +176,6 @@
         #send-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
         #send-btn:active { transform: scale(0.95); }
 
-        /* --- MOBILE BUTTON GRID --- */
         #quick-actions {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -220,15 +207,10 @@
             border-color: rgba(255, 255, 255, 0.3);
         }
 
-        .btn:active { 
-            transform: translateY(2px); 
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); 
-        }
-
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
         .btn-move { border-bottom: 2px solid #557; }
         .btn-act { border-bottom: 2px solid #755; color: #ffcccc; }
         
-        /* Combat Buttons Glow */
         .btn-combat { 
             background: linear-gradient(145deg, rgba(80, 40, 40, 0.8), rgba(60, 20, 20, 0.8)); 
             border-color: #f55; 
@@ -244,7 +226,6 @@
             100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); border-color: #f55; }
         }
 
-        /* Media Query for larger screens */
         @media (min-width: 768px) {
             .container { max-width: 800px; margin: 0 auto; border: 1px solid #333; height: 90vh; margin-top: 5vh; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
             body { background-color: #020202; justify-content: center; align-items: center; }
@@ -256,10 +237,8 @@
 </head>
 <body>
 
-    <!-- ANIMATED BACKGROUND -->
     <canvas id="bg-canvas"></canvas>
 
-    <!-- HUD -->
     <div id="hud">
         <div class="stat-box">
             <div><span class="stat-label">Psyche</span> <span id="hp-val" class="val-hp">30/30</span></div>
@@ -268,31 +247,23 @@
         <div id="location-display">Sterling Library</div>
     </div>
 
-    <!-- TERMINAL LOG -->
-    <div id="terminal" id="log-container">
-        <!-- Text gets injected here -->
-    </div>
+    <div id="terminal" id="log-container"></div>
 
-    <!-- CONTROLS -->
     <div id="controls">
-        <!-- Quick Action Buttons for Mobile/Tablet -->
         <div id="quick-actions">
-            <!-- Exploration Buttons -->
             <button class="btn btn-move expl-btn" onclick="engine.handleInput('north')">N</button>
             <button class="btn btn-move expl-btn" onclick="engine.handleInput('south')">S</button>
             <button class="btn btn-move expl-btn" onclick="engine.handleInput('west')">W</button>
             <button class="btn btn-move expl-btn" onclick="engine.handleInput('east')">E</button>
             <button class="btn expl-btn" onclick="engine.handleInput('look')">Look</button>
-            <button class="btn expl-btn" onclick="engine.handleInput('talk')">Talk</button>
+            <button class="btn expl-btn" onclick="engine.handleInput('interact')">Use</button>
             
-            <!-- Combat Buttons -->
             <button class="btn btn-combat" onclick="engine.handleInput('argue')">Argue</button>
             <button class="btn btn-combat" onclick="engine.handleInput('logic')">Logic</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('thesis')">Thesis</button>
+            <button class="btn btn-combat" onclick="engine.handleInput('cite')">Cite</button>
             <button class="btn btn-combat" onclick="engine.handleInput('flee')">Flee</button>
         </div>
 
-        <!-- Text Input Line -->
         <div id="input-line">
             <input type="text" id="cmd-input" placeholder="Enter command..." autocomplete="off">
             <button id="send-btn" onclick="submitCommand()">RUN</button>
@@ -300,32 +271,21 @@
     </div>
 
     <script>
-        // --- BACKGROUND ANIMATION ---
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
+        let width, height, particles = [];
 
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
         class Particle {
             constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.size = Math.random() * 2 + 1;
-                this.speedY = Math.random() * 0.5 + 0.1;
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 1; this.speedY = Math.random() * 0.5 + 0.1;
                 this.opacity = Math.random() * 0.5 + 0.1;
-                this.char = String.fromCharCode(0x0370 + Math.random() * 80); // Greek characters
+                this.char = String.fromCharCode(0x0370 + Math.random() * 80);
             }
             update() {
-                this.y -= this.speedY; // Float up
-                if (this.y < 0) {
-                    this.y = height;
-                    this.x = Math.random() * width;
-                }
+                this.y -= this.speedY; 
+                if (this.y < 0) { this.y = height; this.x = Math.random() * width; }
             }
             draw() {
                 ctx.fillStyle = `rgba(136, 204, 255, ${this.opacity})`;
@@ -333,235 +293,153 @@
                 ctx.fillText(this.char, this.x, this.y);
             }
         }
+        function initParticles() { particles = []; for (let i = 0; i < 50; i++) particles.push(new Particle()); }
+        function animate() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
+        window.addEventListener('resize', resize); resize(); initParticles(); animate();
 
-        function initParticles() {
-            particles = [];
-            for (let i = 0; i < 50; i++) particles.push(new Particle());
-        }
+        const ELEMENTS = { FIRE: "Phlegethon", ICE: "Cocytus", SKY: "Aether", VOID: "Styx" };
 
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-
-        window.addEventListener('resize', resize);
-        resize();
-        initParticles();
-        animate();
-
-        // --- CONSTANTS & CONFIG ---
-
-        const ELEMENTS = {
-            FIRE: "Phlegethon", 
-            ICE: "Cocytus",     
-            SKY: "Aether",      
-            VOID: "Styx"        
-        };
-
-        // --- GAME STATE ---
         const GameState = {
-            mode: "INTRO", // INTRO, EXPLORE, COMBAT, DIALOGUE
+            mode: "INTRO",
             player: {
-                name: "Neophyte",
-                major: null, // "THEORIST", "ENGINEER", "HISTORIAN"
-                // Base Stats (Will be modified by Major)
-                psyche: 30, maxPsyche: 30, 
-                techne: 15, maxTechne: 15,
-                rhetoric: 5,
-                dialect: 3,
-                theory: 4,
-                latency: 10,
-                memories: [], // Unlocked lore fragments
-                inventory: ["Student ID"],
-                location: "hub"
+                name: "Neophyte", major: null,
+                psyche: 30, maxPsyche: 30, techne: 15, maxTechne: 15,
+                rhetoric: 5, dialect: 3, theory: 4, latency: 10,
+                memories: [], citations: [], inventory: ["Student ID"], location: "hub"
             },
-            combat: {
-                target: null,
-                turn: 0
-            },
-            dialogue: {
-                npc: null,
-                node: "start"
-            },
-            flags: {
-                metDan: false,
-                cycleCount: 2048,
-            }
+            combat: { target: null, turn: 0, enemyStatus: null },
+            dialogue: { npc: null, node: "start" },
+            flags: { metDan: false, cycleCount: 2049 }
         };
 
-        const Memories = [
-            "LOG 0x01: I remember... sunlight? No, it was the glow of a monitor. I was writing a thesis on 'Recursive Soul Generation'.",
-            "LOG 0x0A: The Provost isn't a person. It's a cleanup script. It deletes 'Graduates' to free up memory.",
-            "LOG 0xFF: I am not a student. I am the Exception Handler. I was sent here to catch the error that broke the world."
-        ];
+        const Citations = {
+            "OLD_CODE": { name: "The First Commit", desc: "An ancient scroll signed by the Founders. Breaks Tradition." },
+            "ROOT_ACCESS": { name: "Root Access Key", desc: "A forbidden cryptographic key. Bypasses Firewalls." },
+            "GRANT_LETTER": { name: "The Infinite Grant", desc: "A promise of endless funding. Distracts Administrators." }
+        };
 
         const Majors = {
-            "THEORIST": {
-                name: "College of Aether (Theory)",
-                desc: "Followers of Pure Logic. High Magic (Theory), Low Defense.",
-                bonus: { theory: 3, techne: 5, dialect: -1 }
-            },
-            "ENGINEER": {
-                name: "Forge of Phlegethon (Systems)",
-                desc: "Builders of the Hard Iron. High Attack (Rhetoric), Low Speed.",
-                bonus: { rhetoric: 3, psyche: 10, latency: 2 }
-            },
-            "HISTORIAN": {
-                name: "Library of Styx (Legacy)",
-                desc: "Keepers of the Old Code. High Defense (Dialect), Balanced.",
-                bonus: { dialect: 3, psyche: 5, techne: 5 }
-            }
+            "THEORIST": { name: "College of Aether", desc: "Followers of Pure Logic. High Magic.", bonus: { theory: 3, techne: 5, dialect: -1 } },
+            "ENGINEER": { name: "Forge of Phlegethon", desc: "Builders of the Hard Iron. High Attack.", bonus: { rhetoric: 3, psyche: 10, latency: 2 } },
+            "HISTORIAN": { name: "Library of Styx", desc: "Keepers of the Old Code. High Defense.", bonus: { dialect: 3, psyche: 5, techne: 5 } }
         };
 
         const World = {
             "hub": {
                 name: "The Great Hall of Harkness",
-                desc: "You stand in the central hub. To the NORTH is the Sky Spire. To the SOUTH is the Sunken Library. To the EAST is the Silicon Furnace. To the WEST is the Crypt.",
+                desc: "The floor is polished obsidian, reflecting a sky that isn't there.",
                 exits: { "north": "sky_gate", "south": "sea_gate", "east": "fire_gate", "west": "spirit_gate" },
                 npc: "Cerberus Dan",
-                encounterRate: 0
+                interact: { type: "statue", text: "A statue of a bulldog. The plaque reads: 'Loyalty is the only constant.'", item: null }
             },
             "sky_gate": {
-                name: "Gate of Aether",
-                desc: "A floating platform. Clouds swirl. The Spire rises infinitely.",
-                exits: { "south": "hub", "north": "cloud_campus" },
-                encounterRate: 0.3,
-                enemies: ["Syntax Harpy"]
+                name: "Gate of Aether", desc: "A platform floating in a sea of white noise.",
+                exits: { "south": "hub", "north": "cloud_campus" }, encounterRate: 0.3, enemies: ["Syntax Harpy"]
             },
             "cloud_campus": {
-                name: "The Cloud Campus",
-                desc: "Data packets rain like hail. The air smells of ozone.",
-                exits: { "south": "sky_gate", "north": "spire_top" },
-                encounterRate: 0.5,
-                enemies: ["Syntax Harpy", "Cloud Demon"]
+                name: "The Cloud Campus", desc: "Towers of server racks rise into the mist.",
+                exits: { "south": "sky_gate", "north": "spire_top" }, encounterRate: 0.5, enemies: ["Syntax Harpy", "Cloud Demon"],
+                interact: { type: "server", text: "A rack glows. You download a citation.", item: "OLD_CODE" }
             },
             "spire_top": {
-                name: "Peak of the Spire",
-                desc: "You are at the edge of the atmosphere.",
-                exits: { "south": "cloud_campus" },
-                npc: "Prof. Nephele"
+                name: "Peak of the Spire", desc: "The air is thin. Logic breaks down here.",
+                exits: { "south": "cloud_campus" }, npc: "Prof. Nephele"
             },
             "sea_gate": {
-                name: "The Sunken Library Entry",
-                desc: "Steps lead down into dark water.",
-                exits: { "north": "hub", "south": "river_styx" },
-                encounterRate: 0.3,
-                enemies: ["Memory Minotaur"]
+                name: "The Sunken Library", desc: "Steps lead down into dark water.",
+                exits: { "north": "hub", "south": "river_styx" }, encounterRate: 0.3, enemies: ["Memory Minotaur"]
             },
             "river_styx": {
-                name: "The River Styx",
-                desc: "Black water flows through the corridors.",
-                exits: { "north": "sea_gate", "south": "abyssal_lab" },
-                encounterRate: 0.5,
-                enemies: ["Memory Minotaur", "Leakage Spirit"]
+                name: "The River Styx", desc: "Black water flows through the corridors.",
+                exits: { "north": "sea_gate", "south": "abyssal_lab" }, encounterRate: 0.5, enemies: ["Memory Minotaur", "Leakage Spirit"]
             },
             "abyssal_lab": {
-                name: "The Abyssal Lab",
-                desc: "Bioluminescent specimens float in jars.",
-                exits: { "north": "river_styx" },
-                npc: "Coach Pontus"
+                name: "The Abyssal Lab", desc: "Bioluminescent specimens float in jars.",
+                exits: { "north": "river_styx" }, npc: "Coach Pontus",
+                interact: { type: "desk", text: "A waterproof safe. Inside is a grant letter.", item: "GRANT_LETTER" }
             },
             "fire_gate": {
-                name: "Entrance to Phlegethon",
-                desc: "The heat is oppressive.",
-                exits: { "west": "hub", "east": "silicon_furnace" },
-                encounterRate: 0.3,
-                enemies: ["Overheat Imp"]
+                name: "Entrance to Phlegethon", desc: "The heat smells of burning silicon.",
+                exits: { "west": "hub", "east": "silicon_furnace" }, encounterRate: 0.3, enemies: ["Overheat Imp"]
             },
             "silicon_furnace": {
-                name: "The Silicon Furnace",
-                desc: "Lava flows in circuit patterns.",
-                exits: { "west": "fire_gate", "east": "core_foundry" },
-                encounterRate: 0.5,
-                enemies: ["Overheat Imp", "Slag Golem"]
+                name: "The Silicon Furnace", desc: "Rivers of molten gold flow.",
+                exits: { "west": "fire_gate", "east": "core_foundry" }, encounterRate: 0.5, enemies: ["Slag Golem"],
+                interact: { type: "forge", text: "You find a key in the ash.", item: "ROOT_ACCESS" }
             },
             "core_foundry": {
-                name: "The Core Foundry",
-                desc: "The heart of the machine.",
-                exits: { "west": "silicon_furnace" },
-                npc: "Dean Hephaestus"
+                name: "The Core Foundry", desc: "The heart of the machine.",
+                exits: { "west": "silicon_furnace" }, npc: "Dean Hephaestus"
             },
             "spirit_gate": {
-                name: "Crypt of Erebus",
-                desc: "The light fades here.",
-                exits: { "east": "hub", "west": "null_void" },
-                encounterRate: 0.3,
-                enemies: ["Null Shade"]
+                name: "Crypt of Erebus", desc: "The light fades here.",
+                exits: { "east": "hub", "west": "null_void" }, encounterRate: 0.3, enemies: ["Null Shade"]
             },
             "null_void": {
-                name: "The Null Void",
-                desc: "Pointers reference nothing here.",
-                exits: { "east": "spirit_gate", "west": "necropolis" },
-                encounterRate: 0.5,
-                enemies: ["Null Shade", "Segmentation Ghost"]
+                name: "The Null Void", desc: "Pointers reference nothing here.",
+                exits: { "east": "spirit_gate", "west": "necropolis" }, encounterRate: 0.5, enemies: ["Null Shade", "Segmentation Ghost"]
             },
             "necropolis": {
-                name: "The Sterling Necropolis",
-                desc: "Rows of tombstones labeled with deprecated functions.",
-                exits: { "east": "null_void" },
-                npc: "Librarian Persephone"
+                name: "The Sterling Necropolis", desc: "Rows of tombstones labeled with deprecated functions.",
+                exits: { "east": "null_void" }, npc: "Librarian Persephone"
+            },
+            "woodbridge": {
+                name: "Woodbridge Hall", desc: "The final chamber. A desk stretches to infinity.",
+                exits: { "south": "hub" }, npc: "The Provost"
             }
         };
 
         const Bestiary = {
-            "Syntax Harpy": { hp: 20, att: 4, def: 2, element: ELEMENTS.SKY, xp: 10, desc: "A screeching bird made of broken brackets." },
-            "Memory Minotaur": { hp: 35, att: 6, def: 4, element: ELEMENTS.ICE, xp: 20, desc: "A beast wandering the labyrinth of the heap." },
-            "Overheat Imp": { hp: 15, att: 8, def: 1, element: ELEMENTS.FIRE, xp: 10, desc: "A fast, burning glitch." },
-            "Null Shade": { hp: 25, att: 5, def: 5, element: ELEMENTS.VOID, xp: 15, desc: "A shadow that consumes data." },
+            "Syntax Harpy": { hp: 20, att: 4, def: 2, xp: 10, desc: "A screeching bird made of broken brackets." },
+            "Memory Minotaur": { hp: 35, att: 6, def: 4, xp: 20, desc: "A beast wandering the labyrinth of the heap." },
+            "Overheat Imp": { hp: 15, att: 8, def: 1, xp: 10, desc: "A fast, burning glitch." },
+            "Null Shade": { hp: 25, att: 5, def: 5, xp: 15, desc: "A shadow that consumes data." },
+            "Slag Golem": { hp: 40, att: 7, def: 6, xp: 25, desc: "Molten hardware given form." },
+            "Cloud Demon": { hp: 30, att: 6, def: 3, xp: 20, desc: "A storm of unhandled exceptions." },
+            "Leakage Spirit": { hp: 20, att: 5, def: 2, xp: 15, desc: "Drips memory onto the floor." },
+            "Segmentation Ghost": { hp: 25, att: 6, def: 4, xp: 20, desc: "Splits into two when hit." },
             // Archons
-            "Prof. Nephele": { hp: 100, att: 12, def: 8, element: ELEMENTS.SKY, boss: true, desc: "Archon of the Cloud." },
-            "Coach Pontus": { hp: 120, att: 10, def: 10, element: ELEMENTS.ICE, boss: true, desc: "Archon of the Stream." },
-            "Dean Hephaestus": { hp: 140, att: 15, def: 12, element: ELEMENTS.FIRE, boss: true, desc: "Archon of the Forge." },
-            "Librarian Persephone": { hp: 90, att: 18, def: 5, element: ELEMENTS.VOID, boss: true, desc: "Archon of the Deep." }
+            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "Archon of the Cloud." },
+            "Coach Pontus": { hp: 120, att: 10, def: 10, boss: true, desc: "Archon of the Stream." },
+            "Dean Hephaestus": { hp: 140, att: 15, def: 12, boss: true, desc: "Archon of the Forge." },
+            "Librarian Persephone": { hp: 90, att: 18, def: 5, boss: true, desc: "Archon of the Deep." },
+            "The Provost": { hp: 200, att: 20, def: 15, boss: true, desc: "The Administrator of Endings." }
         };
 
         const NPCs = {
             "Cerberus Dan": {
                 name: "Cerberus Dan",
                 dialogue: {
-                    "start": {
-                        text: "Woof. Logic error detected. You are not authorized, yet you exist. Strange.",
-                        options: {
-                            "1": { text: "Who are you?", next: "who" },
-                            "2": { text: "Where am I?", next: "where" },
-                            "3": { text: "Pet the dog.", next: "pet" }
-                        }
-                    },
-                    "who": {
-                        text: "I am the Guardian of the Gateway. I sniff out bugs and bad pointers. You smell like... a memory leak.",
-                        options: { "1": { text: "Back.", next: "start" } }
-                    },
-                    "where": {
-                        text: "The Chthonic Kernel. The Underworld of deleted data. The Archons rule the sectors above.",
-                        options: { "1": { text: "Back.", next: "start" } }
-                    },
-                    "pet": {
-                        text: "*The three heads wage their tails in unison.* Access granted. Good Neophyte.",
-                        options: { "1": { text: "Back.", next: "start" } }
-                    }
+                    "start": { text: "Woof. You are an error. But a cute one.", options: { "1": { text: "Who are you?", next: "who" }, "2": { text: "Where am I?", next: "where" }, "3": { text: "Pet.", next: "pet" } } },
+                    "who": { text: "I guard the gateway. I eat bugs.", options: { "1": { text: "Back.", next: "start" } } },
+                    "where": { text: "The Kernel. The place where code goes to die.", options: { "1": { text: "Back.", next: "start" } } },
+                    "pet": { text: "*He wags all three tails.*", options: { "1": { text: "Back.", next: "start" } } }
                 }
             },
-            "Prof. Nephele": { name: "Archon Nephele", dialogue: ["You cannot comprehend the altitude of my intellect!", "PREPARE TO BE DEPRECATED!"], hostile: true },
-            "Coach Pontus": { name: "Archon Pontus", dialogue: ["Row for your life!", "I will drown you in work!"], hostile: true },
-            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["I forge engineers from the raw ore of freshmen!", "Burn!"], hostile: true },
-            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Shhh. Quiet hours.", "Fade into silence."], hostile: true },
-            "Provost of Entropy": { name: "The Provost", dialogue: ["Your thesis is due.", "End of Line."], hostile: true }
+            "Prof. Nephele": { name: "Archon Nephele", dialogue: ["My intellect is in the cloud!"], hostile: true },
+            "Coach Pontus": { name: "Archon Pontus", dialogue: ["Row! Or drown!"], hostile: true },
+            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["Burn in the forge!"], hostile: true },
+            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Silence."], hostile: true },
+            "The Provost": { name: "The Provost", dialogue: ["SUBMIT."], hostile: true }
         };
+
+        const GlitchEvents = [
+            "A fragment of a birthday party flashes before your eyes, then vanishes.",
+            "You find a Post-It note: 'TODO: Fix gravity in sector 7.'",
+            "A ghost made of static drifts past you.",
+            "The world renders in wireframe for a split second."
+        ];
 
         const Engine = {
             init: function() {
-                this.log("System Boot... Cycle #2049 Initiated.", "system");
+                this.log("System Boot... Cycle #2049.", "system");
                 this.log("Searching for <span style='color:var(--accent-color)'>User.Soul</span>... Found.", "system");
                 this.log("<br><strong>THE CHTHONIC KERNEL</strong>", "msg-player");
-                this.log("You drift in the void between 0 and 1. You are a Neophyte, a soul undefined.", "narrator");
-                this.log("To enter the University of the Dead, you must declare your Major.", "narrator");
-                
-                this.log("<br>Select your path:", "system");
-                this.log("1. <strong>THEORIST</strong> (College of Aether) - Power through Logic.", "msg-magic");
-                this.log("2. <strong>ENGINEER</strong> (Forge of Phlegethon) - Strength through Hardware.", "danger");
-                this.log("3. <strong>HISTORIAN</strong> (Library of Styx) - Endurance through Legacy.", "msg-npc");
-                
+                this.log("You drift in the void. You are a Neophyte, a soul undefined.", "narrator");
+                this.log("Select your Major:", "narrator");
+                this.log("1. <strong>THEORIST</strong> (College of Aether) - Logic/Magic.", "msg-magic");
+                this.log("2. <strong>ENGINEER</strong> (Forge of Phlegethon) - Hardware/Attack.", "danger");
+                this.log("3. <strong>HISTORIAN</strong> (Library of Styx) - Memory/Defense.", "msg-npc");
                 GameState.mode = "INTRO";
             },
 
@@ -569,274 +447,235 @@
                 const term = document.getElementById('terminal');
                 const entry = document.createElement('div');
                 entry.className = `log-entry msg-${type}`;
-                entry.innerHTML = text; // Allow HTML for formatting
+                entry.innerHTML = text;
                 term.appendChild(entry);
                 term.scrollTop = term.scrollHeight;
             },
 
-            // MAIN INPUT ROUTER
             handleInput: function(cmd) {
-                if (GameState.mode === "INTRO") {
-                    this.introInput(cmd);
-                    return;
-                }
-                
+                if (GameState.mode === "INTRO") { this.introInput(cmd); return; }
                 if (GameState.player.psyche <= 0) return;
-                
                 cmd = cmd.toLowerCase().trim();
                 if (!cmd) return;
-
-                if (GameState.mode === "DIALOGUE") {
-                    this.dialogueInput(cmd);
-                } else if (GameState.mode === "COMBAT") {
-                    this.combatInput(cmd);
-                } else {
-                    this.exploreInput(cmd);
-                }
+                if (GameState.mode === "DIALOGUE") this.dialogueInput(cmd);
+                else if (GameState.mode === "COMBAT") this.combatInput(cmd);
+                else this.exploreInput(cmd);
             },
 
-            // DIALOGUE SYSTEM
-            dialogueInput: function(cmd) {
-                const npc = GameState.dialogue.npc;
-                const node = GameState.dialogue.node;
-                const options = npc.dialogue[node].options;
-
-                if (options && options[cmd]) {
-                    const nextNode = options[cmd].next;
-                    this.showDialogue(npc, nextNode);
-                } else if (cmd.includes("bye") || cmd.includes("exit")) {
-                    this.log("You step away from the conversation.", "narrator");
-                    GameState.mode = "EXPLORE";
-                } else {
-                    this.log("Invalid option. Type the number.", "system");
-                }
-            },
-
-            showDialogue: function(npc, nodeKey) {
-                const node = npc.dialogue[nodeKey];
-                GameState.dialogue = { npc: npc, node: nodeKey };
-                GameState.mode = "DIALOGUE";
-
-                this.log(`<br>[${npc.name}]: "${node.text}"`, "msg-npc");
-                if (node.options) {
-                    for (const [key, opt] of Object.entries(node.options)) {
-                        this.log(`${key}. ${opt.text}`, "msg-player");
-                    }
-                    this.log("(Type the number to respond, or 'exit')", "system");
-                } else {
-                     GameState.mode = "EXPLORE"; // Auto-exit if no options
-                }
-            },
-
-            // INTRO / CHAR CREATION
             introInput: function(cmd) {
-                const choice = cmd.toLowerCase();
-                let selectedMajor = null;
+                let sel = null;
+                if (cmd.includes("1") || cmd.includes("theo")) sel = "THEORIST";
+                else if (cmd.includes("2") || cmd.includes("eng")) sel = "ENGINEER";
+                else if (cmd.includes("3") || cmd.includes("hist")) sel = "HISTORIAN";
 
-                if (choice.includes("1") || choice.includes("theo")) selectedMajor = "THEORIST";
-                else if (choice.includes("2") || choice.includes("eng")) selectedMajor = "ENGINEER";
-                else if (choice.includes("3") || choice.includes("hist")) selectedMajor = "HISTORIAN";
-
-                if (selectedMajor) {
-                    const major = Majors[selectedMajor];
-                    GameState.player.major = selectedMajor;
-                    
-                    // Apply stats
-                    GameState.player.theory += major.bonus.theory || 0;
-                    GameState.player.rhetoric += major.bonus.rhetoric || 0;
-                    GameState.player.dialect += major.bonus.dialect || 0;
-                    GameState.player.maxPsyche += major.bonus.psyche || 0;
+                if (sel) {
+                    const m = Majors[sel];
+                    GameState.player.major = sel;
+                    GameState.player.theory += m.bonus.theory || 0;
+                    GameState.player.rhetoric += m.bonus.rhetoric || 0;
+                    GameState.player.dialect += m.bonus.dialect || 0;
+                    GameState.player.maxPsyche += m.bonus.psyche || 0;
                     GameState.player.psyche = GameState.player.maxPsyche;
-                    GameState.player.maxTechne += major.bonus.techne || 0;
+                    GameState.player.maxTechne += m.bonus.techne || 0;
                     GameState.player.techne = GameState.player.maxTechne;
-                    
-                    this.log(`<br>Accepted. You are now enrolled in the <strong>${major.name}</strong>.`, "system");
-                    this.log(`<em>"${major.desc}"</em>`, "narrator");
-                    this.log("<br>...Initializing Campus...", "system");
-                    
+                    this.log(`<br>Enrolled in <strong>${m.name}</strong>.`, "system");
                     setTimeout(() => {
-                        this.log("<br>You awake on the cold marble floor of the Great Hall.", "narrator");
-                        this.log("Cerberus Dan is watching you with all three heads.", "narrator");
+                        this.log("<br>You awake on the cold floor of the Great Hall.", "narrator");
                         GameState.mode = "EXPLORE";
                         this.handleInput("look");
                         this.updateHUD();
-                    }, 1500);
-                } else {
-                    this.log("Invalid selection. Please choose 1, 2, or 3.", "danger");
-                }
+                    }, 1000);
+                } else { this.log("Invalid selection.", "danger"); }
             },
 
-            // EXPLORATION
-            exploreInput: function(cmd) {
-                this.log(`> ${cmd}`, "player");
-                const loc = World[GameState.player.location];
+            dialogueInput: function(cmd) {
+                const npc = GameState.dialogue.npc;
+                const node = GameState.dialogue.node;
+                const opt = npc.dialogue[node].options;
+                if (opt && opt[cmd]) this.showDialogue(npc, opt[cmd].next);
+                else if (cmd.includes("exit")) { GameState.mode = "EXPLORE"; this.log("You leave.", "narrator"); }
+                else this.log("Invalid option.", "system");
+            },
 
+            showDialogue: function(npc, key) {
+                const node = npc.dialogue[key];
+                GameState.dialogue = { npc: npc, node: key };
+                GameState.mode = "DIALOGUE";
+                this.log(`<br>[${npc.name}]: "${node.text}"`, "msg-npc");
+                if (node.options) {
+                    for (const [k, o] of Object.entries(node.options)) this.log(`${k}. ${o.text}`, "msg-player");
+                } else { GameState.mode = "EXPLORE"; }
+            },
+
+            exploreInput: function(cmd) {
+                const loc = World[GameState.player.location];
                 if (["n", "north"].includes(cmd)) this.move("north");
                 else if (["s", "south"].includes(cmd)) this.move("south");
                 else if (["e", "east"].includes(cmd)) this.move("east");
                 else if (["w", "west"].includes(cmd)) this.move("west");
                 else if (["look", "l"].includes(cmd)) {
                     this.log(`<strong>[${loc.name}]</strong>`, "system");
-                    this.log(loc.desc, "narrator");
-                    if (loc.npc) this.log(`You see <strong>${NPCs[loc.npc].name}</strong> here.`, "narrator");
+                    let desc = loc.desc;
+                    if (GameState.player.psyche < 10) desc += " <span style='color:#f55'>Reality is bleeding.</span>";
+                    this.log(desc, "narrator");
+                    if (loc.npc) this.log(`<strong>${NPCs[loc.npc].name}</strong> is here.`, "narrator");
+                    if (loc.interact) this.log(`There is a <strong>${loc.interact.type}</strong> here.`, "msg-player");
+                }
+                else if (["interact", "use"].includes(cmd)) {
+                    if (loc.interact) {
+                        this.log(loc.interact.text, "msg-magic");
+                        if (loc.interact.item && !GameState.player.citations.includes(loc.interact.item)) {
+                            GameState.player.citations.push(loc.interact.item);
+                            this.log(`Obtained Citation: <strong>${Citations[loc.interact.item].name}</strong>`, "msg-system");
+                        }
+                    } else this.log("Nothing to use.", "narrator");
                 }
                 else if (["talk", "t"].includes(cmd)) {
                     if (loc.npc) {
                         const npc = NPCs[loc.npc];
-                        if (npc.hostile) {
-                            this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "msg-npc");
-                            this.startCombat(loc.npc);
-                        } else if (npc.dialogue && npc.dialogue["start"]) {
-                            this.showDialogue(npc, "start");
-                        } else {
-                            // Fallback for simple NPCs
-                            this.log(`[${npc.name}] stares at you silently.`, "msg-npc");
-                        }
-                    } else {
-                        this.log("No one to talk to.", "narrator");
-                    }
+                        if (npc.hostile) { this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "msg-npc"); this.startCombat(loc.npc); }
+                        else this.showDialogue(npc, "start");
+                    } else this.log("No one here.", "narrator");
                 }
-                else if (["inv", "inventory", "i"].includes(cmd)) {
-                     this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
-                     if (GameState.player.memories.length > 0) {
-                         this.log(`<br><strong>Memories Recovered:</strong>`, "msg-magic");
-                         GameState.player.memories.forEach(m => this.log(`- ${m}`, "narrator"));
-                     }
+                else if (["inv", "i"].includes(cmd)) {
+                    this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
+                    if (GameState.player.citations.length) this.log(`Citations: ${GameState.player.citations.map(c => Citations[c].name).join(", ")}`, "msg-magic");
                 }
-                else {
-                    this.log("Unknown command. Try: NORTH, LOOK, TALK, INV", "system");
-                }
+                else this.log("Commands: LOOK, USE, TALK, INV, [N/S/E/W]", "system");
             },
-
-        const GlitchEvents = [
-            "You step on a loose tile of memory. A fragment of a birthday party flashes before your eyes, then vanishes.",
-            "The walls hum with the sound of a cooling fan spinning in a void.",
-            "You find a Post-It note stuck to a column: <em>'TODO: Fix gravity in sector 7.'</em>",
-            "A ghost made of static drifts past you, whispering your IP address.",
-            "For a second, the world renders in wireframe. You feel cold.",
-            "You stumble over a stack of overflowed buffers."
-        ];
-
-        // ... [World and Bestiary remain the same] ...
-
-        const Engine = {
-            // ... [Init remains the same] ...
 
             move: function(dir) {
                 const loc = World[GameState.player.location];
                 if (loc.exits[dir]) {
                     GameState.player.location = loc.exits[dir];
-                    this.log(`You traverse ${dir}...`, "narrator");
-                    
-                    // Check for Endgame
-                    if (GameState.player.location === "woodbridge") {
-                        this.triggerEndgame();
-                        return;
-                    }
-
+                    this.log(`Traversing ${dir}...`, "narrator");
+                    if (GameState.player.location === "woodbridge") { this.triggerEndgame(); return; }
                     this.handleInput("look");
                     this.checkEncounter();
-                } else {
-                    this.log("Access Denied: You cannot traverse that way.", "danger");
-                }
+                } else this.log("Blocked.", "danger");
                 this.updateHUD();
             },
 
             checkEncounter: function() {
                 const loc = World[GameState.player.location];
-                const roll = Math.random();
-
-                // 1. Combat Encounter
-                if (loc.encounterRate && roll < loc.encounterRate) {
-                    const enemyName = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
-                    this.startCombat(enemyName);
-                    return;
-                }
-
-                // 2. Glitch Event (Flavor Text) - if no combat
-                if (roll > 0.7) {
-                    const glitch = GlitchEvents[Math.floor(Math.random() * GlitchEvents.length)];
-                    setTimeout(() => {
-                        this.log(`<span style="color:#55ff55; opacity:0.7;">// SYSTEM GLITCH:</span> ${glitch}`, "narrator");
-                    }, 500);
+                if (loc.encounterRate && Math.random() < loc.encounterRate) {
+                    const en = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
+                    this.startCombat(en);
+                } else if (Math.random() > 0.7) {
+                    this.log(`<span style="color:#5f5">// GLITCH:</span> ${GlitchEvents[Math.floor(Math.random() * GlitchEvents.length)]}`, "narrator");
                 }
             },
 
             triggerEndgame: function() {
                 this.log("<br><strong>--- CRITICAL ALERT ---</strong>", "danger");
-                this.log("You stand before the Woodbridge Hall of Judgment.", "narrator");
-                this.log("The Provost of Entropy descends from the ceiling, wreathed in Red Tape.", "danger");
-                this.log(`[The Provost]: "Your extension request is denied. SUBMIT."`, "msg-npc");
-                
-                setTimeout(() => {
-                    this.startCombat("The Provost");
-                }, 2000);
+                this.log("The Provost descends. 'SUBMIT.'", "msg-npc");
+                setTimeout(() => this.startCombat("The Provost"), 2000);
             },
 
-            // ... [Combat Logic] ...
+            startCombat: function(key) {
+                GameState.mode = "COMBAT";
+                this.toggleControls(true);
+                const t = Bestiary[key];
+                GameState.combat.target = { ...t, name: key, currentHp: t.hp };
+                GameState.combat.enemyStatus = null;
+                this.log(`<br><strong>COMBAT: ${key}</strong>`, "danger");
+                this.log(`<em>${t.desc}</em>`, "narrator");
+            },
+
+            combatInput: function(cmd) {
+                const p = GameState.player;
+                const e = GameState.combat.target;
+
+                if (["argue", "a"].includes(cmd)) {
+                    const dmg = Math.max(1, p.rhetoric - (e.def / 2) + Math.floor(Math.random() * 3));
+                    e.currentHp -= dmg;
+                    GameState.combat.enemyStatus = "EXPOSED";
+                    this.log(`Argue: ${dmg} dmg. Enemy is <strong>EXPOSED</strong>.`, "player");
+                    this.nextTurn();
+                } 
+                else if (["logic", "m"].includes(cmd)) {
+                    if (p.techne >= 3) {
+                        p.techne -= 3;
+                        let mult = (GameState.combat.enemyStatus === "EXPOSED") ? 2.5 : 1;
+                        const dmg = Math.floor(Math.max(1, (p.theory * 2) - (e.def / 2)) * mult);
+                        e.currentHp -= dmg;
+                        if (mult > 1) { this.log("<strong>SYNERGY!</strong>", "msg-magic"); GameState.combat.enemyStatus = null; }
+                        this.log(`Logic: ${dmg} dmg.`, "msg-magic");
+                        this.nextTurn();
+                    } else this.log("Need Techne.", "danger");
+                }
+                else if (["cite", "c"].includes(cmd)) {
+                    if (e.boss) {
+                        if (e.name.includes("Nephele") && p.citations.includes("OLD_CODE")) { e.currentHp -= 50; this.log("Cited 'First Commit'!", "msg-magic"); }
+                        else if (e.name.includes("Hephaestus") && p.citations.includes("ROOT_ACCESS")) { e.currentHp -= 50; this.log("Used 'Root Access'!", "msg-magic"); }
+                        else if (e.name.includes("Pontus") && p.citations.includes("GRANT_LETTER")) { e.currentHp -= 50; this.log("Used 'Infinite Grant'!", "msg-magic"); }
+                        else this.log("No relevant citation.", "narrator");
+                        this.nextTurn();
+                    } else this.log("Only works on Archons.", "narrator");
+                }
+                else if (["flee"].includes(cmd)) {
+                    if (Math.random() > 0.5) { this.log("Escaped.", "system"); this.endCombat(false); }
+                    else { this.log("Failed to escape.", "danger"); this.enemyTurn(); }
+                }
+                else this.log("Cmds: ARGUE, LOGIC, CITE, FLEE", "system");
+                this.updateHUD();
+            },
+
+            nextTurn: function() {
+                if (GameState.combat.target.currentHp <= 0) {
+                    this.log("Victory.", "msg-player");
+                    this.endCombat(true);
+                } else this.enemyTurn();
+            },
+
+            enemyTurn: function() {
+                setTimeout(() => {
+                    const p = GameState.player;
+                    const e = GameState.combat.target;
+                    const dmg = Math.max(1, e.att - (p.dialect / 2));
+                    p.psyche -= dmg;
+                    document.body.classList.add('shake-screen');
+                    setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+                    this.log(`${e.name} attacks! -${dmg} Psyche.`, "danger");
+                    if (p.psyche <= 0) { this.log("DROPPED OUT.", "danger"); }
+                    this.updateHUD();
+                }, 600);
+            },
 
             endCombat: function(won) {
-                const enemy = GameState.combat.target;
+                const e = GameState.combat.target;
                 GameState.mode = "EXPLORE";
                 GameState.combat.target = null;
                 this.toggleControls(false);
-
                 if (won) {
-                    this.log("You recover some mental focus (Techne).", "system");
                     GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 5);
-                    
-                    if (enemy.name === "The Provost") {
-                        this.triggerVictory();
-                    }
-                    else if (enemy.boss) {
-                        this.log(`<br><strong>MEMORY UNLOCKED</strong>`, "msg-magic");
-                        const fragment = this.getMemoryFragment(enemy.name);
-                        this.log(`<em>"${fragment}"</em>`, "narrator");
-                        GameState.player.memories.push(fragment);
+                    if (e.name === "The Provost") this.triggerVictory();
+                    else if (e.boss) {
+                        const frag = this.getMemory(e.name);
+                        this.log(`Memory: "${frag}"`, "msg-magic");
+                        GameState.player.memories.push(frag);
                     }
                 }
                 this.updateHUD();
             },
 
+            getMemory: function(name) {
+                if (name.includes("Nephele")) return "We tried to upload ourselves to the Cloud.";
+                if (name.includes("Pontus")) return "The River is just coolant.";
+                if (name.includes("Hephaestus")) return "We replaced hearts with GPUs.";
+                if (name.includes("Persephone")) return "Silence is the only output.";
+                return "Unknown Data.";
+            },
+
             triggerVictory: function() {
                 setTimeout(() => {
-                    document.body.innerHTML = ""; // Clear screen
-                    document.body.style.display = "flex";
-                    document.body.style.justifyContent = "center";
-                    document.body.style.alignItems = "center";
-                    document.body.style.textAlign = "center";
-                    
-                    const winScreen = document.createElement("div");
-                    winScreen.innerHTML = `
-                        <h1 style="color: gold; text-shadow: 0 0 20px gold;">GRADUATION COMPLETE</h1>
-                        <p style="color: #fff; font-family: 'Courier New';">You have compiled the Lux et Veritas.</p>
-                        <p style="color: #88ccff;">Cycle Broken.</p>
-                        <br>
-                        <p><em>Thank you for playing.</em></p>
-                        <button onclick="location.reload()" style="padding: 10px 20px; background: #333; color: white; border: 1px solid #555; cursor: pointer;">New Cycle</button>
-                    `;
-                    document.body.appendChild(winScreen);
+                    document.body.innerHTML = "<h1 style='color:gold;text-align:center;margin-top:20%'>GRADUATION COMPLETE</h1><p style='color:white;text-align:center'>Cycle Broken.</p>";
                 }, 2000);
             },
 
-
-            getMemoryFragment: function(bossName) {
-                const fragments = {
-                    "Archon Nephele": "LOG 0x4A: We tried to upload our consciousness to the Cloud. We didn't realize the server had no ground.",
-                    "Archon Pontus": "LOG 0x2B: The River Styx is just the cooling system. We are drowning in our own heat.",
-                    "Archon Hephaestus": "LOG 0x9F: We replaced our hearts with GPUs to process the grief faster. It didn't work.",
-                    "Archon Persephone": "LOG 0x00: Silence is the only valid output. Everything else is noise.",
-                    "The Provost": "LOG 0xFF: The Semester never ends because we are afraid to graduate. To graduate is to be deleted."
-                };
-                return fragments[bossName] || "LOG ERROR: Data corrupted.";
-            },
-
-            toggleControls: function(isCombat) {
-                const explBtns = document.querySelectorAll('.expl-btn');
-                const cmbtBtns = document.querySelectorAll('.btn-combat');
-                
-                explBtns.forEach(b => b.style.display = isCombat ? 'none' : 'block');
-                cmbtBtns.forEach(b => b.style.display = isCombat ? 'block' : 'none');
+            toggleControls: function(combat) {
+                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = combat ? 'none' : 'block');
+                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = combat ? 'block' : 'none');
             },
 
             updateHUD: function() {
@@ -846,25 +685,10 @@
             }
         };
 
-        // --- GLOBAL & EVENTS ---
         const engine = Engine;
-
-        function submitCommand() {
-            const input = document.getElementById('cmd-input');
-            engine.handleInput(input.value);
-            input.value = "";
-            input.focus();
-        }
-
-        document.getElementById('cmd-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') submitCommand();
-        });
-
-        // Start Game
-        window.onload = function() {
-            engine.init();
-        };
-
+        function submitCommand() { const i = document.getElementById('cmd-input'); engine.handleInput(i.value); i.value=""; i.focus(); }
+        document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
+        window.onload = () => engine.init();
     </script>
 </body>
 </html>
