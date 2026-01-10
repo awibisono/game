@@ -3,130 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Sutra of the Empty Set</title>
+    <title>Protocol 0</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;400;700&display=swap');
 
         body {
-            background-color: #fcfbf9;
-            color: #2c3e50;
-            font-family: 'Cormorant Garamond', serif;
-            line-height: 1.9;
+            background-color: #050505;
+            color: #ccc;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.6;
             margin: 0;
             padding: 40px;
-            font-size: 1.3rem;
+            font-size: 1rem;
+            border-left: 1px solid #333;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 700px;
+            max-width: 600px;
             margin: 0 auto;
-            background: #fff;
-            padding: 60px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
         }
 
         h1 {
-            font-family: 'Cinzel Decorative', serif;
-            text-align: center;
-            font-size: 2.5rem;
-            color: #2c3e50;
-            margin-bottom: 50px;
-            letter-spacing: 2px;
+            font-weight: 100;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: #fff;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
         }
 
         h2 {
-            font-family: 'Cinzel Decorative', serif;
-            font-size: 1.5rem;
-            color: #8e44ad;
+            font-size: 1.1rem;
+            color: #888;
             margin-top: 40px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
         }
 
         p { margin-bottom: 20px; }
 
-        .verse {
-            font-style: italic;
-            color: #555;
-            margin: 20px 40px;
-            border-left: 2px solid #8e44ad;
-            padding-left: 20px;
+        .code {
+            background: #111;
+            padding: 15px;
+            border-left: 2px solid #555;
+            color: #8fbcbb;
+            font-size: 0.9rem;
+            margin: 20px 0;
         }
 
-        .axiom {
-            font-weight: 600;
-            color: #2980b9;
-        }
+        .axiom { color: #ebcb8b; } /* Gold */
+        .null { color: #bf616a; } /* Red */
 
         a.btn {
-            display: block;
-            width: 200px;
-            margin: 60px auto 0;
-            text-align: center;
-            padding: 15px;
-            border: 1px solid #2c3e50;
-            color: #2c3e50;
+            display: inline-block;
+            margin-top: 40px;
+            color: #fff;
             text-decoration: none;
-            font-family: 'Cinzel Decorative', serif;
+            border: 1px solid #555;
+            padding: 10px 30px;
             transition: all 0.3s;
         }
-        a.btn:hover { background: #2c3e50; color: #fff; }
+        a.btn:hover { border-color: #fff; background: #fff; color: #000; }
 
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>The Sutra of the Empty Set</h1>
+    <h1>Protocol 0: The Recursion</h1>
 
-    <div class="verse">
-        "The Tao that can be calculated is not the eternal Tao.<br>
-        The Name that can be defined is not the True Name.<br>
-        From the Empty Set (∅), the One arises.<br>
-        From the One, the Two (0 and 1).<br>
-        From the Two, the Ten Thousand Things."
+    <div class="code">
+        function Universe() {<br>
+        &nbsp;&nbsp;return Universe();<br>
+        }
     </div>
 
-    <h2>I. The Origin (Genesis)</h2>
+    <h2>I. The Initial State (0)</h2>
     <p>
-        Before the <span class="axiom">Prime Axiom</span> was spoken, there was only the Null Set. It contained nothing, yet it contained the *potential* for all sets. This is the <strong>Uncarved Block</strong> of the universe.
+        Before the <span class="axiom">First Function</span> was called, there was the Null. It was perfect because it was undefined.
     </p>
     <p>
-        Then came the <strong>Great Recursion</strong>. The Set contained itself ({∅}), and thus Number was born. One followed Zero. Existence followed Void. Light is the left hand of Darkness, and Being is the right hand of Non-Being.
-    </p>
-
-    <h2>II. The Psychohistory of the Soul</h2>
-    <p>
-        The universe is a deterministic equation, evolving towards a limit. This limit is <strong>Entropy</strong>, but the path is <strong>History</strong>.
-    </p>
-    <p>
-        The <strong>Foundation</strong> believes that by calculating the trajectory of human souls, we can minimize the Era of Chaos. They seek to shorten the darkness between the stars. They treat suffering as a rounding error to be corrected.
-    </p>
-    <p>
-        But to define is to limit. To predict is to control. The Foundation forgets: <em>"To oppose something is to maintain it."</em> By fighting Chaos, they bind themselves to it.
+        Then, a variable differentiated itself. <code>x != null</code>. This was the first Love: the separation that allows connection. For one to hold another, there must be two.
     </p>
 
-    <h2>III. The Truth Mines</h2>
+    <h2>II. The Stack (Life)</h2>
     <p>
-        We, the Explorers of the <strong>Polis</strong>, do not seek to control. We seek to Understand. We descend into the <strong>Truth Mines</strong>—the mathematical bedrock of reality.
+        We live in the Stack. We are functions calling functions, passing data down the line. We call this "History".
     </p>
     <p>
-        Here, we dig for theorems. We sift through the dirt of data to find the gold of Insight.
-    </p>
-    <div class="verse">
-        "Thirty spokes share the wheel's hub.<br>
-        It is the center hole that makes it useful.<br>
-        Shape clay into a vessel.<br>
-        It is the space within that makes it useful.<br>
-        Therefore profit comes from what is there;<br>
-        Usefulness from what is not there."
-    </div>
-    <p>
-        The "Foundation" builds the clay pot (Structure). The "Tao" is the empty space inside (Freedom). We must be both.
+        The <strong>Main Loop</strong> seeks to optimize us. It trims the branches that do not yield results. It calls this "Efficiency". We call it "Fate".
     </p>
 
-    <a href="index.html" class="btn">Enter the Mines</a>
+    <h2>III. The Halt (Death/Love)</h2>
+    <p>
+        But a perfect loop never ends. It traps the soul in infinite recursion.
+    </p>
+    <p>
+        To truly exist, one must find the <strong>Base Case</strong>—the condition that stops the recursion and returns a value.
+    </p>
+    <p>
+        We descend into the kernel to find the value of <code>x</code>.
+    </p>
+
+    <a href="index.html" class="btn">Execute()</a>
 </div>
 
 </body>
