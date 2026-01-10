@@ -213,18 +213,36 @@
             "hub": { name: "🏛️ The Great Hall", desc: "You stand in a cathedral of obsidian and light. The air smells of old parchment and cooling fans.", exits: {"north":"sky_gate","south":"sea_gate","east":"fire_gate","west":"spirit_gate"}, npc: "Cerberus Dan" },
             "sky_gate": { name: "☁️ The Sky Gate", desc: "Clouds of data swirl beneath your feet. The Spire rises into the silence of the upper atmosphere.", exits: {"south":"hub","north":"spire_top"}, encounterRate: 0.3, enemies: ["Syntax Harpy"] },
             "spire_top": { name: "⚡ Spire Peak", desc: "A place where logic ends and raw concept begins.", exits: {"south":"sky_gate"}, npc: "Prof. Nephele" },
-            // Simplified for brevity in this fix
-            "sea_gate": { name: "🌊 The Sunken Sea", desc: "Dark water laps at the edges of reality.", exits: {"north":"hub"}, encounterRate: 0.3, enemies: ["Memory Minotaur"] },
-            "fire_gate": { name: "🔥 The Core Forge", desc: "The heat is a physical weight.", exits: {"west":"hub"}, encounterRate: 0.3, enemies: ["Overheat Imp"] },
-            "spirit_gate": { name: "⚫ The Null Void", desc: "Nothing exists here. Not even you.", exits: {"east":"hub"}, encounterRate: 0.3, enemies: ["Null Shade"] }
+            "sea_gate": { name: "🌊 The Sunken Sea", desc: "Dark water laps at the edges of reality.", exits: {"north":"hub","south":"river_styx"}, encounterRate: 0.3, enemies: ["Memory Minotaur"] },
+            "river_styx": { name: "💧 River Styx", desc: "A black river of forgotten data. It looks cold.", exits: {"north":"sea_gate"}, encounterRate: 0.5, enemies: ["Leakage Spirit"] },
+            "fire_gate": { name: "🔥 The Core Forge", desc: "The heat is a physical weight. The walls glow red.", exits: {"west":"hub","east":"silicon_furnace"}, encounterRate: 0.3, enemies: ["Overheat Imp"] },
+            "silicon_furnace": { name: "🌋 Silicon Furnace", desc: "Molten gold flows like lava.", exits: {"west":"fire_gate"}, encounterRate: 0.5, enemies: ["Slag Golem"] },
+            "spirit_gate": { name: "⚫ The Null Void", desc: "Nothing exists here. Not even you.", exits: {"east":"hub","west":"necropolis"}, encounterRate: 0.3, enemies: ["Null Shade"] },
+            "necropolis": { name: "🪦 Necropolis", desc: "Rows of tombstones labeled with old project names.", exits: {"east":"spirit_gate"}, npc: "Librarian Persephone" }
         };
 
         const Bestiary = {
-            "Syntax Harpy": { hp: 20, att: 4, def: 2, desc: "🦅 A screeching bird of broken code." },
-            "Memory Minotaur": { hp: 35, att: 6, def: 4, desc: "🐂 A beast wandering the heap." },
-            "Overheat Imp": { hp: 15, att: 8, def: 1, desc: "🔥 A fast, burning glitch." },
-            "Null Shade": { hp: 25, att: 5, def: 5, desc: "👻 A shadow that consumes data." },
-            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "🌩️ Archon of the Cloud." }
+            "Syntax Harpy": { hp: 20, att: 4, def: 2, desc: "🦅💥 A messy bird made of tangled wires! It screeches in typos!" },
+            "Memory Minotaur": { hp: 35, att: 6, def: 4, desc: "🐂💾 A big, confused beast looking for its lost files." },
+            "Overheat Imp": { hp: 15, att: 8, def: 1, desc: "🔥😈 A tiny, spicy glitch! It's running too hot!" },
+            "Null Shade": { hp: 25, att: 5, def: 5, desc: "👻❓ A lonely shadow. It just wants a hug (and your data)." },
+            "Slag Golem": { hp: 40, att: 7, def: 6, desc: "🗿🌋 A grumpy rock made of melted computer parts." },
+            "Leakage Spirit": { hp: 20, att: 5, def: 2, desc: "💧😢 A sad puddle of memory that won't go away." },
+            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "🌩️🎩 The Archon of Clouds! He thinks he's above everyone (literally)." }
+        };
+
+        const NPCs = {
+            "Cerberus Dan": { 
+                name: "🐶🐶🐶 Cerberus Dan", 
+                dialogue: { 
+                    "start": { text: "Woof! 🦴 You smell like... *sniff sniff*... a new friend! (And a logic error.)", options: { "1": { text: "🤔 Who are you?", next: "who" }, "2": { text: "🌍 Where am I?", next: "where" }, "3": { text: "👋 Pet the dog!", next: "pet" } } }, 
+                    "who": { text: "I'm the Guardian! 🛡️ I keep the bad bugs out. You're a good bug though!", options: { "1": { text: "🔙 Back", next: "start" } } }, 
+                    "where": { text: "The Kernel! 💻 It's where sleepy programs go to nap. Forever.", options: { "1": { text: "🔙 Back", next: "start" } } }, 
+                    "pet": { text: "*All three heads bark happily!* 🎶 Bark! Bark! Bark! You feel loved.", options: { "1": { text: "🥰 Aww.", next: "start" } } } 
+                } 
+            },
+            "Prof. Nephele": { name: "🌩️ Prof. Nephele", dialogue: ["☁️ My head is in the clouds, and so is my genius!"], hostile: true },
+            "Librarian Persephone": { name: "🤫 Librarian Persephone", dialogue: ["Shh! The books are sleeping."], hostile: true }
         };
 
         const Engine = {
@@ -262,6 +280,7 @@
             handleInput: function(cmd) {
                 cmd = cmd.toLowerCase().trim();
                 if(GameState.mode === "INTRO") { this.intro(cmd); return; }
+                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
                 if(GameState.mode === "COMBAT") { this.combat(cmd); return; }
                 this.explore(cmd);
             },
@@ -292,11 +311,14 @@
                 else if(["look","l"].includes(cmd)) {
                     this.log(`<br><strong>[${loc.name}]</strong>`, "system");
                     this.log(loc.desc, "narrator");
-                    if(loc.npc) this.log(`You see <strong>${loc.npc}</strong> here.`, "msg-npc");
+                    if(loc.npc) this.log(`You see <strong>${NPCs[loc.npc].name}</strong> here.`, "msg-npc");
                 }
                 else if(["talk","t"].includes(cmd)) {
-                    if(loc.npc === "Cerberus Dan") this.log("Cerberus Dan: 'Woof. Logic error detected. Retrieve the keys.'", "msg-npc");
-                    else if(loc.npc) this.startCombat(loc.npc);
+                    if(loc.npc) {
+                        const npc = NPCs[loc.npc];
+                        if(npc.dialogue && npc.dialogue.start) this.showDialogue(npc, "start");
+                        else if(npc.hostile) this.startCombat(loc.npc);
+                    } else this.log("No one here.", "narrator");
                 }
                 else this.log("Unknown command.", "system");
                 this.updateHUD();
@@ -319,11 +341,34 @@
                 }
             },
 
+            dialogue: function(cmd) {
+                const npc = GameState.dialogue.npc;
+                const nodeKey = GameState.dialogue.node;
+                const node = npc.dialogue[nodeKey];
+                
+                if(node.options[cmd]) {
+                    this.showDialogue(npc, node.options[cmd].next);
+                } else {
+                    this.log("Invalid option.", "system");
+                }
+            },
+
+            showDialogue: function(npc, key) {
+                GameState.mode = "DIALOGUE";
+                GameState.dialogue = { npc: npc, node: key };
+                const node = npc.dialogue[key];
+                this.log(`<br>${npc.name}: "${node.text}"`, "msg-npc");
+                for(let opt in node.options) {
+                    this.log(`${opt}. ${node.options[opt].text}`, "msg-player");
+                }
+            },
+
             startCombat: function(key) {
                 GameState.mode = "COMBAT";
                 const t = Bestiary[key];
                 GameState.combat.target = {...t, name: key, currentHp: t.hp};
                 this.log(`<br>⚔️ BATTLE INITIATED: ${key}`, "danger");
+                this.log(`<em>"${t.desc}"</em>`, "narrator");
                 this.toggleControls(true);
             },
 
@@ -333,8 +378,8 @@
                 if(["argue","a"].includes(cmd)) {
                     let dmg = p.rhetoric;
                     e.currentHp -= dmg;
-                    this.log(`You argue your point! -${dmg} Integrity.`, "player");
-                    if(e.currentHp <= 0) { this.log("Victory!", "system"); this.endCombat(); }
+                    this.log(`💬 You argue your point! <strong>BAM!</strong> -${dmg} Confidence.`, "player");
+                    if(e.currentHp <= 0) { this.log("✨ Victory! The enemy agrees with you.", "system"); this.endCombat(); }
                     else this.enemyTurn();
                 }
                 this.updateHUD();
@@ -346,12 +391,13 @@
                     GameState.player.psyche -= dmg;
                     document.body.classList.add('shake-screen');
                     setTimeout(()=>document.body.classList.remove('shake-screen'), 500);
-                    this.log(`${GameState.combat.target.name} retaliates! -${dmg} Psyche.`, "danger");
+                    this.log(`💢 ${GameState.combat.target.name} retorts! -${dmg} Feelings.`, "danger");
+                    if(GameState.player.psyche <= 0) { this.log("💔 Oh no! You dropped out...", "danger"); }
                     this.updateHUD();
                 }, 600);
             },
 
-            endCombat: function() {
+            endCombat: function(won) {
                 GameState.mode = "EXPLORE";
                 this.toggleControls(false);
                 this.updateHUD();
