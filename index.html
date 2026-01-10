@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEX: Anthill Inside</title>
+    <title>The Archipelago: A Tale of True Names</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400&display=swap');
 
         :root {
-            --bg-color: #110f13;
-            --term-color: #1a181e;
-            --text-color: #d8d8c0;
-            --accent-color: #ff9900; /* Octarine (imagined) or Gold */
-            --highlight-color: #aaddff; /* Magic glow */
-            --danger-color: #ff5555;
-            --font-main: 'IM Fell English SC', serif; /* Wizardly */
-            --font-code: 'Special Elite', monospace; /* Typewriter */
+            --bg-color: #f4f1ea; /* Parchment */
+            --text-color: #2c3e50; /* Deep Ink */
+            --accent-color: #2980b9; /* Sea Blue */
+            --highlight-color: #d35400; /* Rust/Clay */
+            --soft-color: #7f8c8d; /* Grey Mist */
+            --font-main: 'Cormorant Garamond', serif;
+            --font-ui: 'Lato', sans-serif;
         }
 
         * { box-sizing: border-box; }
@@ -23,277 +22,405 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: var(--font-code);
-            font-size: 1.15rem;
+            font-family: var(--font-main);
+            font-size: 1.3rem;
             margin: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
-            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="%23333"/></svg>'); 
+            background-image: linear-gradient(to bottom, #f4f1ea 0%, #e8e0d5 100%);
         }
 
-        /* Thaumaturgical Glow */
-        body::before {
-            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at center, transparent 0%, #000 100%);
-            pointer-events: none; z-index: 5;
+        #bg-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+            pointer-events: none;
         }
 
+        /* Animations */
+        @keyframes drift {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* HUD: Elegant & Minimal */
         #hud {
-            background-color: var(--term-color);
-            border-bottom: 4px double #444;
-            padding: 15px;
+            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
-            font-family: var(--font-main);
-            font-size: 1.2rem;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background: rgba(244, 241, 234, 0.9);
+            font-family: var(--font-ui);
+            font-weight: 300;
             z-index: 10;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
-        .stat { color: var(--highlight-color); text-shadow: 0 0 5px var(--highlight-color); }
-        .stat-label { color: #888; font-size: 0.8em; }
+        .stat-box { display: flex; gap: 30px; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; }
+        .val-hp { color: var(--highlight-color); font-weight: bold; }
+        .val-mp { color: var(--accent-color); font-weight: bold; }
+        #location-display { font-family: var(--font-main); font-size: 1.5rem; font-style: italic; color: var(--text-color); }
 
+        /* Story Text */
         #terminal {
             flex-grow: 1;
-            padding: 30px;
+            padding: 40px;
             overflow-y: auto;
-            background-color: #161419;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
             z-index: 1;
-            font-family: var(--font-code);
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* Hide scrollbar */
+        #terminal::-webkit-scrollbar { width: 0px; }
+
+        .log-entry { 
+            animation: fadeIn 1s ease-out forwards; 
+            line-height: 1.8;
         }
 
-        /* Typewriter Paper Effect */
-        .log-entry {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-left: 2px solid #333;
-            animation: typeIn 0.3s ease-out;
-        }
-        @keyframes typeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+        .narrator { color: #2c3e50; }
+        .msg-player { color: var(--accent-color); font-style: italic; border-left: 2px solid var(--accent-color); padding-left: 15px; }
+        .msg-npc { color: #8e44ad; font-weight: 600; }
+        .msg-magic { color: var(--highlight-color); font-family: var(--font-main); font-size: 1.4rem; } /* The Old Speech */
+        .msg-system { color: var(--soft-color); font-family: var(--font-ui); font-size: 0.9rem; text-align: center; margin-top: 10px; }
 
-        .hex-output {
-            color: var(--accent-color);
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            border: 1px dashed var(--accent-color);
-            padding: 10px;
-            background: rgba(255, 153, 0, 0.05);
-            text-transform: uppercase;
-        }
-
-        .narrator { color: #ccc; }
-        .wizard { color: #aaddff; font-family: var(--font-main); }
-        .danger { color: #ff7777; }
-
+        /* Controls */
         #controls {
-            background-color: var(--term-color);
-            border-top: 4px double #444;
             padding: 20px;
+            background: rgba(255,255,255,0.5);
+            border-top: 1px solid rgba(0,0,0,0.05);
             z-index: 10;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
         }
 
-        #quick-actions {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            margin-bottom: 15px;
+        #input-line { display: flex; gap: 15px; margin-top: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        
+        #cmd-input {
+            flex-grow: 1; background: transparent; border: none; color: var(--text-color);
+            padding: 10px; font-family: var(--font-main); font-size: 1.3rem; outline: none;
         }
-
-        button {
-            background: #222; color: #ddd; border: 1px solid #555;
-            padding: 12px; font-family: var(--font-main); font-size: 1rem;
-            cursor: pointer; transition: all 0.1s;
-            box-shadow: 2px 2px 0 #000;
+        
+        #send-btn {
+            background: transparent; color: var(--text-color); border: 1px solid #ccc;
+            padding: 5px 20px; border-radius: 20px; cursor: pointer; font-family: var(--font-ui);
+            transition: all 0.3s;
         }
-        button:active { transform: translate(2px, 2px); box-shadow: none; }
-        button:hover { background: #333; border-color: var(--highlight-color); }
+        #send-btn:hover { background: var(--text-color); color: white; }
 
-        .btn-magic { border-color: var(--accent-color); color: var(--accent-color); }
-
-        #input-line { display: flex; gap: 10px; }
-        input {
-            flex-grow: 1; background: #000; border: 1px solid #444; color: var(--accent-color);
-            padding: 10px; font-family: var(--font-code); font-size: 1.1rem;
+        /* Soft Buttons */
+        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .btn {
+            background: #fff; border: 1px solid #e0e0e0; color: #555;
+            padding: 12px; border-radius: 8px; font-family: var(--font-ui); font-size: 0.9rem; cursor: pointer;
+            transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        input:focus { outline: none; border-color: var(--accent-color); }
-
-        /* Floating Runes */
-        .particle {
-            position: absolute; color: rgba(255, 255, 255, 0.1); font-size: 20px;
-            pointer-events: none; animation: floatUp 10s linear infinite;
-        }
-        @keyframes floatUp { to { transform: translateY(-100vh) rotate(360deg); } }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); color: var(--accent-color); border-color: var(--accent-color); }
+        
+        .btn-combat { display: none; border-color: #e74c3c; color: #c0392b; }
+        .btn-combat:hover { background: #e74c3c; color: white; }
 
     </style>
 </head>
 <body>
 
+    <canvas id="bg-canvas"></canvas>
+
     <div id="hud">
-        <div><span class="stat-label">HEADOLOGY:</span> <span id="hp" class="stat">100%</span></div>
-        <div style="color:var(--accent-color)">+++ ANTHILL INSIDE +++</div>
-        <div><span class="stat-label">THAUMS:</span> <span id="mp" class="stat">50</span></div>
+        <div class="stat-box">
+            <div>Equilibrium <span id="hp-val" class="val-hp">100%</span></div>
+            <div>Silence <span id="mp-val" class="val-mp">High</span></div>
+        </div>
+        <div id="location-display">The Isle of Gont</div>
     </div>
 
-    <div id="terminal"></div>
+    <div id="terminal">
+        <div id="loading-msg" style="text-align:center; color: #999; margin-top: 50px;">The wind is changing...</div>
+    </div>
 
     <div id="controls">
         <div id="quick-actions">
-            <button onclick="eng.cmd('north')">N</button>
-            <button onclick="eng.cmd('south')">S</button>
-            <button onclick="eng.cmd('east')">E</button>
-            <button onclick="eng.cmd('west')">W</button>
-            <button onclick="eng.cmd('look')">Look</button>
-            <button onclick="eng.cmd('poke')">Poke</button>
-            <button class="btn-magic" onclick="eng.cmd('cast')">Cast</button>
-            <button class="btn-magic" onclick="eng.cmd('cheese')">Cheese</button>
+            <button class="btn expl-btn" onclick="submitBtn('north')">North</button>
+            <button class="btn expl-btn" onclick="submitBtn('south')">South</button>
+            <button class="btn expl-btn" onclick="submitBtn('west')">West</button>
+            <button class="btn expl-btn" onclick="submitBtn('east')">East</button>
+            <button class="btn expl-btn" onclick="submitBtn('look')">Listen</button>
+            <button class="btn expl-btn" onclick="submitBtn('interact')">Touch</button>
+            
+            <button class="btn btn-combat" onclick="submitBtn('speak')">Speak Name</button>
+            <button class="btn btn-combat" onclick="submitBtn('calm')">Calm</button>
+            <button class="btn btn-combat" onclick="submitBtn('shape')">Shape Change</button>
+            <button class="btn btn-combat" onclick="submitBtn('flee')">Retreat</button>
         </div>
         <div id="input-line">
-            <input type="text" id="inp" placeholder="+++ Write Command +++">
-            <button onclick="eng.submit()">DO IT</button>
+            <input type="text" id="cmd-input" placeholder="What is its True Name?" autocomplete="off">
+            <button id="send-btn" onclick="submitCommand()">Speak</button>
         </div>
     </div>
 
     <script>
-        const Game = {
-            loc: "hem",
-            stats: { hp: 100, mp: 50, cheese: 0 },
-            flags: { ants_fed: false },
-            
-            world: {
-                "hem": {
-                    name: "High Energy Magic Building",
-                    desc: "The air hums with the sound of a million ants thinking very hard. In the center sits HEX, a machine of brass, wood, and glass tubes. The GBL (Great Big Lever) is in the OFF position.",
-                    exits: { "north": "library", "east": "uu_garden" },
-                    hex: true
-                },
-                "library": {
-                    name: "The Library",
-                    desc: "Books chained to shelves snarl as you pass. The L-Space distorts distance here. A bright orange Orangutan is sleeping on a grimoire.",
-                    exits: { "south": "hem" },
-                    npc: "Librarian"
-                },
-                "uu_garden": {
-                    name: "Unseen University Garden",
-                    desc: "The grass is suspiciously green. You suspect magic. The compost heap is smoking ominously.",
-                    exits: { "west": "hem", "north": "dungeon" },
-                    npc: "Auditor"
-                },
-                "dungeon": {
-                    name: "Dungeon Dimensions",
-                    desc: "Reality is thin here. Tentacles flail from geometric shapes.",
-                    exits: { "south": "uu_garden" },
-                    hostile: "Creature from the Dungeon Dimensions"
-                }
-            },
+        // --- UTILS ---
+        function submitBtn(cmd) { if(window.engine) window.engine.handleInput(cmd); }
+        function submitCommand() { const i = document.getElementById('cmd-input'); if(window.engine) window.engine.handleInput(i.value); i.value=""; i.focus(); }
+        document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
 
-            npc: {
-                "Librarian": { text: "Oook." },
-                "Auditor": { text: "YOU ARE CHAOS. CEASE TO EXIST.", fight: true }
+        // --- VISUALS (Soft Particles) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        class Particle {
+            constructor() { 
+                this.x = Math.random()*width; this.y = Math.random()*height; 
+                this.size = Math.random()*3; this.speedX = Math.random()*0.5-0.25; this.speedY = Math.random()*0.5-0.25;
+                this.alpha = Math.random()*0.5;
+            }
+            update() { this.x+=this.speedX; this.y+=this.speedY; if(this.x>width)this.x=0; if(this.y>height)this.y=0; }
+            draw() { 
+                ctx.fillStyle = `rgba(41, 128, 185, ${this.alpha})`;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        function initParticles() { particles=[]; for(let i=0; i<80; i++) particles.push(new Particle()); }
+        function animate() { ctx.clearRect(0,0,width,height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
+        window.addEventListener('resize', resize); resize(); initParticles(); animate();
+
+        // --- GAME DATA ---
+        const GameState = {
+            mode: "INTRO",
+            player: {
+                name: "Sparrowhawk", 
+                balance: 20, maxBalance: 20, silence: 10, 
+                trueNames: ["otak"], // Known Names
+                inventory: ["Yew Staff"], 
+                location: "gont"
+            },
+            combat: { target: null },
+            dialogue: { npc: null, node: "start" }
+        };
+
+        const TrueNames = {
+            "wind": "ienk",
+            "stone": "tolk",
+            "shadow": "geb",
+            "dragon": "kalessin",
+            "otak": "hoeg"
+        };
+
+        const World = {
+            "gont": { 
+                name: "The Cliffs of Gont", 
+                desc: "High above the sea, where the hawks fly. The village of Ten Alders lies below.", 
+                exits: { "east": "forest", "south": "port" },
+                npc: "Ogion"
+            },
+            "forest": { 
+                name: "The Silent Grove", 
+                desc: "The trees here are old and know many secrets. An Otak watches you from a branch.", 
+                exits: { "west": "gont" },
+                interact: { type: "otak", text: "A small, furry creature with bright eyes. It is an Otak.", item: "hoeg" }
+            },
+            "port": { 
+                name: "Gont Port", 
+                desc: "Ships with painted eyes bob in the harbor, waiting to sail to Roke.", 
+                exits: { "north": "gont", "sail": "sea" },
+                encounterRate: 0.3, enemies: ["Fog Walker"]
+            },
+            "sea": {
+                name: "The Open Sea",
+                desc: "Waves endless and gray. You are a speck on the water.",
+                exits: { "north": "port", "south": "roke" },
+                encounterRate: 0.5, enemies: ["Storm Spirit"]
+            },
+            "roke": {
+                name: "The Isle of the Wise",
+                desc: "The School of Wizards. The Knoll of Roke rises gently.",
+                exits: { "north": "sea" },
+                npc: "The Archmage"
             }
         };
 
-        const Eng = {
+        const Bestiary = {
+            "Fog Walker": { hp: 10, balance: 5, name: "Fog Walker", trueName: "shadow", desc: "A shapeless mist that chills the bone. It has forgotten its form." },
+            "Storm Spirit": { hp: 15, balance: 8, name: "Storm Spirit", trueName: "wind", desc: "A howling gale that seeks to capsize you." },
+            "The Shadow": { hp: 30, balance: 15, name: "The Shadow", trueName: "self", desc: "A dark figure that wears your face." }
+        };
+
+        const NPCs = {
+            "Ogion": { 
+                name: "Ogion the Silent", 
+                dialogue: { 
+                    "start": { text: "To hear, one must be silent.", options: { "1": { text: "Teach me magic.", next: "magic" }, "2": { text: "I want to sail.", next: "sail" } } },
+                    "magic": { text: "Magic is not power. It is belonging. Learn the name of the stone, and the stone will accept you.", options: { "1": { text: "I understand.", next: "start" } } },
+                    "sail": { text: "Then go. But remember: to light a candle is to cast a shadow.", options: { "1": { text: "Goodbye, Master.", next: "start" } } }
+                } 
+            },
+            "The Archmage": { 
+                name: "Nemmerle", 
+                dialogue: { 
+                    "start": { text: "Welcome to Roke. Do you know who you are?", options: { "1": { text: "I am a Wizard.", next: "wiz" } } },
+                    "wiz": { text: "We shall see.", options: { "1": { text: "Back.", next: "start" } } }
+                } 
+            }
+        };
+
+        const Engine = {
             init: function() {
-                this.print("+++ OUT OF CHEESE ERROR +++", "hex-output");
-                this.print("+++ REBOOTING UNIVERSE... +++", "hex-output");
+                document.getElementById('loading-msg').style.display = 'none';
+                this.log("In the beginning, there was only the sea...", "narrator");
                 setTimeout(() => {
-                    this.print("You stand before HEX. The ants are agitated.", "narrator");
-                    this.print("Ponder Stibbons yells: 'Don't touch the glass tubes!'", "wizard");
-                }, 1000);
-                this.bg();
+                    this.log("You stand on the granite cliffs of Gont.", "narrator");
+                    this.log("You are a young student, seeking the True Names of things.", "narrator");
+                    this.log("Ogion the Silent stands beside you, watching the hawks.", "narrator");
+                    GameState.mode = "EXPLORE";
+                    this.updateHUD();
+                }, 1500);
             },
 
-            print: function(txt, cls="narrator") {
+            log: function(text, type = "narrator") {
                 const term = document.getElementById('terminal');
-                const d = document.createElement('div');
-                d.className = `log-entry ${cls}`;
-                d.innerText = txt;
-                term.appendChild(d);
+                const entry = document.createElement('div');
+                entry.className = `log-entry msg-${type}`;
+                entry.innerHTML = text;
+                term.appendChild(entry);
                 term.scrollTop = term.scrollHeight;
             },
 
-            cmd: function(c) {
-                this.print(`> ${c}`, "narrator");
-                c = c.toLowerCase();
-                const loc = Game.world[Game.loc];
+            handleInput: function(cmd) {
+                cmd = cmd.toLowerCase().trim();
+                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
+                if(GameState.mode === "COMBAT") { this.combat(cmd); return; }
+                this.explore(cmd);
+            },
 
-                if(["n","s","e","w","north","south","east","west"].includes(c)) {
-                    const dir = c.charAt(0) === 'n' ? 'north' : c.charAt(0) === 's' ? 'south' : c.charAt(0) === 'e' ? 'east' : 'west';
-                    if(loc.exits[dir]) {
-                        Game.loc = loc.exits[dir];
-                        this.look();
-                    } else {
-                        this.print("You walk into a wall. That's very solid reality.", "danger");
-                    }
+            explore: function(cmd) {
+                const loc = World[GameState.player.location];
+                if(["north","south","east","west"].includes(cmd) && loc.exits[cmd]) this.move(loc.exits[cmd]);
+                else if(cmd === "sail" && loc.exits.sail) this.move(loc.exits.sail);
+                else if(["look","listen"].includes(cmd)) {
+                    this.log(`<br>${loc.name}`, "msg-magic");
+                    this.log(loc.desc, "narrator");
+                    if(loc.npc) this.log(`${loc.npc} is here, waiting.`, "msg-npc");
+                    if(loc.interact) this.log(`You notice something: ${loc.interact.text}`, "msg-player");
                 }
-                else if(c === "look") { this.look(); }
-                else if(c === "poke") { 
-                    this.print("You poke reality. It wobbles.", "wizard"); 
-                    Game.stats.mp -= 1; this.upd();
+                else if(["interact","touch"].includes(cmd)) {
+                    if(loc.interact) {
+                        this.log("You reach out gently...", "narrator");
+                        if(loc.interact.type === "otak") {
+                            this.log("The Otak sniffs your hand and climbs onto your shoulder. It is warm.", "msg-player");
+                            this.log("You have learned the True Name: <strong>HOEG</strong>", "msg-magic");
+                            GameState.player.trueNames.push("otak");
+                        }
+                    } else this.log("There is nothing to touch here.", "narrator");
                 }
-                else if(c === "cheese") {
-                    if(Game.world[Game.loc].hex) {
-                        this.print("+++ CHEESE ACCEPTED +++", "hex-output");
-                        this.print("+++ ANTS WORKING AT 110% CAPACITY +++", "hex-output");
-                        Game.flags.ants_fed = true;
-                    } else {
-                        this.print("You eat the cheese. It tastes like math.", "narrator");
-                    }
+                else if(["talk","speak"].includes(cmd)) {
+                    if(loc.npc) this.startDialogue(NPCs[loc.npc]);
+                    else this.log("Only the wind answers.", "narrator");
                 }
-                else if(c === "cast") {
-                    this.print("You wave your hands. Sparkles happen.", "wizard");
-                    if(loc.hostile) {
-                        this.print(`The ${loc.hostile} looks confused by your display of headology.`, "hex-output");
-                        delete loc.hostile; // Simple victory
-                        this.print("Victory through confusion!", "wizard");
-                    }
-                }
-                else {
-                    this.print("+++ SYNTAX ERROR. MELON MELON MELON +++", "hex-output");
+                else this.log("The wind blows silently. (Unknown command)", "narrator");
+                this.updateHUD();
+            },
+
+            move: function(dest) {
+                GameState.player.location = dest;
+                this.log("You travel...", "narrator");
+                this.explore("look");
+                if(World[dest].encounterRate && Math.random() < World[dest].encounterRate) {
+                    this.startCombat(World[dest].enemies[0]);
                 }
             },
 
-            look: function() {
-                const loc = Game.world[Game.loc];
-                this.print(`[ ${loc.name} ]`, "wizard");
-                this.print(loc.desc, "narrator");
-                if(loc.hex) this.print("HEX looms over you.", "hex-output");
-                if(loc.npc) this.print(`There is a ${loc.npc} here.`, "wizard");
-                if(loc.hostile) this.print(`A ${loc.hostile} blocks the way!`, "danger");
+            startDialogue: function(npc) {
+                GameState.mode = "DIALOGUE";
+                GameState.dialogue = { npc: npc, node: "start" };
+                this.showDialogue();
             },
 
-            submit: function() {
-                const i = document.getElementById('inp');
-                this.cmd(i.value);
-                i.value = "";
-                i.focus();
+            showDialogue: function() {
+                const npc = GameState.dialogue.npc;
+                const node = npc.dialogue[GameState.dialogue.node];
+                this.log(`<br>${npc.name}: "${node.text}"`, "msg-npc");
+                for(let k in node.options) this.log(`${k}. ${node.options[k].text}`, "msg-player");
             },
 
-            upd: function() {
-                document.getElementById('hp').innerText = Game.stats.hp + "%";
-                document.getElementById('mp').innerText = Game.stats.mp;
+            dialogue: function(cmd) {
+                const node = GameState.dialogue.npc.dialogue[GameState.dialogue.node];
+                if(node.options[cmd]) {
+                    GameState.dialogue.node = node.options[cmd].next;
+                    this.showDialogue();
+                } else if (cmd.includes("bye") || cmd.includes("back")) {
+                    GameState.mode = "EXPLORE";
+                    this.log("You bow and step back.", "narrator");
+                }
             },
 
-            bg: function() {
-                // Simple runic rain
-                setInterval(() => {
-                    const r = document.createElement('div');
-                    r.className = 'particle';
-                    r.innerText = ['✦','⚡','✨','🐜','🧀'][Math.floor(Math.random()*5)];
-                    r.style.left = Math.random()*100 + 'vw';
-                    r.style.top = '100vh';
-                    r.style.animationDuration = (Math.random()*5+5) + 's';
-                    document.body.appendChild(r);
-                    setTimeout(() => r.remove(), 10000);
-                }, 500);
+            startCombat: function(name) {
+                GameState.mode = "COMBAT";
+                GameState.combat.target = Bestiary[name];
+                this.log(`<br>Something unsettles the balance: <strong>${name}</strong>`, "msg-npc");
+                this.log(Bestiary[name].desc, "narrator");
+                this.toggleControls(true);
+            },
+
+            combat: function(cmd) {
+                const enemy = GameState.combat.target;
+                
+                if(cmd === "calm") {
+                    this.log("You raise your staff to calm the spirit.", "narrator");
+                    enemy.balance -= 2;
+                } else if(cmd === "shape") {
+                    this.log("You change into a hawk to dodge.", "msg-magic");
+                } else if(cmd.includes(enemy.trueName) || (cmd === "speak" && GameState.player.trueNames.includes(enemy.trueName))) {
+                    this.log(`You speak the True Name: <strong>${enemy.trueName.toUpperCase()}</strong>!`, "msg-magic");
+                    this.log(`The ${enemy.name} recognizes itself and fades into the equilibrium.`, "narrator");
+                    this.endCombat();
+                    return;
+                } else {
+                    this.log("Your words have no power over this. You must know its Name.", "narrator");
+                }
+
+                if(enemy.balance <= 0) {
+                    this.log("Balance is restored.", "msg-magic");
+                    this.endCombat();
+                } else {
+                    this.log(`The ${enemy.name} lashes out in confusion. Your inner peace wavers.`, "msg-npc");
+                    GameState.player.balance -= 2;
+                    this.updateHUD();
+                    if(GameState.player.balance <= 0) this.log("You are lost to the Shadow...", "msg-npc");
+                }
+            },
+
+            endCombat: function() {
+                GameState.mode = "EXPLORE";
+                this.toggleControls(false);
+            },
+
+            toggleControls: function(combat) {
+                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = combat ? 'none' : 'block');
+                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = combat ? 'block' : 'none');
+            },
+
+            updateHUD: function() {
+                document.getElementById('hp-val').innerText = `${GameState.player.balance}`;
+                document.getElementById('location-display').innerText = World[GameState.player.location].name;
             }
         };
 
-        const eng = Eng;
-        document.getElementById('inp').addEventListener('keypress', e=>{if(e.key==='Enter') eng.submit()});
-        window.onload = () => eng.init();
-
+        window.onload = () => { try { window.engine = Engine; Engine.init(); } catch(e) { console.error(e); } };
     </script>
 </body>
 </html>
