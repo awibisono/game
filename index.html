@@ -195,21 +195,23 @@
         <div id="location-display">Sterling Library</div>
     </div>
 
-    <div id="terminal" id="log-container"></div>
+    <div id="terminal" id="log-container">
+        <div id="loading-msg" style="color: #666; text-align: center; margin-top: 20px; font-family: monospace;">[System Booting...]</div>
+    </div>
 
     <div id="controls">
         <div id="quick-actions">
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('north')">⬆️ N</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('south')">⬇️ S</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('west')">⬅️ W</button>
-            <button class="btn btn-move expl-btn" onclick="engine.handleInput('east')">➡️ E</button>
-            <button class="btn expl-btn" onclick="engine.handleInput('look')">👁️ Look</button>
-            <button class="btn expl-btn" onclick="engine.handleInput('interact')">✋ Use</button>
+            <button class="btn btn-move expl-btn" onclick="submitBtn('north')">⬆️ N</button>
+            <button class="btn btn-move expl-btn" onclick="submitBtn('south')">⬇️ S</button>
+            <button class="btn btn-move expl-btn" onclick="submitBtn('west')">⬅️ W</button>
+            <button class="btn btn-move expl-btn" onclick="submitBtn('east')">➡️ E</button>
+            <button class="btn expl-btn" onclick="submitBtn('look')">👁️ Look</button>
+            <button class="btn expl-btn" onclick="submitBtn('interact')">✋ Use</button>
             
-            <button class="btn btn-combat" onclick="engine.handleInput('argue')">⚔️ Argue</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('logic')">✨ Logic</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('cite')">📜 Cite</button>
-            <button class="btn btn-combat" onclick="engine.handleInput('flee')">🏃 Run</button>
+            <button class="btn btn-combat" onclick="submitBtn('argue')">⚔️ Argue</button>
+            <button class="btn btn-combat" onclick="submitBtn('logic')">✨ Logic</button>
+            <button class="btn btn-combat" onclick="submitBtn('cite')">📜 Cite</button>
+            <button class="btn btn-combat" onclick="submitBtn('flee')">🏃 Run</button>
         </div>
 
         <div id="input-line">
@@ -219,60 +221,73 @@
     </div>
 
     <script>
-        console.log("Initializing Chthonic Kernel...");
-        const canvas = document.getElementById('bg-canvas');
-        
-        let ctx = null;
-        if (canvas) {
-            ctx = canvas.getContext('2d');
-        } else {
-            console.error("Canvas element not found!");
+        // WRAPPER FUNCTION TO HANDLE BUTTON CLICKS SAFELY
+        function submitBtn(cmd) {
+            try {
+                if (window.engine) {
+                    window.engine.handleInput(cmd);
+                } else {
+                    console.error("Engine not ready");
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            }
         }
 
-        let width, height, particles = [];
+        // --- VISUALS ---
+        try {
+            const canvas = document.getElementById('bg-canvas');
+            let ctx = null;
+            if (canvas) ctx = canvas.getContext('2d');
 
-        function resize() { 
-            if(!canvas) return;
-            width = canvas.width = window.innerWidth; 
-            height = canvas.height = window.innerHeight; 
-        }
-        
-        class Particle {
-            constructor() {
-                this.x = Math.random() * width; this.y = Math.random() * height;
-                this.size = Math.random() * 2 + 1; this.speedY = Math.random() * 0.5 + 0.1;
-                this.opacity = Math.random() * 0.5 + 0.1;
-                this.char = ["0", "1", "α", "β", "Ω", "∑", "π"][Math.floor(Math.random() * 7)];
+            let width, height, particles = [];
+
+            function resize() { 
+                if(!canvas) return;
+                width = canvas.width = window.innerWidth; 
+                height = canvas.height = window.innerHeight; 
             }
-            update() {
-                this.y -= this.speedY; 
-                if (this.y < 0) { this.y = height; this.x = Math.random() * width; }
+            
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * width; this.y = Math.random() * height;
+                    this.size = Math.random() * 2 + 1; this.speedY = Math.random() * 0.5 + 0.1;
+                    this.opacity = Math.random() * 0.5 + 0.1;
+                    this.char = ["0", "1", "α", "β", "Ω", "∑", "π"][Math.floor(Math.random() * 7)];
+                }
+                update() {
+                    this.y -= this.speedY; 
+                    if (this.y < 0) { this.y = height; this.x = Math.random() * width; }
+                }
+                draw() {
+                    if(!ctx) return;
+                    ctx.fillStyle = `rgba(136, 204, 255, ${this.opacity})`;
+                    ctx.font = `${this.size * 10}px monospace`;
+                    ctx.fillText(this.char, this.x, this.y);
+                }
             }
-            draw() {
+            
+            function initParticles() { 
+                particles = []; 
+                for (let i = 0; i < 60; i++) particles.push(new Particle()); 
+            }
+            
+            function animate() { 
                 if(!ctx) return;
-                ctx.fillStyle = `rgba(136, 204, 255, ${this.opacity})`;
-                ctx.font = `${this.size * 10}px monospace`;
-                ctx.fillText(this.char, this.x, this.y);
+                ctx.clearRect(0, 0, width, height); 
+                particles.forEach(p => { p.update(); p.draw(); }); 
+                requestAnimationFrame(animate); 
             }
-        }
-        
-        function initParticles() { 
-            particles = []; 
-            for (let i = 0; i < 60; i++) particles.push(new Particle()); 
-        }
-        
-        function animate() { 
-            if(!ctx) return;
-            ctx.clearRect(0, 0, width, height); 
-            particles.forEach(p => { p.update(); p.draw(); }); 
-            requestAnimationFrame(animate); 
-        }
-        
-        if (canvas) {
-            window.addEventListener('resize', resize); 
-            resize(); 
-            initParticles(); 
-            animate();
+            
+            if (canvas) {
+                window.addEventListener('resize', resize); 
+                resize(); 
+                initParticles(); 
+                animate();
+            }
+        } catch (e) {
+            console.error("Visuals Error:", e);
         }
 
         // --- GAME DATA ---
@@ -393,15 +408,22 @@
 
         const Engine = {
             init: function() {
-                console.log("Engine Init");
-                this.log("💻 System Boot... Cycle #2049.", "system");
-                this.log("Searching for <span style='color:var(--accent-color)'>User.Soul</span>... Found.", "system");
-                this.log("<br><strong>THE CHTHONIC KERNEL</strong>", "msg-player");
-                this.log("You drift in the void. Select your Major:", "narrator");
-                this.log("1. <strong>🔮 THEORIST</strong> (College of Aether) - Magic.", "msg-magic");
-                this.log("2. <strong>🔨 ENGINEER</strong> (Forge of Phlegethon) - Attack.", "danger");
-                this.log("3. <strong>📜 HISTORIAN</strong> (Library of Styx) - Defense.", "msg-npc");
-                GameState.mode = "INTRO";
+                try {
+                    const loading = document.getElementById('loading-msg');
+                    if(loading) loading.style.display = 'none';
+
+                    console.log("Engine Init");
+                    this.log("💻 System Boot... Cycle #2049.", "system");
+                    this.log("Searching for <span style='color:var(--accent-color)'>User.Soul</span>... Found.", "system");
+                    this.log("<br><strong>THE CHTHONIC KERNEL</strong>", "msg-player");
+                    this.log("You drift in the void. Select your Major:", "narrator");
+                    this.log("1. <strong>🔮 THEORIST</strong> (College of Aether) - Magic.", "msg-magic");
+                    this.log("2. <strong>🔨 ENGINEER</strong> (Forge of Phlegethon) - Attack.", "danger");
+                    this.log("3. <strong>📜 HISTORIAN</strong> (Library of Styx) - Defense.", "msg-npc");
+                    GameState.mode = "INTRO";
+                } catch(e) {
+                    alert("Init Error: " + e);
+                }
             },
 
             log: function(text, type = "narrator") {
@@ -636,9 +658,29 @@
         };
 
         const engine = Engine;
-        function submitCommand() { const i = document.getElementById('cmd-input'); engine.handleInput(i.value); i.value=""; i.focus(); }
+        function submitCommand() { 
+            try {
+                const i = document.getElementById('cmd-input'); 
+                engine.handleInput(i.value); 
+                i.value=""; 
+                i.focus(); 
+            } catch(e) { console.error(e); }
+        }
+        
         document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
-        window.onload = () => engine.init();
+        
+        window.onload = () => {
+            try {
+                // Ensure engine is ready
+                if (typeof engine !== 'undefined') {
+                    engine.init();
+                } else {
+                    document.body.innerHTML += "<h2 style='color:red'>Engine Failed to Load</h2>";
+                }
+            } catch (e) {
+                document.body.innerHTML = `<h1 style="color:red;padding:20px">CRITICAL FAILURE: ${e.message}</h1>`;
+            }
+        };
     </script>
 </body>
 </html>
