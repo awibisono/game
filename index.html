@@ -9,13 +9,13 @@
 
         :root {
             --bg-color: #050508;
-            --term-color: #111116;
+            --term-color: rgba(17, 17, 22, 0.7); /* Transparent for Glassmorphism */
             --text-color: #d0d0e0;
             --accent-color: #88ccff;
             --highlight-color: #ffd700;
             --danger-color: #ff6b6b;
             --magic-color: #e0aaff;
-            --font-main: 'VT323', monospace; /* Retro Terminal Font */
+            --font-main: 'VT323', monospace;
             --font-code: 'Fira Code', monospace;
         }
 
@@ -34,6 +34,16 @@
             position: relative;
         }
 
+        /* --- ANIMATED BACKGROUND --- */
+        #bg-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
         /* --- CRT SCANLINE EFFECT --- */
         body::before {
             content: " ";
@@ -46,17 +56,6 @@
             pointer-events: none;
         }
         
-        /* Flicker Animation */
-        @keyframes flicker {
-            0% { opacity: 0.97; }
-            5% { opacity: 0.95; }
-            10% { opacity: 0.9; }
-            15% { opacity: 0.95; }
-            20% { opacity: 0.98; }
-            50% { opacity: 0.95; }
-            100% { opacity: 0.98; }
-        }
-
         /* Shake Animation for Damage */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
@@ -73,32 +72,34 @@
             animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
 
-        /* --- HUD (Heads Up Display) --- */
+        /* --- HUD (Glassmorphism) --- */
         #hud {
-            background-color: #0a0a10;
-            border-bottom: 2px solid #333;
-            padding: 10px 15px;
+            background-color: var(--term-color);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
             font-family: var(--font-code);
-            font-size: 0.85rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-size: 0.9rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
             z-index: 10;
         }
 
         .stat-box { display: flex; gap: 20px; }
-        .stat-label { color: #666; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
-        .val-hp { color: var(--danger-color); text-shadow: 0 0 5px rgba(255, 107, 107, 0.5); }
-        .val-mp { color: var(--accent-color); text-shadow: 0 0 5px rgba(136, 204, 255, 0.5); }
+        .stat-label { color: #889; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
+        .val-hp { color: var(--danger-color); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
+        .val-mp { color: var(--accent-color); text-shadow: 0 0 8px rgba(136, 204, 255, 0.6); }
         
         #location-display { 
             color: var(--highlight-color); 
             font-weight: bold; 
             text-transform: uppercase; 
             letter-spacing: 2px;
-            text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
         }
 
         /* --- TERMINAL (Game Log) --- */
@@ -110,45 +111,49 @@
             flex-direction: column;
             gap: 12px;
             scroll-behavior: smooth;
-            background-color: var(--bg-color);
+            background-color: transparent; /* Transparent to see particles */
             position: relative;
             z-index: 1;
         }
 
         /* Custom Scrollbar */
         #terminal::-webkit-scrollbar { width: 8px; }
-        #terminal::-webkit-scrollbar-track { background: #111; }
-        #terminal::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        #terminal::-webkit-scrollbar-thumb:hover { background: #555; }
+        #terminal::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        #terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        #terminal::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
         .log-entry { 
             opacity: 0; 
-            animation: fadeIn 0.4s ease-out forwards; 
-            line-height: 1.5;
+            animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
+            line-height: 1.6;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8); /* Better contrast against particles */
         }
 
         @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(10px); } 
+            from { opacity: 0; transform: translateY(15px); } 
             to { opacity: 1; transform: translateY(0); } 
         }
 
-        .msg-narrator { color: #bbbbcc; }
-        .msg-player { color: var(--accent-color); font-weight: bold; border-left: 2px solid var(--accent-color); padding-left: 10px; }
+        .msg-narrator { color: #d0d0e0; }
+        .msg-player { color: var(--accent-color); font-weight: bold; border-left: 3px solid var(--accent-color); padding-left: 12px; background: linear-gradient(90deg, rgba(136, 204, 255, 0.1), transparent); }
         .msg-npc { color: var(--highlight-color); font-style: italic; }
-        .msg-danger { color: var(--danger-color); font-weight: bold; text-shadow: 0 0 3px rgba(255, 0, 0, 0.3); }
-        .msg-magic { color: var(--magic-color); text-shadow: 0 0 5px rgba(224, 170, 255, 0.4); }
-        .msg-system { color: #55ff55; font-size: 0.9em; font-family: var(--font-code); opacity: 0.8; }
+        .msg-danger { color: var(--danger-color); font-weight: bold; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
+        .msg-magic { color: var(--magic-color); text-shadow: 0 0 8px rgba(224, 170, 255, 0.5); }
+        .msg-system { color: #66ff66; font-size: 0.9em; font-family: var(--font-code); opacity: 0.9; text-shadow: 0 0 5px rgba(0, 255, 0, 0.3); }
 
-        /* --- CONTROLS --- */
+        /* --- CONTROLS (Glassmorphism) --- */
         #controls {
             background-color: var(--term-color);
-            border-top: 1px solid #222;
-            padding: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: 15px;
             z-index: 10;
+            box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
         }
 
         #input-line {
@@ -158,29 +163,29 @@
 
         #cmd-input {
             flex-grow: 1;
-            background: #08080c;
-            border: 1px solid #333;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #444;
             color: #fff;
-            padding: 12px;
+            padding: 14px;
             font-family: var(--font-code);
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 1rem;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
-        #cmd-input:focus { outline: none; border-color: var(--accent-color); }
+        #cmd-input:focus { outline: none; border-color: var(--accent-color); background: rgba(0, 0, 0, 0.8); box-shadow: 0 0 10px rgba(136, 204, 255, 0.2); }
 
         #send-btn {
-            background: #222;
+            background: rgba(255, 255, 255, 0.1);
             color: #fff;
-            border: 1px solid #444;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0 25px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-family: var(--font-code);
             font-weight: bold;
             transition: all 0.2s;
         }
-        #send-btn:hover { background: #333; border-color: #666; }
+        #send-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
         #send-btn:active { transform: scale(0.95); }
 
         /* --- MOBILE BUTTON GRID --- */
@@ -191,9 +196,9 @@
         }
 
         .btn {
-            background: linear-gradient(145deg, #2a2a35, #22222d);
-            color: #ccc;
-            border: 1px solid #3a3a45;
+            background: linear-gradient(145deg, rgba(60, 60, 70, 0.6), rgba(40, 40, 50, 0.6));
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 15px 5px;
             border-radius: 8px;
             font-size: 1rem;
@@ -201,33 +206,42 @@
             cursor: pointer;
             text-transform: uppercase;
             font-weight: bold;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
             user-select: none;
             touch-action: manipulation;
-            box-shadow: 0 4px 0 #15151a;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .btn:hover {
+            background: linear-gradient(145deg, rgba(80, 80, 90, 0.7), rgba(50, 50, 60, 0.7));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
         .btn:active { 
-            transform: translateY(4px); 
-            box-shadow: 0 0 0 #15151a; 
+            transform: translateY(2px); 
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); 
         }
 
-        .btn-move { border-bottom: 3px solid #446; }
-        .btn-act { border-bottom: 3px solid #644; color: #ffcccc; }
+        .btn-move { border-bottom: 2px solid #557; }
+        .btn-act { border-bottom: 2px solid #755; color: #ffcccc; }
         
         /* Combat Buttons Glow */
         .btn-combat { 
-            background: linear-gradient(145deg, #422, #311); 
-            border-color: #a44; 
-            color: #ffa; 
+            background: linear-gradient(145deg, rgba(80, 40, 40, 0.8), rgba(60, 20, 20, 0.8)); 
+            border-color: #f55; 
+            color: #ffe; 
             display: none; 
             animation: pulse 2s infinite;
         }
         
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(255, 85, 85, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.6); border-color: #f55; }
+            50% { border-color: #f88; }
+            70% { box-shadow: 0 0 0 10px rgba(255, 85, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); border-color: #f55; }
         }
 
         /* Media Query for larger screens */
@@ -241,6 +255,9 @@
     </style>
 </head>
 <body>
+
+    <!-- ANIMATED BACKGROUND -->
+    <canvas id="bg-canvas"></canvas>
 
     <!-- HUD -->
     <div id="hud">
@@ -283,7 +300,58 @@
     </div>
 
     <script>
+        // --- BACKGROUND ANIMATION ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 1;
+                this.speedY = Math.random() * 0.5 + 0.1;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.char = String.fromCharCode(0x0370 + Math.random() * 80); // Greek characters
+            }
+            update() {
+                this.y -= this.speedY; // Float up
+                if (this.y < 0) {
+                    this.y = height;
+                    this.x = Math.random() * width;
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(136, 204, 255, ${this.opacity})`;
+                ctx.font = `${this.size * 8}px monospace`;
+                ctx.fillText(this.char, this.x, this.y);
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 50; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        initParticles();
+        animate();
+
         // --- CONSTANTS & CONFIG ---
+
         const ELEMENTS = {
             FIRE: "Phlegethon", 
             ICE: "Cocytus",     
