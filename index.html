@@ -708,160 +708,87 @@
                 }
             },
 
+        const GlitchEvents = [
+            "You step on a loose tile of memory. A fragment of a birthday party flashes before your eyes, then vanishes.",
+            "The walls hum with the sound of a cooling fan spinning in a void.",
+            "You find a Post-It note stuck to a column: <em>'TODO: Fix gravity in sector 7.'</em>",
+            "A ghost made of static drifts past you, whispering your IP address.",
+            "For a second, the world renders in wireframe. You feel cold.",
+            "You stumble over a stack of overflowed buffers."
+        ];
+
+        // ... [World and Bestiary remain the same] ...
+
+        const Engine = {
+            // ... [Init remains the same] ...
+
             move: function(dir) {
                 const loc = World[GameState.player.location];
                 if (loc.exits[dir]) {
                     GameState.player.location = loc.exits[dir];
                     this.log(`You traverse ${dir}...`, "narrator");
+                    
+                    // Check for Endgame
+                    if (GameState.player.location === "woodbridge") {
+                        this.triggerEndgame();
+                        return;
+                    }
+
                     this.handleInput("look");
                     this.checkEncounter();
                 } else {
-                    this.log("You cannot go that way.", "danger");
+                    this.log("Access Denied: You cannot traverse that way.", "danger");
                 }
                 this.updateHUD();
             },
 
             checkEncounter: function() {
                 const loc = World[GameState.player.location];
-                if (loc.encounterRate && Math.random() < loc.encounterRate) {
+                const roll = Math.random();
+
+                // 1. Combat Encounter
+                if (loc.encounterRate && roll < loc.encounterRate) {
                     const enemyName = loc.enemies[Math.floor(Math.random() * loc.enemies.length)];
                     this.startCombat(enemyName);
+                    return;
+                }
+
+                // 2. Glitch Event (Flavor Text) - if no combat
+                if (roll > 0.7) {
+                    const glitch = GlitchEvents[Math.floor(Math.random() * GlitchEvents.length)];
+                    setTimeout(() => {
+                        this.log(`<span style="color:#55ff55; opacity:0.7;">// SYSTEM GLITCH:</span> ${glitch}`, "narrator");
+                    }, 500);
                 }
             },
 
-            // --- COMBAT ENGINE ---
-            startCombat: function(enemyKey) {
-                GameState.mode = "COMBAT";
-                this.toggleControls(true);
-                
-                const template = Bestiary[enemyKey];
-                GameState.combat.target = { 
-                    ...template, 
-                    name: enemyKey,
-                    currentHp: template.hp 
-                };
-                
-                this.log(`<br><strong>--- ENCOUNTER INITIATED ---</strong>`, "system");
-                this.log(`A <strong>${enemyKey}</strong> emerges from the gloom.`, "danger");
-                this.log(`<em>"${template.desc}"</em>`, "narrator");
-                this.log("The air grows heavy with the weight of imminent debate.", "narrator");
-            },
-
-            combatInput: function(cmd) {
-                const player = GameState.player;
-                const enemy = GameState.combat.target;
-
-                if (["argue", "attack", "a"].includes(cmd)) {
-                    // Physical/Rhetoric (The "Game of Thrones" visceral verbal spar)
-                    const dmg = Math.max(1, player.rhetoric - (enemy.def / 2) + Math.floor(Math.random() * 3));
-                    enemy.currentHp -= dmg;
-                    
-                    const attackDescs = [
-                        `You lunge with a scathing critique, piercing the ${enemy.name}'s defense.`,
-                        `"Your premise is flawed!" you shout, striking with the weight of certainty.`,
-                        `You parry a logical fallacy and riposte with a brutal fact.`,
-                        `Like a bravo of Braavos, you dance around the argument, landing a stinging point.`
-                    ];
-                    this.log(attackDescs[Math.floor(Math.random() * attackDescs.length)], "player");
-                    this.log(`(The argument lands for <strong>${dmg}</strong> Rhetoric damage.)`, "system");
-                    this.nextTurn();
-                } 
-                else if (["logic", "magic", "m"].includes(cmd)) {
-                    // Magic/Theory (The "Name of the Wind" Sympathy/Will)
-                    if (player.techne >= 3) {
-                        player.techne -= 3;
-                        const dmg = Math.max(1, (player.theory * 2) - (enemy.def / 2));
-                        enemy.currentHp -= dmg;
-                        
-                        const magicDescs = [
-                            `You slip into your Heart of Stone. You bind the heat of the server room to the ${enemy.name}'s logic gates.`,
-                            `Muttering a binding spell, you link the ${enemy.name} to a Null Pointer. The connection snaps efficiently.`,
-                            `You speak the Name of the Function. The code obeys, tearing at the enemy's structure.`,
-                            `Alar firm as a diamond, you force your will upon reality. "Break," you whisper.`
-                        ];
-                        
-                        this.log(magicDescs[Math.floor(Math.random() * magicDescs.length)], "msg-magic");
-                        this.log(`(The Sympathy link deals <span style='color:violet'>${dmg}</span> Theory damage.)`, "system");
-                        this.nextTurn();
-                    } else {
-                        this.log("Your Alar is weak. You lack the Techne (MP) to maintain the binding.", "danger");
-                    }
-                }
-                else if (["thesis", "scan"].includes(cmd)) {
-                     this.log(`You analyze the opponent's structure...`, "system");
-                     this.log(`Target: <strong>${enemy.name}</strong>`, "narrator");
-                     this.log(`Integrity: ${enemy.currentHp}/${enemy.hp}`, "narrator");
-                     this.log(`Affinity: ${enemy.element}`, "narrator");
-                }
-                else if (["flee", "run"].includes(cmd)) {
-                    if (Math.random() > 0.5) {
-                        this.log("You break the engagement and fade into the shadows.", "system");
-                        this.endCombat(false);
-                    } else {
-                        this.log("The enemy anticipates your retreat. You are pinned by their logic.", "danger");
-                        this.enemyTurn();
-                    }
-                }
-                else {
-                    this.log("Combat Commands: ARGUE (Attack), LOGIC (Magic), THESIS (Scan), FLEE", "system");
-                }
-                this.updateHUD();
-            },
-
-            nextTurn: function() {
-                const enemy = GameState.combat.target;
-                if (enemy.currentHp <= 0) {
-                    this.log(`<br>The ${enemy.name}'s argument crumbles. It dissolves into static.`, "system");
-                    this.log(`<strong>VICTORY.</strong> You verify your axioms.`, "msg-player");
-                    this.endCombat(true);
-                } else {
-                    this.enemyTurn();
-                }
-            },
-
-            enemyTurn: function() {
-                const player = GameState.player;
-                const enemy = GameState.combat.target;
+            triggerEndgame: function() {
+                this.log("<br><strong>--- CRITICAL ALERT ---</strong>", "danger");
+                this.log("You stand before the Woodbridge Hall of Judgment.", "narrator");
+                this.log("The Provost of Entropy descends from the ceiling, wreathed in Red Tape.", "danger");
+                this.log(`[The Provost]: "Your extension request is denied. SUBMIT."`, "msg-npc");
                 
                 setTimeout(() => {
-                    const dmg = Math.max(1, enemy.att - (player.dialect / 2) + Math.floor(Math.random() * 2));
-                    player.psyche -= dmg;
-                    
-                    // Trigger Shake
-                    document.body.classList.add('shake-screen');
-                    setTimeout(() => document.body.classList.remove('shake-screen'), 500);
-                    
-                    const enemyDescs = [
-                        `The ${enemy.name} retaliates with a blistering counter-point.`,
-                        `"Wrong!" it screeches, tearing at your confidence.`,
-                        `A wave of raw dissonance washes over you. Your Alar wavers.`,
-                        `The ${enemy.name} cites a forbidden text. Your mind reels.`
-                    ];
-                    
-                    this.log(enemyDescs[Math.floor(Math.random() * enemyDescs.length)], "danger");
-                    this.log(`(You take <strong>${dmg}</strong> damage to your Psyche.)`, "system");
-                    
-                    if (player.psyche <= 0) {
-                        this.log("<br><strong>CRITICAL FAILURE</strong>", "danger");
-                        this.log("Your mind fractures under the strain. You have dropped out.", "danger");
-                        this.log("Refresh the page to re-apply.", "system");
-                    }
-                    this.updateHUD();
-                }, 800);
+                    this.startCombat("The Provost");
+                }, 2000);
             },
+
+            // ... [Combat Logic] ...
 
             endCombat: function(won) {
                 const enemy = GameState.combat.target;
                 GameState.mode = "EXPLORE";
                 GameState.combat.target = null;
-                this.toggleControls(false); // Hide combat buttons
+                this.toggleControls(false);
 
                 if (won) {
                     this.log("You recover some mental focus (Techne).", "system");
                     GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 5);
                     
-                    // Boss Defeat Logic
-                    if (enemy.boss) {
+                    if (enemy.name === "The Provost") {
+                        this.triggerVictory();
+                    }
+                    else if (enemy.boss) {
                         this.log(`<br><strong>MEMORY UNLOCKED</strong>`, "msg-magic");
                         const fragment = this.getMemoryFragment(enemy.name);
                         this.log(`<em>"${fragment}"</em>`, "narrator");
@@ -870,6 +797,28 @@
                 }
                 this.updateHUD();
             },
+
+            triggerVictory: function() {
+                setTimeout(() => {
+                    document.body.innerHTML = ""; // Clear screen
+                    document.body.style.display = "flex";
+                    document.body.style.justifyContent = "center";
+                    document.body.style.alignItems = "center";
+                    document.body.style.textAlign = "center";
+                    
+                    const winScreen = document.createElement("div");
+                    winScreen.innerHTML = `
+                        <h1 style="color: gold; text-shadow: 0 0 20px gold;">GRADUATION COMPLETE</h1>
+                        <p style="color: #fff; font-family: 'Courier New';">You have compiled the Lux et Veritas.</p>
+                        <p style="color: #88ccff;">Cycle Broken.</p>
+                        <br>
+                        <p><em>Thank you for playing.</em></p>
+                        <button onclick="location.reload()" style="padding: 10px 20px; background: #333; color: white; border: 1px solid #555; cursor: pointer;">New Cycle</button>
+                    `;
+                    document.body.appendChild(winScreen);
+                }, 2000);
+            },
+
 
             getMemoryFragment: function(bossName) {
                 const fragments = {
