@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Archipelago: A Tale of True Names</title>
+    <title>The Truth Mines</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:wght@300;400&display=swap');
 
         :root {
-            --bg-color: #f4f1ea; /* Parchment */
-            --text-color: #2c3e50; /* Deep Ink */
-            --accent-color: #2980b9; /* Sea Blue */
-            --highlight-color: #d35400; /* Rust/Clay */
-            --soft-color: #7f8c8d; /* Grey Mist */
+            --bg-color: #fdfbf7;
+            --text-color: #333;
+            --accent-color: #2980b9;
+            --danger-color: #c0392b;
+            --magic-color: #8e44ad;
             --font-main: 'Cormorant Garamond', serif;
-            --font-ui: 'Lato', sans-serif;
+            --font-code: 'Roboto Mono', monospace;
         }
 
         * { box-sizing: border-box; }
@@ -23,14 +23,12 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             margin: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
-            background-image: linear-gradient(to bottom, #f4f1ea 0%, #e8e0d5 100%);
         }
 
         #bg-canvas {
@@ -38,101 +36,80 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 0;
-            opacity: 0.6;
+            opacity: 0.3;
             pointer-events: none;
         }
 
-        /* Animations */
-        @keyframes drift {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
-            100% { transform: translateY(0px); }
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* HUD: Elegant & Minimal */
         #hud {
             padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(0,0,0,0.1);
-            background: rgba(244, 241, 234, 0.9);
-            font-family: var(--font-ui);
-            font-weight: 300;
+            background: rgba(253, 251, 247, 0.95);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
             z-index: 10;
         }
 
-        .stat-box { display: flex; gap: 30px; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; }
-        .val-hp { color: var(--highlight-color); font-weight: bold; }
-        .val-mp { color: var(--accent-color); font-weight: bold; }
-        #location-display { font-family: var(--font-main); font-size: 1.5rem; font-style: italic; color: var(--text-color); }
+        .stat { font-weight: bold; color: var(--accent-color); }
 
-        /* Story Text */
         #terminal {
             flex-grow: 1;
             padding: 40px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
             scroll-behavior: smooth;
             z-index: 1;
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             width: 100%;
         }
-        
-        /* Hide scrollbar */
-        #terminal::-webkit-scrollbar { width: 0px; }
+        #terminal::-webkit-scrollbar { width: 4px; }
+        #terminal::-webkit-scrollbar-thumb { background: #ccc; }
 
-        .log-entry { 
-            animation: fadeIn 1s ease-out forwards; 
-            line-height: 1.8;
-        }
+        .log-entry { animation: fadeIn 0.8s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .narrator { color: #2c3e50; }
+        .narrator { color: #444; }
         .msg-player { color: var(--accent-color); font-style: italic; border-left: 2px solid var(--accent-color); padding-left: 15px; }
-        .msg-npc { color: #8e44ad; font-weight: 600; }
-        .msg-magic { color: var(--highlight-color); font-family: var(--font-main); font-size: 1.4rem; } /* The Old Speech */
-        .msg-system { color: var(--soft-color); font-family: var(--font-ui); font-size: 0.9rem; text-align: center; margin-top: 10px; }
+        .msg-npc { color: var(--magic-color); font-weight: 600; }
+        .msg-danger { color: var(--danger-color); }
+        .msg-system { color: #777; font-family: var(--font-code); font-size: 0.85rem; text-align: center; }
 
-        /* Controls */
         #controls {
             padding: 20px;
-            background: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.8);
             border-top: 1px solid rgba(0,0,0,0.05);
             z-index: 10;
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             width: 100%;
         }
 
         #input-line { display: flex; gap: 15px; margin-top: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-        
         #cmd-input {
             flex-grow: 1; background: transparent; border: none; color: var(--text-color);
             padding: 10px; font-family: var(--font-main); font-size: 1.3rem; outline: none;
         }
-        
         #send-btn {
             background: transparent; color: var(--text-color); border: 1px solid #ccc;
-            padding: 5px 20px; border-radius: 20px; cursor: pointer; font-family: var(--font-ui);
-            transition: all 0.3s;
+            padding: 5px 20px; border-radius: 20px; cursor: pointer; font-family: var(--font-code); font-size: 0.8rem;
+            transition: all 0.2s;
         }
         #send-btn:hover { background: var(--text-color); color: white; }
 
-        /* Soft Buttons */
-        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .btn {
-            background: #fff; border: 1px solid #e0e0e0; color: #555;
-            padding: 12px; border-radius: 8px; font-family: var(--font-ui); font-size: 0.9rem; cursor: pointer;
-            transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            background: #fff; border: 1px solid #ddd; color: #666;
+            padding: 12px; border-radius: 4px; font-family: var(--font-code); font-size: 0.85rem; cursor: pointer;
+            transition: all 0.2s;
         }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); color: var(--accent-color); border-color: var(--accent-color); }
-        
-        .btn-combat { display: none; border-color: #e74c3c; color: #c0392b; }
-        .btn-combat:hover { background: #e74c3c; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: var(--accent-color); color: var(--accent-color); }
+        .btn-combat { display: none; border-color: var(--danger-color); color: var(--danger-color); }
+        .btn-combat:hover { background: var(--danger-color); color: white; }
 
     </style>
 </head>
@@ -141,15 +118,13 @@
     <canvas id="bg-canvas"></canvas>
 
     <div id="hud">
-        <div class="stat-box">
-            <div>Equilibrium <span id="hp-val" class="val-hp">100%</span></div>
-            <div>Silence <span id="mp-val" class="val-mp">High</span></div>
-        </div>
-        <div id="location-display">The Isle of Gont</div>
+        <div>CERTAINTY: <span id="hp-val" class="stat">100%</span></div>
+        <div>AXIOMS: <span id="mp-val" class="stat">0</span></div>
+        <div id="location-display">The Surface</div>
     </div>
 
     <div id="terminal">
-        <div id="loading-msg" style="text-align:center; color: #999; margin-top: 50px;">The wind is changing...</div>
+        <div id="loading-msg" style="text-align:center; color: #999; margin-top: 50px;">Calculating Trajectory...</div>
     </div>
 
     <div id="controls">
@@ -158,27 +133,26 @@
             <button class="btn expl-btn" onclick="submitBtn('south')">South</button>
             <button class="btn expl-btn" onclick="submitBtn('west')">West</button>
             <button class="btn expl-btn" onclick="submitBtn('east')">East</button>
-            <button class="btn expl-btn" onclick="submitBtn('look')">Listen</button>
-            <button class="btn expl-btn" onclick="submitBtn('interact')">Touch</button>
+            <button class="btn expl-btn" onclick="submitBtn('look')">Analyze</button>
+            <button class="btn expl-btn" onclick="submitBtn('interact')">Mine</button>
             
-            <button class="btn btn-combat" onclick="submitBtn('speak')">Speak Name</button>
-            <button class="btn btn-combat" onclick="submitBtn('calm')">Calm</button>
-            <button class="btn btn-combat" onclick="submitBtn('shape')">Shape Change</button>
-            <button class="btn btn-combat" onclick="submitBtn('flee')">Retreat</button>
+            <button class="btn btn-combat" onclick="submitBtn('prove')">Proof</button>
+            <button class="btn btn-combat" onclick="submitBtn('doubt')">Doubt</button>
+            <button class="btn btn-combat" onclick="submitBtn('derive')">Derive</button>
+            <button class="btn btn-combat" onclick="submitBtn('yield')">Yield</button>
         </div>
         <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="What is its True Name?" autocomplete="off">
-            <button id="send-btn" onclick="submitCommand()">Speak</button>
+            <input type="text" id="cmd-input" placeholder="Enter query..." autocomplete="off">
+            <button id="send-btn" onclick="submitCommand()">EXECUTE</button>
         </div>
     </div>
 
     <script>
-        // --- UTILS ---
         function submitBtn(cmd) { if(window.engine) window.engine.handleInput(cmd); }
         function submitCommand() { const i = document.getElementById('cmd-input'); if(window.engine) window.engine.handleInput(i.value); i.value=""; i.focus(); }
         document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
 
-        // --- VISUALS (Soft Particles) ---
+        // --- PARTICLES (Geometric Shapes) ---
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         let width, height, particles = [];
@@ -186,16 +160,18 @@
         class Particle {
             constructor() { 
                 this.x = Math.random()*width; this.y = Math.random()*height; 
-                this.size = Math.random()*3; this.speedX = Math.random()*0.5-0.25; this.speedY = Math.random()*0.5-0.25;
-                this.alpha = Math.random()*0.5;
+                this.size = Math.random()*20+10; 
+                this.speedX = Math.random()*0.2-0.1; this.speedY = Math.random()*0.2-0.1;
+                this.char = ["∆", "∇", "◯", "◻", "◇"][Math.floor(Math.random()*5)];
             }
             update() { this.x+=this.speedX; this.y+=this.speedY; if(this.x>width)this.x=0; if(this.y>height)this.y=0; }
             draw() { 
-                ctx.fillStyle = `rgba(41, 128, 185, ${this.alpha})`;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "rgba(41, 128, 185, 0.05)";
+                ctx.font = `${this.size}px serif`; 
+                ctx.fillText(this.char, this.x, this.y); 
             }
         }
-        function initParticles() { particles=[]; for(let i=0; i<80; i++) particles.push(new Particle()); }
+        function initParticles() { particles=[]; for(let i=0; i<40; i++) particles.push(new Particle()); }
         function animate() { ctx.clearRect(0,0,width,height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
         window.addEventListener('resize', resize); resize(); initParticles(); animate();
 
@@ -203,92 +179,76 @@
         const GameState = {
             mode: "INTRO",
             player: {
-                name: "Sparrowhawk", 
-                balance: 20, maxBalance: 20, silence: 10, 
-                trueNames: ["otak"], // Known Names
-                inventory: ["Yew Staff"], 
-                location: "gont"
+                name: "Seeker", 
+                hp: 100, maxHp: 100, // Certainty
+                axioms: 0, // Knowledge
+                theorems: [], // Inventory
+                location: "surface"
             },
             combat: { target: null },
             dialogue: { npc: null, node: "start" }
         };
 
-        const TrueNames = {
-            "wind": "ienk",
-            "stone": "tolk",
-            "shadow": "geb",
-            "dragon": "kalessin",
-            "otak": "hoeg"
-        };
-
         const World = {
-            "gont": { 
-                name: "The Cliffs of Gont", 
-                desc: "High above the sea, where the hawks fly. The village of Ten Alders lies below.", 
-                exits: { "east": "forest", "south": "port" },
-                npc: "Ogion"
+            "surface": { 
+                name: "The Surface of the Polis", 
+                desc: "The white towers of the Foundation gleam under a mathematical sun. Here, everything is known. Everything is predicted.", 
+                exits: { "down": "shaft_1" },
+                npc: "The Seldon AI"
             },
-            "forest": { 
-                name: "The Silent Grove", 
-                desc: "The trees here are old and know many secrets. An Otak watches you from a branch.", 
-                exits: { "west": "gont" },
-                interact: { type: "otak", text: "A small, furry creature with bright eyes. It is an Otak.", item: "hoeg" }
+            "shaft_1": { 
+                name: "Shaft 1: The Linear Descent", 
+                desc: "You descend into the rock of raw data. The walls are lined with forgotten equations.", 
+                exits: { "up": "surface", "down": "shaft_2" },
+                interact: { text: "A vein of pure logic glitters here.", item: "Euclid's Stone" }
             },
-            "port": { 
-                name: "Gont Port", 
-                desc: "Ships with painted eyes bob in the harbor, waiting to sail to Roke.", 
-                exits: { "north": "gont", "sail": "sea" },
-                encounterRate: 0.3, enemies: ["Fog Walker"]
+            "shaft_2": {
+                name: "Shaft 2: The Non-Euclidean Zone",
+                desc: "Geometry begins to warp. Parallel lines meet here.",
+                exits: { "up": "shaft_1", "down": "core" },
+                encounterRate: 0.4, enemies: ["Paradox"]
             },
-            "sea": {
-                name: "The Open Sea",
-                desc: "Waves endless and gray. You are a speck on the water.",
-                exits: { "north": "port", "south": "roke" },
-                encounterRate: 0.5, enemies: ["Storm Spirit"]
-            },
-            "roke": {
-                name: "The Isle of the Wise",
-                desc: "The School of Wizards. The Knoll of Roke rises gently.",
-                exits: { "north": "sea" },
-                npc: "The Archmage"
+            "core": {
+                name: "The Core: The Empty Set",
+                desc: "The center of the mines. There is nothing here. And in that nothing, there is everything.",
+                exits: { "up": "shaft_2" },
+                npc: "The Uncarved Block"
             }
         };
 
         const Bestiary = {
-            "Fog Walker": { hp: 10, balance: 5, name: "Fog Walker", trueName: "shadow", desc: "A shapeless mist that chills the bone. It has forgotten its form." },
-            "Storm Spirit": { hp: 15, balance: 8, name: "Storm Spirit", trueName: "wind", desc: "A howling gale that seeks to capsize you." },
-            "The Shadow": { hp: 30, balance: 15, name: "The Shadow", trueName: "self", desc: "A dark figure that wears your face." }
+            "Paradox": { hp: 30, att: 10, name: "A Paradox", desc: "A statement that contradicts itself. It hurts your Certainty." },
+            "Dogma": { hp: 50, att: 5, name: "Stagnant Dogma", desc: "An old belief that refuses to die." }
         };
 
         const NPCs = {
-            "Ogion": { 
-                name: "Ogion the Silent", 
+            "The Seldon AI": { 
+                name: "Prime Radiant (Seldon AI)", 
                 dialogue: { 
-                    "start": { text: "To hear, one must be silent.", options: { "1": { text: "Teach me magic.", next: "magic" }, "2": { text: "I want to sail.", next: "sail" } } },
-                    "magic": { text: "Magic is not power. It is belonging. Learn the name of the stone, and the stone will accept you.", options: { "1": { text: "I understand.", next: "start" } } },
-                    "sail": { text: "Then go. But remember: to light a candle is to cast a shadow.", options: { "1": { text: "Goodbye, Master.", next: "start" } } }
+                    "start": { text: "Predictable. You wish to descend.", options: { "1": { text: "I seek the Truth.", next: "truth" } } },
+                    "truth": { text: "Truth is statistical. An individual datum is irrelevant.", options: { "1": { text: "I am not irrelevant.", next: "start" } } }
                 } 
             },
-            "The Archmage": { 
-                name: "Nemmerle", 
-                dialogue: { 
-                    "start": { text: "Welcome to Roke. Do you know who you are?", options: { "1": { text: "I am a Wizard.", next: "wiz" } } },
-                    "wiz": { text: "We shall see.", options: { "1": { text: "Back.", next: "start" } } }
-                } 
+            "The Uncarved Block": {
+                name: "The Tao",
+                dialogue: {
+                    "start": { text: "...", options: { "1": { text: "Listen.", next: "listen" } } },
+                    "listen": { text: "The vessel is useful because it is empty.", options: { "1": { text: "I understand.", next: "start" } } }
+                }
             }
         };
 
         const Engine = {
             init: function() {
                 document.getElementById('loading-msg').style.display = 'none';
-                this.log("In the beginning, there was only the sea...", "narrator");
+                this.log("The year is 12,020 G.E. (Galactic Era).", "narrator");
                 setTimeout(() => {
-                    this.log("You stand on the granite cliffs of Gont.", "narrator");
-                    this.log("You are a young student, seeking the True Names of things.", "narrator");
-                    this.log("Ogion the Silent stands beside you, watching the hawks.", "narrator");
+                    this.log("You stand at the edge of the Truth Mines.", "narrator");
+                    this.log("Above you: The Order of the Foundation.", "narrator");
+                    this.log("Below you: The Chaos of the Undiscovered.", "narrator");
+                    this.log("To find the Prime Axiom, you must descend.", "narrator");
                     GameState.mode = "EXPLORE";
-                    this.updateHUD();
-                }, 1500);
+                }, 1000);
             },
 
             log: function(text, type = "narrator") {
@@ -309,35 +269,33 @@
 
             explore: function(cmd) {
                 const loc = World[GameState.player.location];
-                if(["north","south","east","west"].includes(cmd) && loc.exits[cmd]) this.move(loc.exits[cmd]);
-                else if(cmd === "sail" && loc.exits.sail) this.move(loc.exits.sail);
-                else if(["look","listen"].includes(cmd)) {
-                    this.log(`<br>${loc.name}`, "msg-magic");
+                if(cmd==="down" && loc.exits.down) this.move(loc.exits.down);
+                else if(cmd==="up" && loc.exits.up) this.move(loc.exits.up);
+                else if(["look","analyze"].includes(cmd)) {
+                    this.log(`<br><strong>${loc.name}</strong>`, "msg-system");
                     this.log(loc.desc, "narrator");
-                    if(loc.npc) this.log(`${loc.npc} is here, waiting.`, "msg-npc");
-                    if(loc.interact) this.log(`You notice something: ${loc.interact.text}`, "msg-player");
+                    if(loc.npc) this.log(`Entity Detected: ${NPCs[loc.npc].name}`, "msg-npc");
+                    if(loc.interact) this.log(`Resource: ${loc.interact.text}`, "msg-player");
                 }
-                else if(["interact","touch"].includes(cmd)) {
-                    if(loc.interact) {
-                        this.log("You reach out gently...", "narrator");
-                        if(loc.interact.type === "otak") {
-                            this.log("The Otak sniffs your hand and climbs onto your shoulder. It is warm.", "msg-player");
-                            this.log("You have learned the True Name: <strong>HOEG</strong>", "msg-magic");
-                            GameState.player.trueNames.push("otak");
-                        }
-                    } else this.log("There is nothing to touch here.", "narrator");
+                else if(["interact","mine"].includes(cmd)) {
+                    if(loc.interact && !GameState.player.theorems.includes(loc.interact.item)) {
+                        this.log(`You extract the <strong>${loc.interact.item}</strong>.`, "msg-player");
+                        this.log("Axiom Count +1.", "msg-system");
+                        GameState.player.theorems.push(loc.interact.item);
+                        GameState.player.axioms++;
+                        this.updateHUD();
+                    } else this.log("No extractable logic here.", "narrator");
                 }
-                else if(["talk","speak"].includes(cmd)) {
+                else if(["talk","query"].includes(cmd)) {
                     if(loc.npc) this.startDialogue(NPCs[loc.npc]);
-                    else this.log("Only the wind answers.", "narrator");
+                    else this.log("No response.", "narrator");
                 }
-                else this.log("The wind blows silently. (Unknown command)", "narrator");
-                this.updateHUD();
+                else this.log("Command unverified.", "msg-system");
             },
 
             move: function(dest) {
                 GameState.player.location = dest;
-                this.log("You travel...", "narrator");
+                this.log("Descending...", "narrator");
                 this.explore("look");
                 if(World[dest].encounterRate && Math.random() < World[dest].encounterRate) {
                     this.startCombat(World[dest].enemies[0]);
@@ -362,45 +320,45 @@
                 if(node.options[cmd]) {
                     GameState.dialogue.node = node.options[cmd].next;
                     this.showDialogue();
-                } else if (cmd.includes("bye") || cmd.includes("back")) {
+                } else {
                     GameState.mode = "EXPLORE";
-                    this.log("You bow and step back.", "narrator");
+                    this.log("Connection terminated.", "msg-system");
                 }
             },
 
             startCombat: function(name) {
                 GameState.mode = "COMBAT";
-                GameState.combat.target = Bestiary[name];
-                this.log(`<br>Something unsettles the balance: <strong>${name}</strong>`, "msg-npc");
+                GameState.combat.target = { ...Bestiary[name], currentHp: Bestiary[name].hp };
+                this.log(`<br>Anomaly Detected: <strong>${name}</strong>`, "msg-danger");
                 this.log(Bestiary[name].desc, "narrator");
                 this.toggleControls(true);
             },
 
             combat: function(cmd) {
                 const enemy = GameState.combat.target;
-                
-                if(cmd === "calm") {
-                    this.log("You raise your staff to calm the spirit.", "narrator");
-                    enemy.balance -= 2;
-                } else if(cmd === "shape") {
-                    this.log("You change into a hawk to dodge.", "msg-magic");
-                } else if(cmd.includes(enemy.trueName) || (cmd === "speak" && GameState.player.trueNames.includes(enemy.trueName))) {
-                    this.log(`You speak the True Name: <strong>${enemy.trueName.toUpperCase()}</strong>!`, "msg-magic");
-                    this.log(`The ${enemy.name} recognizes itself and fades into the equilibrium.`, "narrator");
-                    this.endCombat();
-                    return;
-                } else {
-                    this.log("Your words have no power over this. You must know its Name.", "narrator");
+                if(cmd === "prove") {
+                    this.log("You assert a fundamental truth.", "msg-player");
+                    enemy.currentHp -= 10;
+                } else if(cmd === "doubt") {
+                    this.log("You question the enemy's existence.", "msg-player");
+                    enemy.currentHp -= 5; // DoT effect?
+                } else if(cmd === "derive") {
+                    if(GameState.player.axioms > 0) {
+                        this.log("You derive a new corollary! Critical Hit!", "msg-magic");
+                        enemy.currentHp -= 20;
+                    } else {
+                        this.log("Insufficient Axioms.", "msg-system");
+                    }
                 }
 
-                if(enemy.balance <= 0) {
-                    this.log("Balance is restored.", "msg-magic");
+                if(enemy.currentHp <= 0) {
+                    this.log("The Anomaly is resolved.", "msg-system");
                     this.endCombat();
                 } else {
-                    this.log(`The ${enemy.name} lashes out in confusion. Your inner peace wavers.`, "msg-npc");
-                    GameState.player.balance -= 2;
+                    this.log(`${enemy.name} contradicts you! -${enemy.att} Certainty.`, "msg-danger");
+                    GameState.player.hp -= enemy.att;
                     this.updateHUD();
-                    if(GameState.player.balance <= 0) this.log("You are lost to the Shadow...", "msg-npc");
+                    if(GameState.player.hp <= 0) this.log("Consensus Reality Collapse.", "msg-danger");
                 }
             },
 
@@ -415,7 +373,8 @@
             },
 
             updateHUD: function() {
-                document.getElementById('hp-val').innerText = `${GameState.player.balance}`;
+                document.getElementById('hp-val').innerText = `${GameState.player.hp}%`;
+                document.getElementById('mp-val').innerText = `${GameState.player.axioms}`;
                 document.getElementById('location-display').innerText = World[GameState.player.location].name;
             }
         };
