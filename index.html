@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Schrödinger's Stack: A Feline RPG</title>
+    <title>HEX: Anthill Inside</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap');
 
         :root {
-            --bg-color: #1a1b26;
-            --term-color: rgba(30, 30, 46, 0.9);
-            --text-color: #a9b1d6;
-            --accent-color: #7aa2f7; /* Cat Eye Blue */
-            --highlight-color: #e0af68; /* Goldfish Orange */
-            --danger-color: #f7768e; /* Error Red */
-            --magic-color: #bb9af7; /* Chaos Purple */
-            --font-ui: 'Fredoka', sans-serif; /* Cute Rounded Font */
-            --font-code: 'JetBrains Mono', monospace;
+            --bg-color: #110f13;
+            --term-color: #1a181e;
+            --text-color: #d8d8c0;
+            --accent-color: #ff9900; /* Octarine (imagined) or Gold */
+            --highlight-color: #aaddff; /* Magic glow */
+            --danger-color: #ff5555;
+            --font-main: 'IM Fell English SC', serif; /* Wizardly */
+            --font-code: 'Special Elite', monospace; /* Typewriter */
         }
 
         * { box-sizing: border-box; }
@@ -25,420 +24,276 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-code);
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             margin: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="%23333"/></svg>'); 
         }
 
-        #bg-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
-            opacity: 0.6;
-            pointer-events: none;
+        /* Thaumaturgical Glow */
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, transparent 0%, #000 100%);
+            pointer-events: none; z-index: 5;
         }
 
-        /* Fluid Animations */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
-            100% { transform: translateY(0px); }
-        }
-
-        @keyframes jelly {
-            0% { transform: scale(1, 1); }
-            30% { transform: scale(1.25, 0.75); }
-            40% { transform: scale(0.75, 1.25); }
-            50% { transform: scale(1.15, 0.85); }
-            65% { transform: scale(0.95, 1.05); }
-            75% { transform: scale(1.05, 0.95); }
-            100% { transform: scale(1, 1); }
-        }
-
-        .shake-screen { animation: jelly 0.5s ease-in-out; }
-
-        /* HUD */
         #hud {
             background-color: var(--term-color);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-            padding: 15px 25px;
+            border-bottom: 4px double #444;
+            padding: 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            font-family: var(--font-ui);
-            font-weight: 600;
+            font-family: var(--font-main);
+            font-size: 1.2rem;
             z-index: 10;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
-        .stat-box { display: flex; gap: 20px; }
-        .val-hp { color: var(--danger-color); }
-        .val-mp { color: var(--accent-color); }
-        #location-display { color: var(--highlight-color); letter-spacing: 1px; }
+        .stat { color: var(--highlight-color); text-shadow: 0 0 5px var(--highlight-color); }
+        .stat-label { color: #888; font-size: 0.8em; }
 
-        /* Terminal Log */
         #terminal {
             flex-grow: 1;
-            padding: 25px;
+            padding: 30px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scroll-behavior: smooth;
+            background-color: #161419;
             z-index: 1;
+            font-family: var(--font-code);
         }
 
-        .log-entry { 
-            opacity: 0; animation: fadeIn 0.4s ease-out forwards; 
-            line-height: 1.6;
+        /* Typewriter Paper Effect */
+        .log-entry {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 2px solid #333;
+            animation: typeIn 0.3s ease-out;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes typeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 
-        .typewriter {
-            display: inline-block;
-            overflow: hidden;
-            border-right: .15em solid orange; 
-            white-space: nowrap;
-            margin: 0;
-            letter-spacing: .05em; 
-            animation: blink-caret .75s step-end infinite;
+        .hex-output {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border: 1px dashed var(--accent-color);
+            padding: 10px;
+            background: rgba(255, 153, 0, 0.05);
+            text-transform: uppercase;
         }
-        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: orange; } }
 
-        .msg-narrator { color: #c0caf5; font-family: var(--font-ui); font-size: 1.2rem; }
-        .msg-player { color: var(--accent-color); font-weight: bold; background: rgba(122, 162, 247, 0.1); padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--accent-color); }
-        .msg-npc { color: var(--highlight-color); font-family: var(--font-ui); font-style: italic; }
-        .msg-danger { color: var(--danger-color); font-weight: bold; }
-        .msg-magic { color: var(--magic-color); }
-        .msg-system { color: #9ece6a; font-family: var(--font-code); font-size: 0.9rem; opacity: 0.8; }
+        .narrator { color: #ccc; }
+        .wizard { color: #aaddff; font-family: var(--font-main); }
+        .danger { color: #ff7777; }
 
-        /* Controls */
         #controls {
             background-color: var(--term-color);
-            backdrop-filter: blur(15px);
-            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px double #444;
             padding: 20px;
             z-index: 10;
         }
 
-        #input-line { display: flex; gap: 10px; margin-top: 15px; }
-        #cmd-input {
-            flex-grow: 1; background: rgba(0, 0, 0, 0.3); border: 2px solid #414868; color: #fff;
-            padding: 12px; font-family: var(--font-code); border-radius: 12px; outline: none; transition: border-color 0.2s;
+        #quick-actions {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            margin-bottom: 15px;
         }
-        #cmd-input:focus { border-color: var(--accent-color); }
-        
-        #send-btn {
-            background: var(--accent-color); color: #1a1b26; border: none;
-            padding: 0 25px; border-radius: 12px; cursor: pointer; font-family: var(--font-ui); font-weight: bold;
-            transition: transform 0.1s;
-        }
-        #send-btn:active { transform: scale(0.9); }
 
-        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .btn {
-            background: #24283b;
-            color: #c0caf5; border: 2px solid #414868; padding: 15px 5px; border-radius: 15px;
-            font-size: 1rem; font-family: var(--font-ui); font-weight: 600; cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
-            box-shadow: 0 4px 0 #16161e;
+        button {
+            background: #222; color: #ddd; border: 1px solid #555;
+            padding: 12px; font-family: var(--font-main); font-size: 1rem;
+            cursor: pointer; transition: all 0.1s;
+            box-shadow: 2px 2px 0 #000;
         }
-        .btn:hover { transform: translateY(-2px); background: #2f3549; border-color: var(--accent-color); }
-        .btn:active { transform: translateY(2px); box-shadow: 0 0 0 #16161e; }
-        
-        .btn-combat { display: none; background: #3b2424; border-color: #f7768e; color: #ff9e9e; }
-        
-        @media (min-width: 768px) {
-            #hud, #terminal, #controls { width: 800px; margin: 0 auto; border-left: 2px solid #414868; border-right: 2px solid #414868; }
-            #terminal { height: 65vh; }
-            #quick-actions { grid-template-columns: repeat(6, 1fr); }
+        button:active { transform: translate(2px, 2px); box-shadow: none; }
+        button:hover { background: #333; border-color: var(--highlight-color); }
+
+        .btn-magic { border-color: var(--accent-color); color: var(--accent-color); }
+
+        #input-line { display: flex; gap: 10px; }
+        input {
+            flex-grow: 1; background: #000; border: 1px solid #444; color: var(--accent-color);
+            padding: 10px; font-family: var(--font-code); font-size: 1.1rem;
         }
+        input:focus { outline: none; border-color: var(--accent-color); }
+
+        /* Floating Runes */
+        .particle {
+            position: absolute; color: rgba(255, 255, 255, 0.1); font-size: 20px;
+            pointer-events: none; animation: floatUp 10s linear infinite;
+        }
+        @keyframes floatUp { to { transform: translateY(-100vh) rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-    <canvas id="bg-canvas"></canvas>
-
     <div id="hud">
-        <div class="stat-box">
-            <div><span class="stat-label">❤️ Lives</span> <span id="hp-val" class="val-hp">9/9</span></div>
-            <div><span class="stat-label">🧶 Yarn</span> <span id="mp-val" class="val-mp">5/5</span></div>
-        </div>
-        <div id="location-display">Booting...</div>
+        <div><span class="stat-label">HEADOLOGY:</span> <span id="hp" class="stat">100%</span></div>
+        <div style="color:var(--accent-color)">+++ ANTHILL INSIDE +++</div>
+        <div><span class="stat-label">THAUMS:</span> <span id="mp" class="stat">50</span></div>
     </div>
 
     <div id="terminal"></div>
 
     <div id="controls">
         <div id="quick-actions">
-            <button class="btn expl-btn" onclick="submitBtn('north')">⬆️ Up</button>
-            <button class="btn expl-btn" onclick="submitBtn('south')">⬇️ Down</button>
-            <button class="btn expl-btn" onclick="submitBtn('west')">⬅️ Left</button>
-            <button class="btn expl-btn" onclick="submitBtn('east')">➡️ Right</button>
-            <button class="btn expl-btn" onclick="submitBtn('look')">👀 Sniff</button>
-            <button class="btn expl-btn" onclick="submitBtn('interact')">🐾 Paw</button>
-            
-            <button class="btn btn-combat" onclick="submitBtn('scratch')">😼 Scratch</button>
-            <button class="btn btn-combat" onclick="submitBtn('hiss')">🙀 Hiss</button>
-            <button class="btn btn-combat" onclick="submitBtn('nap')">💤 Nap</button>
-            <button class="btn btn-combat" onclick="submitBtn('zoom')">💨 Zoom</button>
+            <button onclick="eng.cmd('north')">N</button>
+            <button onclick="eng.cmd('south')">S</button>
+            <button onclick="eng.cmd('east')">E</button>
+            <button onclick="eng.cmd('west')">W</button>
+            <button onclick="eng.cmd('look')">Look</button>
+            <button onclick="eng.cmd('poke')">Poke</button>
+            <button class="btn-magic" onclick="eng.cmd('cast')">Cast</button>
+            <button class="btn-magic" onclick="eng.cmd('cheese')">Cheese</button>
         </div>
         <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="What will you do?" autocomplete="off">
-            <button id="send-btn" onclick="submitCommand()">GO</button>
+            <input type="text" id="inp" placeholder="+++ Write Command +++">
+            <button onclick="eng.submit()">DO IT</button>
         </div>
     </div>
 
     <script>
-        // --- UTILS ---
-        function submitBtn(cmd) { if(window.engine) window.engine.handleInput(cmd); }
-        function submitCommand() { const i = document.getElementById('cmd-input'); if(window.engine) window.engine.handleInput(i.value); i.value=""; i.focus(); }
-        document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
-
-        // --- VISUALS ---
-        const canvas = document.getElementById('bg-canvas');
-        let ctx = null; if(canvas) ctx = canvas.getContext('2d');
-        let width, height, particles = [];
-
-        function resize() { if(!canvas) return; width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-        
-        class Particle {
-            constructor() { 
-                this.x = Math.random()*width; this.y = Math.random()*height; 
-                this.size = Math.random()*15+10; this.speedY = Math.random()*0.5+0.2; this.speedX = Math.random()*0.4-0.2;
-                this.opacity = Math.random()*0.3+0.1;
-                this.char = ["🐾", "🐟", "0", "1", "🧶"][Math.floor(Math.random()*5)]; 
-            }
-            update() { 
-                this.y -= this.speedY; this.x += this.speedX;
-                if(this.y < -20){ this.y=height; this.x=Math.random()*width; } 
-            }
-            draw() { 
-                if(!ctx) return;
-                ctx.fillStyle=`rgba(169, 177, 214, ${this.opacity})`; 
-                ctx.font=`${this.size}px serif`; 
-                ctx.fillText(this.char, this.x, this.y); 
-            }
-        }
-        function initParticles() { particles=[]; for(let i=0; i<40; i++) particles.push(new Particle()); }
-        function animate() { if(!ctx) return; ctx.clearRect(0,0,width,height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
-        if(canvas) { window.addEventListener('resize', resize); resize(); initParticles(); animate(); }
-
-        // --- GAME DATA ---
-        const GameState = {
-            mode: "INTRO",
-            player: {
-                name: "Stray Variable", breed: null,
-                hp: 9, maxHp: 9, yarn: 5, maxYarn: 5,
-                scratch: 3, purr: 2, chaos: 1, 
-                inventory: ["Collar"], location: "hub"
+        const Game = {
+            loc: "hem",
+            stats: { hp: 100, mp: 50, cheese: 0 },
+            flags: { ants_fed: false },
+            
+            world: {
+                "hem": {
+                    name: "High Energy Magic Building",
+                    desc: "The air hums with the sound of a million ants thinking very hard. In the center sits HEX, a machine of brass, wood, and glass tubes. The GBL (Great Big Lever) is in the OFF position.",
+                    exits: { "north": "library", "east": "uu_garden" },
+                    hex: true
+                },
+                "library": {
+                    name: "The Library",
+                    desc: "Books chained to shelves snarl as you pass. The L-Space distorts distance here. A bright orange Orangutan is sleeping on a grimoire.",
+                    exits: { "south": "hem" },
+                    npc: "Librarian"
+                },
+                "uu_garden": {
+                    name: "Unseen University Garden",
+                    desc: "The grass is suspiciously green. You suspect magic. The compost heap is smoking ominously.",
+                    exits: { "west": "hem", "north": "dungeon" },
+                    npc: "Auditor"
+                },
+                "dungeon": {
+                    name: "Dungeon Dimensions",
+                    desc: "Reality is thin here. Tentacles flail from geometric shapes.",
+                    exits: { "south": "uu_garden" },
+                    hostile: "Creature from the Dungeon Dimensions"
+                }
             },
-            combat: { target: null },
-            dialogue: { npc: null, node: "start" }
+
+            npc: {
+                "Librarian": { text: "Oook." },
+                "Auditor": { text: "YOU ARE CHAOS. CEASE TO EXIST.", fight: true }
+            }
         };
 
-        const Breeds = {
-            "VOID": { name: "🐈‍⬛ Void Cat", desc: "One with the shadows. High Chaos.", bonus: { chaos: 3, scratch: 1 } },
-            "ORANGE": { name: "🐈 Orange Tabby", desc: "One brain cell. High Scratch.", bonus: { scratch: 3, purr: -1 } },
-            "CALICO": { name: "🐆 Calico", desc: "Lucky & Loved. High Purr (Defense).", bonus: { purr: 3, hp: 2 } }
-        };
-
-        const World = {
-            "hub": { name: "🏠 The Desktop", desc: "A giant, glowing monitor screen. It's warm here. To the NORTH: The Cloud. SOUTH: The Recycle Bin.", exits: {"north":"cloud","south":"bin"}, npc: "Prof. Meow" },
-            "cloud": { name: "☁️ The Cloud", desc: "Fluffy white data drifts everywhere. Looks comfortable to sleep on.", exits: {"south":"hub", "north":"firewall"}, enemies: ["Bug"] },
-            "firewall": { name: "🔥 The Firewall", desc: "A burning wall of red code.", exits: {"south":"cloud"}, npc: "The Compiler" },
-            "bin": { name: "🗑️ Recycle Bin", desc: "Smells like old fish and deleted memories.", exits: {"north":"hub"}, enemies: ["Glitch Mouse"] }
-        };
-
-        const Bestiary = {
-            "Bug": { hp: 5, att: 2, desc: "🪲 A literal bug. Buzzing annoyingly." },
-            "Glitch Mouse": { hp: 8, att: 3, desc: "🐭 A mouse made of static. Hard to catch!" },
-            "The Compiler": { hp: 30, att: 5, boss: true, desc: "🤖 A strict robot who hates fuzzy logic." }
-        };
-
-        const NPCs = {
-            "Prof. Meow": { name: "🎓 Prof. Meow", dialogue: { "start": { text: "Mrrp? You look lost, little variable.", options: { "1": { text: "Where am I?", next: "where" }, "2": { text: "Feed me.", next: "feed" } } }, "where": { text: "Schrödinger's Stack. We are both dead and alive here.", options: { "1": { text: "Oh.", next: "start" } } }, "feed": { text: "*Prof. Meow spawns a virtual tuna.*", options: { "1": { text: "Nom.", next: "start" } } } } },
-            "The Compiler": { name: "🤖 The Compiler", dialogue: ["SYNTAX ERROR. CAT NOT FOUND."], hostile: true }
-        };
-
-        const Engine = {
+        const Eng = {
             init: function() {
-                this.typewrite("Initializing Schrödinger's Stack...", "system");
+                this.print("+++ OUT OF CHEESE ERROR +++", "hex-output");
+                this.print("+++ REBOOTING UNIVERSE... +++", "hex-output");
                 setTimeout(() => {
-                    this.log("<br>You open your eyes. You have paws.", "narrator");
-                    this.log("You are a Stray Variable, lost in the code.", "narrator");
-                    this.log("Choose your form:", "system");
-                    this.log("1. 🐈‍⬛ VOID CAT (Sneaky)", "msg-magic");
-                    this.log("2. 🐈 ORANGE TABBY (Strong)", "danger");
-                    this.log("3. 🐆 CALICO (Lucky)", "msg-npc");
-                    GameState.mode = "INTRO";
+                    this.print("You stand before HEX. The ants are agitated.", "narrator");
+                    this.print("Ponder Stibbons yells: 'Don't touch the glass tubes!'", "wizard");
                 }, 1000);
+                this.bg();
             },
 
-            typewrite: function(text, type) {
+            print: function(txt, cls="narrator") {
                 const term = document.getElementById('terminal');
-                if(!term) return;
-                const entry = document.createElement('div');
-                entry.className = `log-entry msg-${type}`;
-                entry.innerHTML = text;
-                term.appendChild(entry);
+                const d = document.createElement('div');
+                d.className = `log-entry ${cls}`;
+                d.innerText = txt;
+                term.appendChild(d);
                 term.scrollTop = term.scrollHeight;
             },
 
-            log: function(text, type="narrator") {
-                this.typewrite(text, type);
-            },
+            cmd: function(c) {
+                this.print(`> ${c}`, "narrator");
+                c = c.toLowerCase();
+                const loc = Game.world[Game.loc];
 
-            handleInput: function(cmd) {
-                cmd = cmd.toLowerCase().trim();
-                if(GameState.mode === "INTRO") { this.intro(cmd); return; }
-                if(GameState.mode === "COMBAT") { this.combat(cmd); return; }
-                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
-                this.explore(cmd);
-            },
-
-            intro: function(cmd) {
-                let sel = null;
-                if(cmd.includes("1") || cmd.includes("void")) sel = "VOID";
-                else if(cmd.includes("2") || cmd.includes("orange")) sel = "ORANGE";
-                else if(cmd.includes("3") || cmd.includes("calico")) sel = "CALICO";
-
-                if(sel) {
-                    const b = Breeds[sel];
-                    GameState.player.breed = sel;
-                    Object.assign(GameState.player, b.bonus);
-                    GameState.player.hp = GameState.player.maxHp + (b.bonus.hp||0);
-                    this.log(`<br>✨ You are a <strong>${b.name}</strong>.`, "system");
-                    setTimeout(() => {
-                        this.log("Professor Meow is waiting for you.", "narrator");
-                        GameState.mode = "EXPLORE";
-                        this.updateHUD();
-                        this.explore("look");
-                    }, 1000);
-                } else this.log("Choose 1, 2, or 3.", "danger");
-            },
-
-            explore: function(cmd) {
-                const loc = World[GameState.player.location];
-                if(["n","north"].includes(cmd) && loc.exits.north) this.move(loc.exits.north);
-                else if(["s","south"].includes(cmd) && loc.exits.south) this.move(loc.exits.south);
-                else if(["w","west"].includes(cmd) && loc.exits.west) this.move(loc.exits.west);
-                else if(["e","east"].includes(cmd) && loc.exits.east) this.move(loc.exits.east);
-                else if(["look","l","sniff"].includes(cmd)) {
-                    this.log(`<br><strong>${loc.name}</strong>`, "system");
-                    this.log(loc.desc, "narrator");
-                    if(loc.npc) this.log(`🐱 <strong>${NPCs[loc.npc].name}</strong> is here.`, "msg-npc");
+                if(["n","s","e","w","north","south","east","west"].includes(c)) {
+                    const dir = c.charAt(0) === 'n' ? 'north' : c.charAt(0) === 's' ? 'south' : c.charAt(0) === 'e' ? 'east' : 'west';
+                    if(loc.exits[dir]) {
+                        Game.loc = loc.exits[dir];
+                        this.look();
+                    } else {
+                        this.print("You walk into a wall. That's very solid reality.", "danger");
+                    }
                 }
-                else if(["paw","interact"].includes(cmd)) {
-                    this.log("You bat at it with your paw. *bap bap*", "msg-player");
+                else if(c === "look") { this.look(); }
+                else if(c === "poke") { 
+                    this.print("You poke reality. It wobbles.", "wizard"); 
+                    Game.stats.mp -= 1; this.upd();
                 }
-                else if(["talk","meow"].includes(cmd)) {
-                    if(loc.npc) {
-                        const npc = NPCs[loc.npc];
-                        if(npc.hostile) this.startCombat(loc.npc);
-                        else this.showDialogue(npc, "start");
-                    } else this.log("Meow? (No one answers.)", "narrator");
+                else if(c === "cheese") {
+                    if(Game.world[Game.loc].hex) {
+                        this.print("+++ CHEESE ACCEPTED +++", "hex-output");
+                        this.print("+++ ANTS WORKING AT 110% CAPACITY +++", "hex-output");
+                        Game.flags.ants_fed = true;
+                    } else {
+                        this.print("You eat the cheese. It tastes like math.", "narrator");
+                    }
                 }
-                else this.log("You chase your tail. (Unknown command)", "system");
-                this.updateHUD();
-            },
-
-            move: function(dest) {
-                GameState.player.location = dest;
-                this.log("Trot... trot... trot...", "system");
-                this.explore("look");
-                if(World[dest].enemies && Math.random() < 0.4) {
-                    this.startCombat(World[dest].enemies[0]);
+                else if(c === "cast") {
+                    this.print("You wave your hands. Sparkles happen.", "wizard");
+                    if(loc.hostile) {
+                        this.print(`The ${loc.hostile} looks confused by your display of headology.`, "hex-output");
+                        delete loc.hostile; // Simple victory
+                        this.print("Victory through confusion!", "wizard");
+                    }
+                }
+                else {
+                    this.print("+++ SYNTAX ERROR. MELON MELON MELON +++", "hex-output");
                 }
             },
 
-            startCombat: function(name) {
-                GameState.mode = "COMBAT";
-                const t = Bestiary[name];
-                GameState.combat.target = {...t, name: name, currentHp: t.hp};
-                this.log(`<br>🚨 <strong>${name}</strong> appears!`, "danger");
-                this.log(`<em>${t.desc}</em>`, "narrator");
-                this.toggleControls(true);
+            look: function() {
+                const loc = Game.world[Game.loc];
+                this.print(`[ ${loc.name} ]`, "wizard");
+                this.print(loc.desc, "narrator");
+                if(loc.hex) this.print("HEX looms over you.", "hex-output");
+                if(loc.npc) this.print(`There is a ${loc.npc} here.`, "wizard");
+                if(loc.hostile) this.print(`A ${loc.hostile} blocks the way!`, "danger");
             },
 
-            combat: function(cmd) {
-                const e = GameState.combat.target;
-                if(cmd.includes("scratch")) {
-                    const dmg = GameState.player.scratch;
-                    e.currentHp -= dmg;
-                    this.log(`😼 You scratch! <strong>${dmg}</strong> dmg!`, "msg-player");
-                } else if (cmd.includes("hiss")) {
-                    this.log(`🙀 You hiss! The enemy is startled.`, "msg-magic");
-                } else if (cmd.includes("nap")) {
-                    this.log(`💤 You take a nap. +2 HP.`, "msg-magic");
-                    GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + 2);
-                } else if (cmd.includes("zoom")) {
-                    if(Math.random()>0.5) { this.log("💨 You got the zoomies and escaped!", "system"); this.endCombat(); return; }
-                    else this.log("🚫 You slipped on the floor!", "danger");
-                }
-                
-                if(e.currentHp <= 0) {
-                    this.log("🎉 The enemy crashed! Victory!", "system");
-                    this.endCombat();
-                } else {
-                    this.enemyTurn();
-                }
-                this.updateHUD();
+            submit: function() {
+                const i = document.getElementById('inp');
+                this.cmd(i.value);
+                i.value = "";
+                i.focus();
             },
 
-            enemyTurn: function() {
-                setTimeout(() => {
-                    const dmg = GameState.combat.target.att;
-                    GameState.player.hp -= dmg;
-                    document.body.classList.add('shake-screen');
-                    setTimeout(()=>document.body.classList.remove('shake-screen'), 500);
-                    this.log(`💥 Enemy hits you! -${dmg} HP.`, "danger");
-                    if(GameState.player.hp <= 0) this.log("💀 OUT OF LIVES. Refresh to respawn.", "danger");
-                    this.updateHUD();
-                }, 800);
+            upd: function() {
+                document.getElementById('hp').innerText = Game.stats.hp + "%";
+                document.getElementById('mp').innerText = Game.stats.mp;
             },
 
-            endCombat: function() {
-                GameState.mode = "EXPLORE";
-                this.toggleControls(false);
-            },
-
-            dialogue: function(cmd) {
-                const npc = GameState.dialogue.npc;
-                const node = npc.dialogue[GameState.dialogue.node];
-                if(node.options[cmd]) this.showDialogue(npc, node.options[cmd].next);
-                else if(cmd.includes("back")) { GameState.mode = "EXPLORE"; this.log("You trot away.", "narrator"); }
-            },
-
-            showDialogue: function(npc, key) {
-                GameState.mode = "DIALOGUE";
-                GameState.dialogue = { npc: npc, node: key };
-                const node = npc.dialogue[key];
-                this.log(`<br><strong>${npc.name}:</strong> "${node.text}"`, "msg-npc");
-                for(let k in node.options) this.log(`${k}. ${node.options[k].text}`, "msg-player");
-            },
-
-            toggleControls: function(combat) {
-                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = combat ? 'none' : 'block');
-                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = combat ? 'block' : 'none');
-            },
-
-            updateHUD: function() {
-                document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
-                document.getElementById('mp-val').innerText = `${GameState.player.yarn}/${GameState.player.maxYarn}`;
-                document.getElementById('location-display').innerText = World[GameState.player.location].name;
+            bg: function() {
+                // Simple runic rain
+                setInterval(() => {
+                    const r = document.createElement('div');
+                    r.className = 'particle';
+                    r.innerText = ['✦','⚡','✨','🐜','🧀'][Math.floor(Math.random()*5)];
+                    r.style.left = Math.random()*100 + 'vw';
+                    r.style.top = '100vh';
+                    r.style.animationDuration = (Math.random()*5+5) + 's';
+                    document.body.appendChild(r);
+                    setTimeout(() => r.remove(), 10000);
+                }, 500);
             }
         };
 
-        window.onload = () => Engine.init();
+        const eng = Eng;
+        document.getElementById('inp').addEventListener('keypress', e=>{if(e.key==='Enter') eng.submit()});
+        window.onload = () => eng.init();
+
     </script>
 </body>
 </html>
