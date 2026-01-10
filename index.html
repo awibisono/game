@@ -285,35 +285,64 @@
     <script>
         // --- CONSTANTS & CONFIG ---
         const ELEMENTS = {
-            FIRE: "Phlegethon", // Beats Ice
-            ICE: "Cocytus",     // Beats Fire
-            SKY: "Aether",      // Beats Earth/Void
-            VOID: "Styx"        // Beats Light? (Simplifying: Fire<>Ice, Sky<>Void)
+            FIRE: "Phlegethon", 
+            ICE: "Cocytus",     
+            SKY: "Aether",      
+            VOID: "Styx"        
         };
 
         // --- GAME STATE ---
         const GameState = {
-            mode: "EXPLORE", // EXPLORE, COMBAT
+            mode: "INTRO", // INTRO, EXPLORE, COMBAT, DIALOGUE
             player: {
                 name: "Neophyte",
-                // Stats from Design Doc
-                psyche: 30, maxPsyche: 30, // HP
-                techne: 15, maxTechne: 15, // MP
-                rhetoric: 5,  // Attack
-                dialect: 3,   // Defense
-                theory: 4,    // Magic
-                latency: 10,  // Speed (Lower is better)
-                
-                inventory: ["Student ID", "Broken Laptop"],
+                major: null, // "THEORIST", "ENGINEER", "HISTORIAN"
+                // Base Stats (Will be modified by Major)
+                psyche: 30, maxPsyche: 30, 
+                techne: 15, maxTechne: 15,
+                rhetoric: 5,
+                dialect: 3,
+                theory: 4,
+                latency: 10,
+                memories: [], // Unlocked lore fragments
+                inventory: ["Student ID"],
                 location: "hub"
             },
             combat: {
-                target: null, // Current enemy object
+                target: null,
                 turn: 0
+            },
+            dialogue: {
+                npc: null,
+                node: "start"
             },
             flags: {
                 metDan: false,
-                defeated: []
+                cycleCount: 2048,
+            }
+        };
+
+        const Memories = [
+            "LOG 0x01: I remember... sunlight? No, it was the glow of a monitor. I was writing a thesis on 'Recursive Soul Generation'.",
+            "LOG 0x0A: The Provost isn't a person. It's a cleanup script. It deletes 'Graduates' to free up memory.",
+            "LOG 0xFF: I am not a student. I am the Exception Handler. I was sent here to catch the error that broke the world."
+        ];
+
+        const Majors = {
+            "THEORIST": {
+                name: "College of Aether (Theory)",
+                desc: "Followers of Pure Logic. High Magic (Theory), Low Defense.",
+                bonus: { theory: 3, techne: 5, dialect: -1 }
+            },
+            "ENGINEER": {
+                name: "Forge of Phlegethon (Systems)",
+                desc: "Builders of the Hard Iron. High Attack (Rhetoric), Low Speed.",
+                bonus: { rhetoric: 3, psyche: 10, latency: 2 }
+            },
+            "HISTORIAN": {
+                name: "Library of Styx (Legacy)",
+                desc: "Keepers of the Old Code. High Defense (Dialect), Balanced.",
+                bonus: { dialect: 3, psyche: 5, techne: 5 }
             }
         };
 
@@ -325,8 +354,6 @@
                 npc: "Cerberus Dan",
                 encounterRate: 0
             },
-            
-            // --- SKY KINGDOM (North) ---
             "sky_gate": {
                 name: "Gate of Aether",
                 desc: "A floating platform. Clouds swirl. The Spire rises infinitely.",
@@ -347,8 +374,6 @@
                 exits: { "south": "cloud_campus" },
                 npc: "Prof. Nephele"
             },
-
-            // --- SEA KINGDOM (South) ---
             "sea_gate": {
                 name: "The Sunken Library Entry",
                 desc: "Steps lead down into dark water.",
@@ -369,8 +394,6 @@
                 exits: { "north": "river_styx" },
                 npc: "Coach Pontus"
             },
-
-            // --- FIRE KINGDOM (East) ---
             "fire_gate": {
                 name: "Entrance to Phlegethon",
                 desc: "The heat is oppressive.",
@@ -391,8 +414,6 @@
                 exits: { "west": "silicon_furnace" },
                 npc: "Dean Hephaestus"
             },
-
-            // --- SPIRIT KINGDOM (West) ---
             "spirit_gate": {
                 name: "Crypt of Erebus",
                 desc: "The light fades here.",
@@ -428,43 +449,156 @@
         };
 
         const NPCs = {
-            "Cerberus Dan": { name: "Cerberus Dan", dialogue: ["Woof. Logic error detected.", "The Archons hold the keys."] },
+            "Cerberus Dan": {
+                name: "Cerberus Dan",
+                dialogue: {
+                    "start": {
+                        text: "Woof. Logic error detected. You are not authorized, yet you exist. Strange.",
+                        options: {
+                            "1": { text: "Who are you?", next: "who" },
+                            "2": { text: "Where am I?", next: "where" },
+                            "3": { text: "Pet the dog.", next: "pet" }
+                        }
+                    },
+                    "who": {
+                        text: "I am the Guardian of the Gateway. I sniff out bugs and bad pointers. You smell like... a memory leak.",
+                        options: { "1": { text: "Back.", next: "start" } }
+                    },
+                    "where": {
+                        text: "The Chthonic Kernel. The Underworld of deleted data. The Archons rule the sectors above.",
+                        options: { "1": { text: "Back.", next: "start" } }
+                    },
+                    "pet": {
+                        text: "*The three heads wage their tails in unison.* Access granted. Good Neophyte.",
+                        options: { "1": { text: "Back.", next: "start" } }
+                    }
+                }
+            },
             "Prof. Nephele": { name: "Archon Nephele", dialogue: ["You cannot comprehend the altitude of my intellect!", "PREPARE TO BE DEPRECATED!"], hostile: true },
             "Coach Pontus": { name: "Archon Pontus", dialogue: ["Row for your life!", "I will drown you in work!"], hostile: true },
-            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["I forge engineers from raw ore!", "Burn!"], hostile: true },
-            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Shhh. Quiet hours.", "Fade into silence."], hostile: true }
+            "Dean Hephaestus": { name: "Archon Hephaestus", dialogue: ["I forge engineers from the raw ore of freshmen!", "Burn!"], hostile: true },
+            "Librarian Persephone": { name: "Archon Persephone", dialogue: ["Shhh. Quiet hours.", "Fade into silence."], hostile: true },
+            "Provost of Entropy": { name: "The Provost", dialogue: ["Your thesis is due.", "End of Line."], hostile: true }
         };
 
         const Engine = {
             init: function() {
-                this.log("System Initialized... CHTHONIC_KERNEL_V4.1", "system");
-                this.log("Welcome, Neophyte. You have segfaulted into the Underworld.", "narrator");
-                this.handleInput("look");
-                this.updateHUD();
+                this.log("System Boot... Cycle #2049 Initiated.", "system");
+                this.log("Searching for <span style='color:var(--accent-color)'>User.Soul</span>... Found.", "system");
+                this.log("<br><strong>THE CHTHONIC KERNEL</strong>", "msg-player");
+                this.log("You drift in the void between 0 and 1. You are a Neophyte, a soul undefined.", "narrator");
+                this.log("To enter the University of the Dead, you must declare your Major.", "narrator");
+                
+                this.log("<br>Select your path:", "system");
+                this.log("1. <strong>THEORIST</strong> (College of Aether) - Power through Logic.", "msg-magic");
+                this.log("2. <strong>ENGINEER</strong> (Forge of Phlegethon) - Strength through Hardware.", "danger");
+                this.log("3. <strong>HISTORIAN</strong> (Library of Styx) - Endurance through Legacy.", "msg-npc");
+                
+                GameState.mode = "INTRO";
             },
 
             log: function(text, type = "narrator") {
                 const term = document.getElementById('terminal');
                 const entry = document.createElement('div');
                 entry.className = `log-entry msg-${type}`;
-                entry.innerHTML = text;
+                entry.innerHTML = text; // Allow HTML for formatting
                 term.appendChild(entry);
                 term.scrollTop = term.scrollHeight;
             },
 
+            // MAIN INPUT ROUTER
             handleInput: function(cmd) {
-                if (GameState.player.psyche <= 0) return; // Dead
+                if (GameState.mode === "INTRO") {
+                    this.introInput(cmd);
+                    return;
+                }
+                
+                if (GameState.player.psyche <= 0) return;
                 
                 cmd = cmd.toLowerCase().trim();
                 if (!cmd) return;
 
-                if (GameState.mode === "COMBAT") {
+                if (GameState.mode === "DIALOGUE") {
+                    this.dialogueInput(cmd);
+                } else if (GameState.mode === "COMBAT") {
                     this.combatInput(cmd);
                 } else {
                     this.exploreInput(cmd);
                 }
             },
 
+            // DIALOGUE SYSTEM
+            dialogueInput: function(cmd) {
+                const npc = GameState.dialogue.npc;
+                const node = GameState.dialogue.node;
+                const options = npc.dialogue[node].options;
+
+                if (options && options[cmd]) {
+                    const nextNode = options[cmd].next;
+                    this.showDialogue(npc, nextNode);
+                } else if (cmd.includes("bye") || cmd.includes("exit")) {
+                    this.log("You step away from the conversation.", "narrator");
+                    GameState.mode = "EXPLORE";
+                } else {
+                    this.log("Invalid option. Type the number.", "system");
+                }
+            },
+
+            showDialogue: function(npc, nodeKey) {
+                const node = npc.dialogue[nodeKey];
+                GameState.dialogue = { npc: npc, node: nodeKey };
+                GameState.mode = "DIALOGUE";
+
+                this.log(`<br>[${npc.name}]: "${node.text}"`, "msg-npc");
+                if (node.options) {
+                    for (const [key, opt] of Object.entries(node.options)) {
+                        this.log(`${key}. ${opt.text}`, "msg-player");
+                    }
+                    this.log("(Type the number to respond, or 'exit')", "system");
+                } else {
+                     GameState.mode = "EXPLORE"; // Auto-exit if no options
+                }
+            },
+
+            // INTRO / CHAR CREATION
+            introInput: function(cmd) {
+                const choice = cmd.toLowerCase();
+                let selectedMajor = null;
+
+                if (choice.includes("1") || choice.includes("theo")) selectedMajor = "THEORIST";
+                else if (choice.includes("2") || choice.includes("eng")) selectedMajor = "ENGINEER";
+                else if (choice.includes("3") || choice.includes("hist")) selectedMajor = "HISTORIAN";
+
+                if (selectedMajor) {
+                    const major = Majors[selectedMajor];
+                    GameState.player.major = selectedMajor;
+                    
+                    // Apply stats
+                    GameState.player.theory += major.bonus.theory || 0;
+                    GameState.player.rhetoric += major.bonus.rhetoric || 0;
+                    GameState.player.dialect += major.bonus.dialect || 0;
+                    GameState.player.maxPsyche += major.bonus.psyche || 0;
+                    GameState.player.psyche = GameState.player.maxPsyche;
+                    GameState.player.maxTechne += major.bonus.techne || 0;
+                    GameState.player.techne = GameState.player.maxTechne;
+                    
+                    this.log(`<br>Accepted. You are now enrolled in the <strong>${major.name}</strong>.`, "system");
+                    this.log(`<em>"${major.desc}"</em>`, "narrator");
+                    this.log("<br>...Initializing Campus...", "system");
+                    
+                    setTimeout(() => {
+                        this.log("<br>You awake on the cold marble floor of the Great Hall.", "narrator");
+                        this.log("Cerberus Dan is watching you with all three heads.", "narrator");
+                        GameState.mode = "EXPLORE";
+                        this.handleInput("look");
+                        this.updateHUD();
+                    }, 1500);
+                } else {
+                    this.log("Invalid selection. Please choose 1, 2, or 3.", "danger");
+                }
+            },
+
+            // EXPLORATION
             exploreInput: function(cmd) {
                 this.log(`> ${cmd}`, "player");
                 const loc = World[GameState.player.location];
@@ -481,16 +615,28 @@
                 else if (["talk", "t"].includes(cmd)) {
                     if (loc.npc) {
                         const npc = NPCs[loc.npc];
-                        this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "npc");
                         if (npc.hostile) {
+                            this.log(`[${npc.name}]: "${npc.dialogue[0]}"`, "msg-npc");
                             this.startCombat(loc.npc);
+                        } else if (npc.dialogue && npc.dialogue["start"]) {
+                            this.showDialogue(npc, "start");
+                        } else {
+                            // Fallback for simple NPCs
+                            this.log(`[${npc.name}] stares at you silently.`, "msg-npc");
                         }
                     } else {
                         this.log("No one to talk to.", "narrator");
                     }
                 }
+                else if (["inv", "inventory", "i"].includes(cmd)) {
+                     this.log(`Inventory: ${GameState.player.inventory.join(", ")}`, "system");
+                     if (GameState.player.memories.length > 0) {
+                         this.log(`<br><strong>Memories Recovered:</strong>`, "msg-magic");
+                         GameState.player.memories.forEach(m => this.log(`- ${m}`, "narrator"));
+                     }
+                }
                 else {
-                    this.log("Unknown command. Try: NORTH, LOOK, TALK", "system");
+                    this.log("Unknown command. Try: NORTH, LOOK, TALK, INV", "system");
                 }
             },
 
@@ -637,15 +783,35 @@
             },
 
             endCombat: function(won) {
+                const enemy = GameState.combat.target;
                 GameState.mode = "EXPLORE";
                 GameState.combat.target = null;
                 this.toggleControls(false); // Hide combat buttons
+
                 if (won) {
-                    // Heal slightly?
-                    GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 2);
                     this.log("You recover some mental focus (Techne).", "system");
+                    GameState.player.techne = Math.min(GameState.player.maxTechne, GameState.player.techne + 5);
+                    
+                    // Boss Defeat Logic
+                    if (enemy.boss) {
+                        this.log(`<br><strong>MEMORY UNLOCKED</strong>`, "msg-magic");
+                        const fragment = this.getMemoryFragment(enemy.name);
+                        this.log(`<em>"${fragment}"</em>`, "narrator");
+                        GameState.player.memories.push(fragment);
+                    }
                 }
                 this.updateHUD();
+            },
+
+            getMemoryFragment: function(bossName) {
+                const fragments = {
+                    "Archon Nephele": "LOG 0x4A: We tried to upload our consciousness to the Cloud. We didn't realize the server had no ground.",
+                    "Archon Pontus": "LOG 0x2B: The River Styx is just the cooling system. We are drowning in our own heat.",
+                    "Archon Hephaestus": "LOG 0x9F: We replaced our hearts with GPUs to process the grief faster. It didn't work.",
+                    "Archon Persephone": "LOG 0x00: Silence is the only valid output. Everything else is noise.",
+                    "The Provost": "LOG 0xFF: The Semester never ends because we are afraid to graduate. To graduate is to be deleted."
+                };
+                return fragments[bossName] || "LOG ERROR: Data corrupted.";
             },
 
             toggleControls: function(isCombat) {
