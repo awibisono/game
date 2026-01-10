@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CPSC 4860: The Chthonic Kernel</title>
+    <title>Schrödinger's Stack: A Feline RPG</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=VT323&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :root {
-            --bg-color: #050508;
-            --term-color: rgba(17, 17, 22, 0.85);
-            --text-color: #d0d0e0;
-            --accent-color: #88ccff;
-            --highlight-color: #ffd700;
-            --danger-color: #ff6b6b;
-            --magic-color: #e0aaff;
-            --font-main: 'VT323', monospace;
-            --font-code: 'Fira Code', monospace;
-            --font-serif: 'Cormorant Garamond', serif;
+            --bg-color: #1a1b26;
+            --term-color: rgba(30, 30, 46, 0.9);
+            --text-color: #a9b1d6;
+            --accent-color: #7aa2f7; /* Cat Eye Blue */
+            --highlight-color: #e0af68; /* Goldfish Orange */
+            --danger-color: #f7768e; /* Error Red */
+            --magic-color: #bb9af7; /* Chaos Purple */
+            --font-ui: 'Fredoka', sans-serif; /* Cute Rounded Font */
+            --font-code: 'JetBrains Mono', monospace;
         }
 
         * { box-sizing: border-box; }
@@ -25,8 +24,8 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: var(--font-main);
-            font-size: 1.3rem;
+            font-family: var(--font-code);
+            font-size: 1.1rem;
             margin: 0;
             height: 100vh;
             display: flex;
@@ -40,51 +39,55 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 0;
-            opacity: 0.4;
+            opacity: 0.6;
             pointer-events: none;
         }
 
-        /* CRT Effects */
-        body::before {
-            content: " "; display: block; position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 100; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        /* Fluid Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
         }
-        
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            100% { transform: translate(0, 0); }
+
+        @keyframes jelly {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.25, 0.75); }
+            40% { transform: scale(0.75, 1.25); }
+            50% { transform: scale(1.15, 0.85); }
+            65% { transform: scale(0.95, 1.05); }
+            75% { transform: scale(1.05, 0.95); }
+            100% { transform: scale(1, 1); }
         }
-        .shake-screen { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .shake-screen { animation: jelly 0.5s ease-in-out; }
 
         /* HUD */
         #hud {
             background-color: var(--term-color);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
             padding: 15px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            font-family: var(--font-code);
-            font-size: 0.9rem;
+            font-family: var(--font-ui);
+            font-weight: 600;
             z-index: 10;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
 
-        .stat-box { display: flex; gap: 25px; }
-        .val-hp { color: var(--danger-color); text-shadow: 0 0 10px rgba(255, 107, 107, 0.5); }
-        .val-mp { color: var(--accent-color); text-shadow: 0 0 10px rgba(136, 204, 255, 0.5); }
-        #location-display { color: var(--highlight-color); font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+        .stat-box { display: flex; gap: 20px; }
+        .val-hp { color: var(--danger-color); }
+        .val-mp { color: var(--accent-color); }
+        #location-display { color: var(--highlight-color); letter-spacing: 1px; }
 
         /* Terminal Log */
         #terminal {
             flex-grow: 1;
-            padding: 30px;
+            padding: 25px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -94,54 +97,68 @@
         }
 
         .log-entry { 
-            opacity: 0; animation: fadeIn 0.6s ease-out forwards; 
+            opacity: 0; animation: fadeIn 0.4s ease-out forwards; 
             line-height: 1.6;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .msg-narrator { color: #e0e0f0; font-family: var(--font-serif); font-size: 1.4rem; font-style: italic; }
-        .msg-player { color: var(--accent-color); font-weight: bold; border-left: 3px solid var(--accent-color); padding-left: 15px; }
-        .msg-npc { color: var(--highlight-color); }
-        .msg-magic { color: var(--magic-color); text-shadow: 0 0 8px rgba(224, 170, 255, 0.4); }
-        .msg-system { color: #66ff66; font-size: 0.9em; font-family: var(--font-code); opacity: 0.8; }
+        .typewriter {
+            display: inline-block;
+            overflow: hidden;
+            border-right: .15em solid orange; 
+            white-space: nowrap;
+            margin: 0;
+            letter-spacing: .05em; 
+            animation: blink-caret .75s step-end infinite;
+        }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: orange; } }
+
+        .msg-narrator { color: #c0caf5; font-family: var(--font-ui); font-size: 1.2rem; }
+        .msg-player { color: var(--accent-color); font-weight: bold; background: rgba(122, 162, 247, 0.1); padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--accent-color); }
+        .msg-npc { color: var(--highlight-color); font-family: var(--font-ui); font-style: italic; }
+        .msg-danger { color: var(--danger-color); font-weight: bold; }
+        .msg-magic { color: var(--magic-color); }
+        .msg-system { color: #9ece6a; font-family: var(--font-code); font-size: 0.9rem; opacity: 0.8; }
 
         /* Controls */
         #controls {
             background-color: var(--term-color);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
             padding: 20px;
             z-index: 10;
         }
 
         #input-line { display: flex; gap: 10px; margin-top: 15px; }
         #cmd-input {
-            flex-grow: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; color: #fff;
-            padding: 14px; font-family: var(--font-code); border-radius: 6px; outline: none;
+            flex-grow: 1; background: rgba(0, 0, 0, 0.3); border: 2px solid #414868; color: #fff;
+            padding: 12px; font-family: var(--font-code); border-radius: 12px; outline: none; transition: border-color 0.2s;
         }
         #cmd-input:focus { border-color: var(--accent-color); }
         
         #send-btn {
-            background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 0 30px; border-radius: 6px; cursor: pointer; font-family: var(--font-code); font-weight: bold;
+            background: var(--accent-color); color: #1a1b26; border: none;
+            padding: 0 25px; border-radius: 12px; cursor: pointer; font-family: var(--font-ui); font-weight: bold;
+            transition: transform 0.1s;
         }
+        #send-btn:active { transform: scale(0.9); }
 
-        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .btn {
-            background: linear-gradient(145deg, rgba(60, 60, 75, 0.6), rgba(30, 30, 45, 0.6));
-            color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 15px 5px; border-radius: 10px;
-            font-size: 1.1rem; font-family: var(--font-main); cursor: pointer; text-transform: uppercase;
-            transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            background: #24283b;
+            color: #c0caf5; border: 2px solid #414868; padding: 15px 5px; border-radius: 15px;
+            font-size: 1rem; font-family: var(--font-ui); font-weight: 600; cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+            box-shadow: 0 4px 0 #16161e;
         }
-        .btn:hover { transform: translateY(-2px); background: rgba(80, 80, 100, 0.7); border-color: var(--accent-color); }
-        .btn:active { transform: translateY(2px); }
+        .btn:hover { transform: translateY(-2px); background: #2f3549; border-color: var(--accent-color); }
+        .btn:active { transform: translateY(2px); box-shadow: 0 0 0 #16161e; }
         
-        .btn-combat { display: none; background: linear-gradient(145deg, #522, #311); border-color: #f66; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 100, 100, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 100, 100, 0); } }
-
+        .btn-combat { display: none; background: #3b2424; border-color: #f7768e; color: #ff9e9e; }
+        
         @media (min-width: 768px) {
-            #hud, #terminal, #controls { width: 850px; margin: 0 auto; border-left: 1px solid #333; border-right: 1px solid #333; }
-            #terminal { height: 60vh; }
+            #hud, #terminal, #controls { width: 800px; margin: 0 auto; border-left: 2px solid #414868; border-right: 2px solid #414868; }
+            #terminal { height: 65vh; }
             #quick-actions { grid-template-columns: repeat(6, 1fr); }
         }
     </style>
@@ -152,33 +169,31 @@
 
     <div id="hud">
         <div class="stat-box">
-            <div><span class="stat-label">❤️ PSYCHE</span> <span id="hp-val" class="val-hp">--</span></div>
-            <div><span class="stat-label">💠 TECHNE</span> <span id="mp-val" class="val-mp">--</span></div>
+            <div><span class="stat-label">❤️ Lives</span> <span id="hp-val" class="val-hp">9/9</span></div>
+            <div><span class="stat-label">🧶 Yarn</span> <span id="mp-val" class="val-mp">5/5</span></div>
         </div>
-        <div id="location-display">Initializing...</div>
+        <div id="location-display">Booting...</div>
     </div>
 
-    <div id="terminal">
-        <div id="loading-msg" style="text-align:center; color: #555; margin-top: 50px;">[RE-ESTABLISHING CONSCIOUSNESS...]</div>
-    </div>
+    <div id="terminal"></div>
 
     <div id="controls">
         <div id="quick-actions">
-            <button class="btn expl-btn" onclick="submitBtn('north')">⬆️ NORTH</button>
-            <button class="btn expl-btn" onclick="submitBtn('south')">⬇️ SOUTH</button>
-            <button class="btn expl-btn" onclick="submitBtn('west')">⬅️ WEST</button>
-            <button class="btn expl-btn" onclick="submitBtn('east')">➡️ EAST</button>
-            <button class="btn expl-btn" onclick="submitBtn('look')">👁️ LOOK</button>
-            <button class="btn expl-btn" onclick="submitBtn('interact')">✋ USE</button>
+            <button class="btn expl-btn" onclick="submitBtn('north')">⬆️ Up</button>
+            <button class="btn expl-btn" onclick="submitBtn('south')">⬇️ Down</button>
+            <button class="btn expl-btn" onclick="submitBtn('west')">⬅️ Left</button>
+            <button class="btn expl-btn" onclick="submitBtn('east')">➡️ Right</button>
+            <button class="btn expl-btn" onclick="submitBtn('look')">👀 Sniff</button>
+            <button class="btn expl-btn" onclick="submitBtn('interact')">🐾 Paw</button>
             
-            <button class="btn btn-combat" onclick="submitBtn('argue')">⚔️ ARGUE</button>
-            <button class="btn btn-combat" onclick="submitBtn('logic')">✨ LOGIC</button>
-            <button class="btn btn-combat" onclick="submitBtn('cite')">📜 CITE</button>
-            <button class="btn btn-combat" onclick="submitBtn('flee')">🏃 RUN</button>
+            <button class="btn btn-combat" onclick="submitBtn('scratch')">😼 Scratch</button>
+            <button class="btn btn-combat" onclick="submitBtn('hiss')">🙀 Hiss</button>
+            <button class="btn btn-combat" onclick="submitBtn('nap')">💤 Nap</button>
+            <button class="btn btn-combat" onclick="submitBtn('zoom')">💨 Zoom</button>
         </div>
         <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="Enter command..." autocomplete="off">
-            <button id="send-btn" onclick="submitCommand()">RUN</button>
+            <input type="text" id="cmd-input" placeholder="What will you do?" autocomplete="off">
+            <button id="send-btn" onclick="submitCommand()">GO</button>
         </div>
     </div>
 
@@ -190,86 +205,87 @@
 
         // --- VISUALS ---
         const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
+        let ctx = null; if(canvas) ctx = canvas.getContext('2d');
         let width, height, particles = [];
-        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-        class Particle {
-            constructor() { this.x = Math.random()*width; this.y = Math.random()*height; this.size = Math.random()*2+1; this.speedY = Math.random()*0.4+0.1; this.opacity = Math.random()*0.4; this.char = ["0","1","∫","∮","∇","Δ"][Math.floor(Math.random()*6)]; }
-            update() { this.y -= this.speedY; if(this.y<0){ this.y=height; this.x=Math.random()*width; } }
-            draw() { ctx.fillStyle=`rgba(136,204,255,${this.opacity})`; ctx.font=`${this.size*10}px monospace`; ctx.fillText(this.char, this.x, this.y); }
-        }
-        function initParticles() { particles=[]; for(let i=0; i<50; i++) particles.push(new Particle()); }
-        function animate() { ctx.clearRect(0,0,width,height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
-        window.addEventListener('resize', resize); resize(); initParticles(); animate();
 
-        // --- GAME LOGIC ---
+        function resize() { if(!canvas) return; width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        
+        class Particle {
+            constructor() { 
+                this.x = Math.random()*width; this.y = Math.random()*height; 
+                this.size = Math.random()*15+10; this.speedY = Math.random()*0.5+0.2; this.speedX = Math.random()*0.4-0.2;
+                this.opacity = Math.random()*0.3+0.1;
+                this.char = ["🐾", "🐟", "0", "1", "🧶"][Math.floor(Math.random()*5)]; 
+            }
+            update() { 
+                this.y -= this.speedY; this.x += this.speedX;
+                if(this.y < -20){ this.y=height; this.x=Math.random()*width; } 
+            }
+            draw() { 
+                if(!ctx) return;
+                ctx.fillStyle=`rgba(169, 177, 214, ${this.opacity})`; 
+                ctx.font=`${this.size}px serif`; 
+                ctx.fillText(this.char, this.x, this.y); 
+            }
+        }
+        function initParticles() { particles=[]; for(let i=0; i<40; i++) particles.push(new Particle()); }
+        function animate() { if(!ctx) return; ctx.clearRect(0,0,width,height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
+        if(canvas) { window.addEventListener('resize', resize); resize(); initParticles(); animate(); }
+
+        // --- GAME DATA ---
         const GameState = {
             mode: "INTRO",
-            player: { psyche: 30, maxPsyche: 30, techne: 15, maxTechne: 15, rhetoric: 5, dialect: 3, theory: 4, citations: [], location: "hub", memories: [] },
-            combat: { target: null, enemyStatus: null }
+            player: {
+                name: "Stray Variable", breed: null,
+                hp: 9, maxHp: 9, yarn: 5, maxYarn: 5,
+                scratch: 3, purr: 2, chaos: 1, 
+                inventory: ["Collar"], location: "hub"
+            },
+            combat: { target: null },
+            dialogue: { npc: null, node: "start" }
+        };
+
+        const Breeds = {
+            "VOID": { name: "🐈‍⬛ Void Cat", desc: "One with the shadows. High Chaos.", bonus: { chaos: 3, scratch: 1 } },
+            "ORANGE": { name: "🐈 Orange Tabby", desc: "One brain cell. High Scratch.", bonus: { scratch: 3, purr: -1 } },
+            "CALICO": { name: "🐆 Calico", desc: "Lucky & Loved. High Purr (Defense).", bonus: { purr: 3, hp: 2 } }
         };
 
         const World = {
-            "hub": { name: "🏛️ The Great Hall", desc: "You stand in a cathedral of obsidian and light. The air smells of old parchment and cooling fans.", exits: {"north":"sky_gate","south":"sea_gate","east":"fire_gate","west":"spirit_gate"}, npc: "Cerberus Dan" },
-            "sky_gate": { name: "☁️ The Sky Gate", desc: "Clouds of data swirl beneath your feet. The Spire rises into the silence of the upper atmosphere.", exits: {"south":"hub","north":"spire_top"}, encounterRate: 0.3, enemies: ["Syntax Harpy"] },
-            "spire_top": { name: "⚡ Spire Peak", desc: "A place where logic ends and raw concept begins.", exits: {"south":"sky_gate"}, npc: "Prof. Nephele" },
-            "sea_gate": { name: "🌊 The Sunken Sea", desc: "Dark water laps at the edges of reality.", exits: {"north":"hub","south":"river_styx"}, encounterRate: 0.3, enemies: ["Memory Minotaur"] },
-            "river_styx": { name: "💧 River Styx", desc: "A black river of forgotten data. It looks cold.", exits: {"north":"sea_gate"}, encounterRate: 0.5, enemies: ["Leakage Spirit"] },
-            "fire_gate": { name: "🔥 The Core Forge", desc: "The heat is a physical weight. The walls glow red.", exits: {"west":"hub","east":"silicon_furnace"}, encounterRate: 0.3, enemies: ["Overheat Imp"] },
-            "silicon_furnace": { name: "🌋 Silicon Furnace", desc: "Molten gold flows like lava.", exits: {"west":"fire_gate"}, encounterRate: 0.5, enemies: ["Slag Golem"] },
-            "spirit_gate": { name: "⚫ The Null Void", desc: "Nothing exists here. Not even you.", exits: {"east":"hub","west":"necropolis"}, encounterRate: 0.3, enemies: ["Null Shade"] },
-            "necropolis": { name: "🪦 Necropolis", desc: "Rows of tombstones labeled with old project names.", exits: {"east":"spirit_gate"}, npc: "Librarian Persephone" }
+            "hub": { name: "🏠 The Desktop", desc: "A giant, glowing monitor screen. It's warm here. To the NORTH: The Cloud. SOUTH: The Recycle Bin.", exits: {"north":"cloud","south":"bin"}, npc: "Prof. Meow" },
+            "cloud": { name: "☁️ The Cloud", desc: "Fluffy white data drifts everywhere. Looks comfortable to sleep on.", exits: {"south":"hub", "north":"firewall"}, enemies: ["Bug"] },
+            "firewall": { name: "🔥 The Firewall", desc: "A burning wall of red code.", exits: {"south":"cloud"}, npc: "The Compiler" },
+            "bin": { name: "🗑️ Recycle Bin", desc: "Smells like old fish and deleted memories.", exits: {"north":"hub"}, enemies: ["Glitch Mouse"] }
         };
 
         const Bestiary = {
-            "Syntax Harpy": { hp: 20, att: 4, def: 2, desc: "🦅💥 A messy bird made of tangled wires! It screeches in typos!" },
-            "Memory Minotaur": { hp: 35, att: 6, def: 4, desc: "🐂💾 A big, confused beast looking for its lost files." },
-            "Overheat Imp": { hp: 15, att: 8, def: 1, desc: "🔥😈 A tiny, spicy glitch! It's running too hot!" },
-            "Null Shade": { hp: 25, att: 5, def: 5, desc: "👻❓ A lonely shadow. It just wants a hug (and your data)." },
-            "Slag Golem": { hp: 40, att: 7, def: 6, desc: "🗿🌋 A grumpy rock made of melted computer parts." },
-            "Leakage Spirit": { hp: 20, att: 5, def: 2, desc: "💧😢 A sad puddle of memory that won't go away." },
-            "Prof. Nephele": { hp: 100, att: 12, def: 8, boss: true, desc: "🌩️🎩 The Archon of Clouds! He thinks he's above everyone (literally)." }
+            "Bug": { hp: 5, att: 2, desc: "🪲 A literal bug. Buzzing annoyingly." },
+            "Glitch Mouse": { hp: 8, att: 3, desc: "🐭 A mouse made of static. Hard to catch!" },
+            "The Compiler": { hp: 30, att: 5, boss: true, desc: "🤖 A strict robot who hates fuzzy logic." }
         };
 
         const NPCs = {
-            "Cerberus Dan": { 
-                name: "🐶🐶🐶 Cerberus Dan", 
-                dialogue: { 
-                    "start": { text: "Woof! 🦴 You smell like... *sniff sniff*... a new friend! (And a logic error.)", options: { "1": { text: "🤔 Who are you?", next: "who" }, "2": { text: "🌍 Where am I?", next: "where" }, "3": { text: "👋 Pet the dog!", next: "pet" } } }, 
-                    "who": { text: "I'm the Guardian! 🛡️ I keep the bad bugs out. You're a good bug though!", options: { "1": { text: "🔙 Back", next: "start" } } }, 
-                    "where": { text: "The Kernel! 💻 It's where sleepy programs go to nap. Forever.", options: { "1": { text: "🔙 Back", next: "start" } } }, 
-                    "pet": { text: "*All three heads bark happily!* 🎶 Bark! Bark! Bark! You feel loved.", options: { "1": { text: "🥰 Aww.", next: "start" } } } 
-                } 
-            },
-            "Prof. Nephele": { name: "🌩️ Prof. Nephele", dialogue: ["☁️ My head is in the clouds, and so is my genius!"], hostile: true },
-            "Librarian Persephone": { name: "🤫 Librarian Persephone", dialogue: ["Shh! The books are sleeping."], hostile: true }
+            "Prof. Meow": { name: "🎓 Prof. Meow", dialogue: { "start": { text: "Mrrp? You look lost, little variable.", options: { "1": { text: "Where am I?", next: "where" }, "2": { text: "Feed me.", next: "feed" } } }, "where": { text: "Schrödinger's Stack. We are both dead and alive here.", options: { "1": { text: "Oh.", next: "start" } } }, "feed": { text: "*Prof. Meow spawns a virtual tuna.*", options: { "1": { text: "Nom.", next: "start" } } } } },
+            "The Compiler": { name: "🤖 The Compiler", dialogue: ["SYNTAX ERROR. CAT NOT FOUND."], hostile: true }
         };
 
         const Engine = {
             init: function() {
-                document.getElementById('loading-msg').style.display = 'none';
-                this.sequence([
-                    { text: "The last thing you remember is the flicker of a library lamp.", type: "narrator" },
-                    { text: "A recursive loop. A logic error. A segfault in your soul.", type: "narrator" },
-                    { text: "You awake in the cold, humming silence of the Chthonic Kernel.", type: "narrator" },
-                    { text: "Before you, a voice speaks from the static...", type: "narrator" },
-                    { text: "<br>WELCOME, SCHOLAR. PLEASE DECLARE YOUR PATH:", type: "msg-system" },
-                    { text: "1. 🔮 THEORIST (College of Aether) - Power of Logic.", type: "msg-magic" },
-                    { text: "2. 🔨 ENGINEER (Forge of Phlegethon) - Power of Hardware.", type: "danger" },
-                    { text: "3. 📜 HISTORIAN (Library of Styx) - Power of Memory.", type: "msg-npc" }
-                ]);
+                this.typewrite("Initializing Schrödinger's Stack...", "system");
+                setTimeout(() => {
+                    this.log("<br>You open your eyes. You have paws.", "narrator");
+                    this.log("You are a Stray Variable, lost in the code.", "narrator");
+                    this.log("Choose your form:", "system");
+                    this.log("1. 🐈‍⬛ VOID CAT (Sneaky)", "msg-magic");
+                    this.log("2. 🐈 ORANGE TABBY (Strong)", "danger");
+                    this.log("3. 🐆 CALICO (Lucky)", "msg-npc");
+                    GameState.mode = "INTRO";
+                }, 1000);
             },
 
-            sequence: function(lines) {
-                let delay = 0;
-                lines.forEach(line => {
-                    setTimeout(() => this.log(line.text, line.type), delay);
-                    delay += 1200;
-                });
-            },
-
-            log: function(text, type = "narrator") {
+            typewrite: function(text, type) {
                 const term = document.getElementById('terminal');
+                if(!term) return;
                 const entry = document.createElement('div');
                 entry.className = `log-entry msg-${type}`;
                 entry.innerHTML = text;
@@ -277,110 +293,103 @@
                 term.scrollTop = term.scrollHeight;
             },
 
+            log: function(text, type="narrator") {
+                this.typewrite(text, type);
+            },
+
             handleInput: function(cmd) {
                 cmd = cmd.toLowerCase().trim();
                 if(GameState.mode === "INTRO") { this.intro(cmd); return; }
-                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
                 if(GameState.mode === "COMBAT") { this.combat(cmd); return; }
+                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
                 this.explore(cmd);
             },
 
             intro: function(cmd) {
                 let sel = null;
-                if(cmd.includes("1") || cmd.includes("theo")) sel = "THEORIST";
-                else if(cmd.includes("2") || cmd.includes("eng")) sel = "ENGINEER";
-                else if(cmd.includes("3") || cmd.includes("hist")) sel = "HISTORIAN";
+                if(cmd.includes("1") || cmd.includes("void")) sel = "VOID";
+                else if(cmd.includes("2") || cmd.includes("orange")) sel = "ORANGE";
+                else if(cmd.includes("3") || cmd.includes("calico")) sel = "CALICO";
 
                 if(sel) {
-                    GameState.player.major = sel;
-                    this.log(`<br>ENROLLMENT SUCCESSFUL: ${sel}`, "system");
+                    const b = Breeds[sel];
+                    GameState.player.breed = sel;
+                    Object.assign(GameState.player, b.bonus);
+                    GameState.player.hp = GameState.player.maxHp + (b.bonus.hp||0);
+                    this.log(`<br>✨ You are a <strong>${b.name}</strong>.`, "system");
                     setTimeout(() => {
+                        this.log("Professor Meow is waiting for you.", "narrator");
                         GameState.mode = "EXPLORE";
-                        this.explore("look");
                         this.updateHUD();
+                        this.explore("look");
                     }, 1000);
-                } else { this.log("Please select path 1, 2, or 3.", "danger"); }
+                } else this.log("Choose 1, 2, or 3.", "danger");
             },
 
             explore: function(cmd) {
                 const loc = World[GameState.player.location];
-                if(["n","north"].includes(cmd)) this.move("north");
-                else if(["s","south"].includes(cmd)) this.move("south");
-                else if(["e","east"].includes(cmd)) this.move("east");
-                else if(["w","west"].includes(cmd)) this.move("west");
-                else if(["look","l"].includes(cmd)) {
-                    this.log(`<br><strong>[${loc.name}]</strong>`, "system");
+                if(["n","north"].includes(cmd) && loc.exits.north) this.move(loc.exits.north);
+                else if(["s","south"].includes(cmd) && loc.exits.south) this.move(loc.exits.south);
+                else if(["w","west"].includes(cmd) && loc.exits.west) this.move(loc.exits.west);
+                else if(["e","east"].includes(cmd) && loc.exits.east) this.move(loc.exits.east);
+                else if(["look","l","sniff"].includes(cmd)) {
+                    this.log(`<br><strong>${loc.name}</strong>`, "system");
                     this.log(loc.desc, "narrator");
-                    if(loc.npc) this.log(`You see <strong>${NPCs[loc.npc].name}</strong> here.`, "msg-npc");
+                    if(loc.npc) this.log(`🐱 <strong>${NPCs[loc.npc].name}</strong> is here.`, "msg-npc");
                 }
-                else if(["talk","t"].includes(cmd)) {
+                else if(["paw","interact"].includes(cmd)) {
+                    this.log("You bat at it with your paw. *bap bap*", "msg-player");
+                }
+                else if(["talk","meow"].includes(cmd)) {
                     if(loc.npc) {
                         const npc = NPCs[loc.npc];
-                        if(npc.dialogue && npc.dialogue.start) this.showDialogue(npc, "start");
-                        else if(npc.hostile) this.startCombat(loc.npc);
-                    } else this.log("No one here.", "narrator");
+                        if(npc.hostile) this.startCombat(loc.npc);
+                        else this.showDialogue(npc, "start");
+                    } else this.log("Meow? (No one answers.)", "narrator");
                 }
-                else this.log("Unknown command.", "system");
+                else this.log("You chase your tail. (Unknown command)", "system");
                 this.updateHUD();
             },
 
-            move: function(dir) {
-                const loc = World[GameState.player.location];
-                if(loc.exits[dir]) {
-                    GameState.player.location = loc.exits[dir];
-                    this.log(`Traveling ${dir}...`, "system");
-                    this.explore("look");
-                    this.checkEncounter();
-                } else this.log("Blocked.", "danger");
-            },
-
-            checkEncounter: function() {
-                const loc = World[GameState.player.location];
-                if(loc.encounterRate && Math.random() < loc.encounterRate) {
-                    this.startCombat(loc.enemies[0]);
+            move: function(dest) {
+                GameState.player.location = dest;
+                this.log("Trot... trot... trot...", "system");
+                this.explore("look");
+                if(World[dest].enemies && Math.random() < 0.4) {
+                    this.startCombat(World[dest].enemies[0]);
                 }
             },
 
-            dialogue: function(cmd) {
-                const npc = GameState.dialogue.npc;
-                const nodeKey = GameState.dialogue.node;
-                const node = npc.dialogue[nodeKey];
-                
-                if(node.options[cmd]) {
-                    this.showDialogue(npc, node.options[cmd].next);
-                } else {
-                    this.log("Invalid option.", "system");
-                }
-            },
-
-            showDialogue: function(npc, key) {
-                GameState.mode = "DIALOGUE";
-                GameState.dialogue = { npc: npc, node: key };
-                const node = npc.dialogue[key];
-                this.log(`<br>${npc.name}: "${node.text}"`, "msg-npc");
-                for(let opt in node.options) {
-                    this.log(`${opt}. ${node.options[opt].text}`, "msg-player");
-                }
-            },
-
-            startCombat: function(key) {
+            startCombat: function(name) {
                 GameState.mode = "COMBAT";
-                const t = Bestiary[key];
-                GameState.combat.target = {...t, name: key, currentHp: t.hp};
-                this.log(`<br>⚔️ BATTLE INITIATED: ${key}`, "danger");
-                this.log(`<em>"${t.desc}"</em>`, "narrator");
+                const t = Bestiary[name];
+                GameState.combat.target = {...t, name: name, currentHp: t.hp};
+                this.log(`<br>🚨 <strong>${name}</strong> appears!`, "danger");
+                this.log(`<em>${t.desc}</em>`, "narrator");
                 this.toggleControls(true);
             },
 
             combat: function(cmd) {
-                const p = GameState.player;
                 const e = GameState.combat.target;
-                if(["argue","a"].includes(cmd)) {
-                    let dmg = p.rhetoric;
+                if(cmd.includes("scratch")) {
+                    const dmg = GameState.player.scratch;
                     e.currentHp -= dmg;
-                    this.log(`💬 You argue your point! <strong>BAM!</strong> -${dmg} Confidence.`, "player");
-                    if(e.currentHp <= 0) { this.log("✨ Victory! The enemy agrees with you.", "system"); this.endCombat(); }
-                    else this.enemyTurn();
+                    this.log(`😼 You scratch! <strong>${dmg}</strong> dmg!`, "msg-player");
+                } else if (cmd.includes("hiss")) {
+                    this.log(`🙀 You hiss! The enemy is startled.`, "msg-magic");
+                } else if (cmd.includes("nap")) {
+                    this.log(`💤 You take a nap. +2 HP.`, "msg-magic");
+                    GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + 2);
+                } else if (cmd.includes("zoom")) {
+                    if(Math.random()>0.5) { this.log("💨 You got the zoomies and escaped!", "system"); this.endCombat(); return; }
+                    else this.log("🚫 You slipped on the floor!", "danger");
+                }
+                
+                if(e.currentHp <= 0) {
+                    this.log("🎉 The enemy crashed! Victory!", "system");
+                    this.endCombat();
+                } else {
+                    this.enemyTurn();
                 }
                 this.updateHUD();
             },
@@ -388,19 +397,33 @@
             enemyTurn: function() {
                 setTimeout(() => {
                     const dmg = GameState.combat.target.att;
-                    GameState.player.psyche -= dmg;
+                    GameState.player.hp -= dmg;
                     document.body.classList.add('shake-screen');
                     setTimeout(()=>document.body.classList.remove('shake-screen'), 500);
-                    this.log(`💢 ${GameState.combat.target.name} retorts! -${dmg} Feelings.`, "danger");
-                    if(GameState.player.psyche <= 0) { this.log("💔 Oh no! You dropped out...", "danger"); }
+                    this.log(`💥 Enemy hits you! -${dmg} HP.`, "danger");
+                    if(GameState.player.hp <= 0) this.log("💀 OUT OF LIVES. Refresh to respawn.", "danger");
                     this.updateHUD();
-                }, 600);
+                }, 800);
             },
 
-            endCombat: function(won) {
+            endCombat: function() {
                 GameState.mode = "EXPLORE";
                 this.toggleControls(false);
-                this.updateHUD();
+            },
+
+            dialogue: function(cmd) {
+                const npc = GameState.dialogue.npc;
+                const node = npc.dialogue[GameState.dialogue.node];
+                if(node.options[cmd]) this.showDialogue(npc, node.options[cmd].next);
+                else if(cmd.includes("back")) { GameState.mode = "EXPLORE"; this.log("You trot away.", "narrator"); }
+            },
+
+            showDialogue: function(npc, key) {
+                GameState.mode = "DIALOGUE";
+                GameState.dialogue = { npc: npc, node: key };
+                const node = npc.dialogue[key];
+                this.log(`<br><strong>${npc.name}:</strong> "${node.text}"`, "msg-npc");
+                for(let k in node.options) this.log(`${k}. ${node.options[k].text}`, "msg-player");
             },
 
             toggleControls: function(combat) {
@@ -409,14 +432,13 @@
             },
 
             updateHUD: function() {
-                document.getElementById('hp-val').innerText = `${GameState.player.psyche}/${GameState.player.maxPsyche}`;
-                document.getElementById('mp-val').innerText = `${GameState.player.techne}/${GameState.player.maxTechne}`;
+                document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
+                document.getElementById('mp-val').innerText = `${GameState.player.yarn}/${GameState.player.maxYarn}`;
                 document.getElementById('location-display').innerText = World[GameState.player.location].name;
             }
         };
 
-        window.engine = Engine;
-        window.onload = () => { try { window.engine.init(); } catch(e) { document.body.innerHTML += `<h1 style='color:red'>${e}</h1>`; } };
+        window.onload = () => Engine.init();
     </script>
 </body>
 </html>
