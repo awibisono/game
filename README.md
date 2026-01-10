@@ -1,9 +1,9 @@
-# CPSC 4860: The Chthonic Kernel
+# The Chthonic Kernel
 
 **The Chthonic Kernel** is a text-based RPG set in a mythic-academic underworld, blending Greek mythology with Computer Science culture.
 
 ## Play the Game
-[**Click here to Play**](https://awibisono.github.io/cpsc4860/) (Once hosted on GitHub Pages)
+[**Click here to Play**](https://awibisono.github.io/game/) (Once hosted on GitHub Pages)
 
 ## Documentation
 *   [**Design Document (The Cave)**](cave.html): Detailed lore, mechanics, stats, and script.

@@ -192,49 +192,153 @@
                 mp: 10, maxMp: 10,
                 name: "Neophyte",
                 inventory: ["Student ID", "Laptop"],
-                location: "library"
+                location: "hub"
             },
             flags: {
                 metDan: false,
-                hasKey: false
+                defeated: []
             }
         };
 
         const World = {
-            "library": {
-                name: "Sterling Library (The Stacks)",
-                desc: "You are in the Gothic nave of the library. Towers of books spiral into a dark void above. Green code rains from the vaulted ceiling.",
-                exits: { "north": "courtyard" },
-                npc: "Thymeus"
+            "hub": {
+                name: "The Great Hall of Harkness",
+                desc: "You stand in the central hub of the Underworld Campus. The ceiling is a digital star chart. To the NORTH is the Spire (Sky). To the SOUTH is the Sunken Library (Sea). To the EAST is the Forge (Fire). To the WEST is the Crypt (Spirit).",
+                exits: { "north": "sky_gate", "south": "sea_gate", "east": "fire_gate", "west": "spirit_gate" },
+                npc: "Cerberus Dan"
             },
-            "courtyard": {
-                name: "The Cross Campus Underworld",
-                desc: "A grey, misty lawn. Gravestones shaped like computer terminals dot the grass. To the NORTH is the Spire of Aether. To the SOUTH is the Library.",
-                exits: { "south": "library", "north": "spire_base" },
+            
+            // --- SKY KINGDOM (North) ---
+            "sky_gate": {
+                name: "Gate of Aether",
+                desc: "A floating platform of marble. Clouds swirl around you. The Spire rises infinitely upwards.",
+                exits: { "south": "hub", "north": "cloud_campus" },
                 npc: null
             },
-            "spire_base": {
-                name: "Base of Harkness Tower",
-                desc: "The massive tower pierces the clouds. Lightning shaped like pointers strikes the ground. The door is locked with a logic puzzle.",
-                exits: { "south": "courtyard" },
-                npc: "Walter Lewin" // Just for testing
+            "cloud_campus": {
+                name: "The Cloud Campus",
+                desc: "Data packets rain from the sky like hail. The air smells of ozone and arrogance.",
+                exits: { "south": "sky_gate", "north": "spire_top" },
+                npc: null
+            },
+            "spire_top": {
+                name: "Peak of the Spire",
+                desc: "You are at the edge of the atmosphere. The Archon of the Clouds awaits.",
+                exits: { "south": "cloud_campus" },
+                npc: "Prof. Nephele"
+            },
+
+            // --- SEA KINGDOM (South) ---
+            "sea_gate": {
+                name: "The Sunken Library Entry",
+                desc: "Steps lead down into dark, churning water. The books here are damp and swollen.",
+                exits: { "north": "hub", "south": "river_styx" },
+                npc: null
+            },
+            "river_styx": {
+                name: "The River Styx",
+                desc: "Black water flows through the corridors. You hear the whispers of drowning students.",
+                exits: { "north": "sea_gate", "south": "abyssal_lab" },
+                npc: null
+            },
+            "abyssal_lab": {
+                name: "The Abyssal Lab",
+                desc: "A bioluminescent cavern filled with strange specimens in jars.",
+                exits: { "north": "river_styx" },
+                npc: "Coach Pontus"
+            },
+
+            // --- FIRE KINGDOM (East) ---
+            "fire_gate": {
+                name: "Entrance to Phlegethon",
+                desc: "The heat is oppressive. The walls are made of burning silicon.",
+                exits: { "west": "hub", "east": "silicon_furnace" },
+                npc: null
+            },
+            "silicon_furnace": {
+                name: "The Silicon Furnace",
+                desc: "Lava flows in circuit patterns on the floor. Everything is overheating.",
+                exits: { "west": "fire_gate", "east": "core_foundry" },
+                npc: null
+            },
+            "core_foundry": {
+                name: "The Core Foundry",
+                desc: "The heart of the machine. The Dean hammers away at a soul on an anvil.",
+                exits: { "west": "silicon_furnace" },
+                npc: "Dean Hephaestus"
+            },
+
+            // --- SPIRIT KINGDOM (West) ---
+            "spirit_gate": {
+                name: "Crypt of Erebus",
+                desc: "The light fades here. The silence is deafening.",
+                exits: { "east": "hub", "west": "null_void" },
+                npc: null
+            },
+            "null_void": {
+                name: "The Null Void",
+                desc: "A place where pointers reference nothing. Reality flickers.",
+                exits: { "east": "spirit_gate", "west": "necropolis" },
+                npc: null
+            },
+            "necropolis": {
+                name: "The Sterling Necropolis",
+                desc: "Rows of tombstones labeled with deprecated functions.",
+                exits: { "east": "null_void" },
+                npc: "Librarian Persephone"
+            },
+
+            // --- END GAME ---
+            "woodbridge": {
+                name: "Woodbridge Hall of Judgment",
+                desc: "The final chamber. The Provost awaits to grade your soul.",
+                exits: { "south": "hub" }, // Secret exit unlocked later
+                npc: "Provost of Entropy"
             }
         };
 
         const NPCs = {
-            "Thymeus": {
+            "Cerberus Dan": {
                 name: "Cerberus Dan",
                 dialogue: [
-                    "Woof. Logic error detected in sector 7G.",
-                    "I am the Guardian. You have segfaulted into the Kernel, student.",
-                    "To leave, you must debug the Archons. Go NORTH to the courtyard."
+                    "Woof. Logic error detected. Welcome to the Chthonic Kernel.",
+                    "The Archons hold the four Essences. Retrieve them.",
+                    "Do not fear the segfault. Embrace the reboot."
                 ]
             },
-            "Walter Lewin": {
-                name: "Archon Lewin",
+            "Prof. Nephele": {
+                name: "Archon Nephele",
                 dialogue: [
-                    "You dare approach the Spire?!",
-                    "Calculate the terminal velocity of your failure!"
+                    "You dare ascend my tower? My intellect is in the cloud!",
+                    "Taste the voltage of my Storm of Pointers!"
+                ]
+            },
+            "Coach Pontus": {
+                name: "Archon Pontus",
+                dialogue: [
+                    "The current is strong today. You will drown in coursework.",
+                    "Row! Row for your life!"
+                ]
+            },
+            "Dean Hephaestus": {
+                name: "Archon Hephaestus",
+                dialogue: [
+                    "I forge engineers from the raw ore of freshmen.",
+                    "Can you withstand the thermal throttling?"
+                ]
+            },
+            "Librarian Persephone": {
+                name: "Archon Persephone",
+                dialogue: [
+                    "Shhh. Quiet hours are in effect... forever.",
+                    "Your citations are missing. Return to the void."
+                ]
+            },
+            "Provost of Entropy": {
+                name: "The Provost",
+                dialogue: [
+                    "Your thesis is due. The deadline is... NOW.",
+                    "I am the Administrator of Endings."
                 ]
             }
         };
