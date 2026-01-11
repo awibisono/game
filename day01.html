@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Solver View: Ecosystem Dynamics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: #a7a9be; font-family: 'Courier New', monospace; overflow: hidden; }
+        #canvas { display: block; cursor: crosshair; }
+        
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(10, 10, 15, 0.85);
+            padding: 15px; border-radius: 4px; border-left: 3px solid #00ffff;
+            max-width: 350px; z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        h1 { margin: 0 0 5px 0; color: #00ffff; font-size: 1.1rem; }
+        .math { font-style: italic; color: #ff00ff; margin-bottom: 10px; font-size: 0.85rem; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.8rem; }
+        .val { color: #fff; font-weight: bold; }
+
+        #error-log {
+            position: absolute; bottom: 10px; left: 10px; color: red; font-size: 0.8rem; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 5px; display: none;
+        }
+
+        #god-panel {
+            display: none;
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            padding: 15px; border: 1px solid #444; border-top: 3px solid #00ffff;
+            border-radius: 4px; width: 300px; max-height: 90vh; overflow-y: auto;
+            z-index: 20;
+        }
+        .god-header { color: #fff; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .control-group { margin-bottom: 10px; }
+        label { display: block; font-size: 0.75rem; color: #aaa; margin-bottom: 3px; }
+        select, input[type=range], button { width: 100%; background: #222; color: #ddd; border: 1px solid #444; padding: 4px; font-size: 0.8rem; }
+        input[type=checkbox] { width: auto; margin-right: 5px; }
+        button:hover { background: #333; border-color: #00ffff; color: #fff; }
+
+        #charts-container {
+            position: absolute; bottom: 20px; left: 20px;
+            display: flex; gap: 10px; z-index: 15; pointer-events: none;
+        }
+        .chart-box {
+            background: rgba(0, 0, 0, 0.8); border: 1px solid #333; padding: 10px;
+            width: 300px; height: 160px; pointer-events: auto;
+        }
+        .chart-title { font-size: 0.7rem; color: #aaa; margin-bottom: 5px; border-bottom: 1px solid #222; }
+
+        #unlock-pad {
+            position: absolute; bottom: 20px; right: 20px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; z-index: 10;
+        }
+        #unlock-pad button { width: 40px; height: 40px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>Mean Field Dynamics</h1>
+        <div class="math">dX_t = -∇(V+V_obs)dt - ∇W*μdt + σdB</div>
+        <div class="stat-row"><span>Time T:</span> <span id="time-val" class="val">0.00</span></div>
+        <div class="stat-row"><span>Mean Energy E[V]:</span> <span id="mean-e" class="val">0</span></div>
+        <div class="stat-row"><span>Entropy S:</span> <span id="entropy" class="val">0</span></div>
+    </div>
+
+    <div id="error-log"></div>
+
+    <div id="god-panel">
+        <div class="god-header">🦉 THE SOLVER VIEW</div>
+        <div class="control-group"><label>Population (N): <span id="val-n">50</span></label><input type="range" id="slider-n" min="10" max="200" step="10" value="50"></div>
+        <div class="control-group">
+            <label>Drift Potential V(x)</label>
+            <select id="sel-v">
+                <option value="quadratic">Quadratic (Gravity)</option>
+                <option value="double_well">Double-Well (Bifurcation)</option>
+                <option value="rastrigin">Rastrigin (Multi-modal)</option>
+                <option value="rosenbrock">Rosenbrock (Valley)</option>
+                <option value="flat">Zero (Brownian)</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Interaction Kernel W(x-y)</label>
+            <select id="sel-w">
+                <option value="coulomb">Coulomb (Repulsion)</option>
+                <option value="newtonian">Newtonian (Attraction)</option>
+                <option value="morse">Swarm (Bio)</option>
+                <option value="none">Zero (Independent)</option>
+            </select>
+        </div>
+        <div class="control-group"><label>Noise (Sigma): <span id="val-sigma">0.5</span></label><input type="range" id="slider-noise" min="0" max="5" step="0.1" value="0.5"></div>
+        <div class="control-group"><label>Step Size (dt): <span id="val-dt">0.1</span></label><input type="range" id="slider-dt" min="0.01" max="0.5" step="0.01" value="0.1"></div>
+        <div class="control-group"><label>Sim Speed (Delay ms)</label><input type="range" id="slider-speed" min="0" max="100" step="5" value="0"></div>
+        <div class="control-group">
+            <label><input type="checkbox" id="chk-field"> Show Gradient Field</label>
+            <label><input type="checkbox" id="chk-hessian"> Show Hessian</label>
+            <label><input type="checkbox" id="chk-contour" checked> Show Potential</label>
+            <label><input type="checkbox" id="chk-terrain" checked> Show Terrain (Forest/Water)</label>
+            <label><input type="checkbox" id="chk-history"> Show Trajectories</label>
+        </div>
+    </div>
+
+    <div id="charts-container">
+        <div class="chart-box"><div class="chart-title">SYSTEM STATISTICS</div><canvas id="sys-chart"></canvas></div>
+        <div class="chart-box" id="agent-box" style="display:none;"><div class="chart-title">AGENT <span id="insp-id">#</span> ENERGY</div><canvas id="agent-chart"></canvas></div>
+    </div>
+
+    <div id="unlock-pad">
+        <div></div><button onclick="checkUnlock('north')">N</button><div></div>
+        <button onclick="checkUnlock('west')">W</button><button onclick="checkUnlock('south')">S</button><button onclick="checkUnlock('east')">E</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        function logError(msg) { const el = document.getElementById('error-log'); el.innerText = "ERROR: " + msg; el.style.display = 'block'; console.error(msg); }
+
+        let unlockSequence = [];
+        const correctSequence = ['north', 'south', 'west', 'east'];
+        function checkUnlock(action) {
+            unlockSequence.push(action);
+            if (unlockSequence.length > 4) unlockSequence.shift();
+            if (JSON.stringify(unlockSequence) === JSON.stringify(correctSequence)) {
+                document.getElementById('god-panel').style.display = 'block';
+                document.getElementById('unlock-pad').style.display = 'none';
+            }
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let N = 50, dt = 0.1, sigma = 0.5, vType = 'quadratic', wType = 'coulomb', delay = 0;
+        let time = 0;
+        let step = 0;
+        let agents = [];
+        let selectedAgent = null;
+        let sysChart = null, agentChart = null;
+        let sysHistory = { meanE: [], entropy: [] };
+        const COLORS = ["#ff8906", "#e53170", "#f25f4c", "#a7a9be", "#2cb67d"];
+
+        // --- TERRAIN DATA ---
+        let obstacles = [];
+        let lifeZones = []; // Forest
+        let waterZones = []; // Water
+
+        function initTerrain() {
+            obstacles = [
+                { x: width*0.5, y: height*0.5, r: 40 }, // Central Rock
+                { x: width*0.2, y: height*0.2, r: 30 }
+            ];
+            lifeZones = [
+                { x: width*0.8, y: height*0.8, r: 100 }, // Forest
+                { x: width*0.1, y: height*0.9, r: 60 }
+            ];
+            waterZones = [
+                { x: width*0.7, y: height*0.3, r: 80 }  // Lake
+            ];
+        }
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initTerrain(); }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initAgents() {
+            agents = [];
+            for(let i=0; i<N; i++) {
+                agents.push({
+                    id: i,
+                    x: (Math.random() - 0.5) * width/3 + width/2,
+                    y: (Math.random() - 0.5) * height/3 + height/2,
+                    vx: 0, vy: 0,
+                    type: i % 5,
+                    history: [],
+                    energyLog: []
+                });
+            }
+            if(selectedAgent >= N) selectedAgent = null;
+        }
+
+        function getV(x, y) {
+            const cx = width/2, cy = height/2;
+            const dx = (x - cx)/100, dy = (y - cy)/100;
+            let val = 0;
+            if (vType === 'quadratic') val = 0.5 * (dx*dx + dy*dy);
+            else if (vType === 'double_well') val = 0.25 * Math.pow(dx*dx - 4, 2) + 0.5*dy*dy;
+            else if (vType === 'rastrigin') val = 20 + (dx*dx - 10*Math.cos(2*Math.PI*dx)) + (dy*dy - 10*Math.cos(2*Math.PI*dy));
+            else if (vType === 'rosenbrock') val = Math.pow(1-dx, 2) + 10*Math.pow(dy - dx*dx, 2);
+            
+            // Terrain Potentials
+            for(let obs of obstacles) {
+                let d = Math.hypot(x - obs.x, y - obs.y);
+                if(d < obs.r) val += 1000 * Math.pow((obs.r - d)/obs.r, 2); // Hard repulsion
+            }
+            for(let zone of lifeZones) {
+                let d = Math.hypot(x - zone.x, y - zone.y);
+                if(d < zone.r) val -= 10 * (1 - d/zone.r); // Attraction (Food)
+            }
+            for(let zone of waterZones) {
+                let d = Math.hypot(x - zone.x, y - zone.y);
+                if(d < zone.r) val -= 20 * (1 - d/zone.r); // Attraction (Water) but creates drag in update
+            }
+            return val;
+        }
+
+        function getGradV(x, y) {
+            const h = 1.0;
+            const v0 = getV(x, y);
+            return { x: (getV(x+h, y)-v0)/h, y: (getV(x, y+h)-v0)/h };
+        }
+
+        function getGradW(rx, ry) {
+            const r2 = rx*rx + ry*ry;
+            const r = Math.sqrt(r2);
+            if (r < 5) return {x:0, y:0};
+            let mag = 0;
+            if (wType === 'coulomb') mag = 2000 / (r2 * r);
+            if (wType === 'newtonian') mag = -0.5;
+            if (wType === 'morse') mag = -20 * (Math.exp(-r/50) - Math.exp(-r/20));
+            return { x: rx*mag, y: ry*mag };
+        }
+
+        function getHessian(x, y) {
+            const h = 1.0, f = getV;
+            const fxx = (f(x+h, y) - 2*f(x, y) + f(x-h, y)) / (h*h);
+            const fyy = (f(x, y+h) - 2*f(x, y) + f(x, y-h)) / (h*h);
+            const fxy = (f(x+h, y+h) - f(x+h, y-h) - f(x-h, y+h) + f(x-h, y-h)) / (4*h*h);
+            return { xx: fxx, yy: fyy, xy: fxy };
+        }
+
+        function getEigen(H) {
+            const a = H.xx, b = H.xy, d = H.yy;
+            const trace = a + d, det = a*d - b*b;
+            const delta = Math.sqrt(Math.max(0, trace*trace - 4*det));
+            const l1 = (trace + delta) / 2, l2 = (trace - delta) / 2;
+            const theta = (b !== 0) ? Math.atan2(l1 - a, b) : (l1 > l2 ? 0 : Math.PI/2);
+            return { l1, l2, theta };
+        }
+
+        function update() {
+            let meanE = 0;
+            for(let i=0; i<N; i++) {
+                let a = agents[i];
+                let g = getGradV(a.x, a.y);
+                let fx = -g.x, fy = -g.y;
+
+                if (wType !== 'none') {
+                    let ix=0, iy=0;
+                    for(let j=0; j<N; j++) {
+                        if(i===j) continue;
+                        let gw = getGradW(a.x - agents[j].x, a.y - agents[j].y);
+                        ix += gw.x; iy += gw.y;
+                    }
+                    fx += ix/N; fy += iy/N;
+                }
+
+                fx += (Math.random()-0.5)*sigma*20;
+                fy += (Math.random()-0.5)*sigma*20;
+
+                a.vx = fx; a.vy = fy;
+                
+                // Water Drag
+                for(let zone of waterZones) {
+                    let d = Math.hypot(a.x - zone.x, a.y - zone.y);
+                    if(d < zone.r) { a.vx *= 0.1; a.vy *= 0.1; } // High viscous drag
+                }
+
+                a.x += a.vx * dt; a.y += a.vy * dt;
+
+                if(a.x < 0 || a.x > width) { a.x = Math.max(0, Math.min(width, a.x)); a.vx *= -1; }
+                if(a.y < 0 || a.y > height) { a.y = Math.max(0, Math.min(height, a.y)); a.vy *= -1; }
+
+                if(time % 1 < dt*1.5) {
+                    a.history.push({x: a.x, y: a.y});
+                    if(a.history.length > 50) a.history.shift();
+                }
+
+                let pot = getV(a.x, a.y);
+                meanE += pot;
+                a.energyLog.push(pot);
+                if(a.energyLog.length > 100) a.energyLog.shift();
+            }
+
+            time += dt;
+            document.getElementById('time-val').innerText = time.toFixed(2);
+            document.getElementById('mean-e').innerText = (meanE / N).toFixed(2);
+
+            let grid = new Array(100).fill(0);
+            agents.forEach(a => {
+                let gx = Math.floor(a.x / (width/10));
+                let gy = Math.floor(a.y / (height/10));
+                if(gx>=0 && gx<10 && gy>=0 && gy<10) grid[gy*10+gx]++;
+            });
+            let entropy = 0;
+            grid.forEach(c => { if(c > 0) { let p = c/N; entropy -= p * Math.log(p); } });
+            document.getElementById('entropy').innerText = entropy.toFixed(3);
+
+            sysHistory.meanE.push(meanE / N);
+            sysHistory.entropy.push(entropy);
+            if(sysHistory.meanE.length > 100) { sysHistory.meanE.shift(); sysHistory.entropy.shift(); }
+        }
+
+        function draw() {
+            if(document.getElementById('chk-contour').checked) {
+                const res = 10;
+                for(let x=0; x<width; x+=res) {
+                    for(let y=0; y<height; y+=res) {
+                        let v = getV(x+res/2, y+res/2);
+                        let t = Math.min(1, v/50);
+                        let r = Math.floor(20 + t*40), g = Math.floor(10 + t*80), b = Math.floor(40 + t*60);
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        ctx.fillRect(x, y, res, res);
+                    }
+                }
+            } else {
+                ctx.fillStyle = '#0f0e17'; ctx.fillRect(0,0,width,height);
+            }
+
+            if(document.getElementById('chk-terrain').checked) {
+                // Rocks
+                obstacles.forEach(o => {
+                    ctx.font = `${o.r}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText("🪨", o.x, o.y);
+                });
+                // Forest
+                lifeZones.forEach(z => {
+                    let grad = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
+                    grad.addColorStop(0, "rgba(40, 200, 100, 0.4)");
+                    grad.addColorStop(1, "rgba(40, 200, 100, 0)");
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI*2); ctx.fill();
+                    ctx.font = "30px serif"; ctx.textAlign = 'center'; ctx.fillText("🌲", z.x, z.y);
+                });
+                // Water
+                waterZones.forEach(z => {
+                    let grad = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
+                    grad.addColorStop(0, "rgba(50, 100, 255, 0.5)");
+                    grad.addColorStop(1, "rgba(50, 100, 255, 0)");
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI*2); ctx.fill();
+                    ctx.font = "30px serif"; ctx.fillText("🌊", z.x, z.y);
+                });
+            }
+
+            if(document.getElementById('chk-field').checked) {
+                const step = 40; ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1;
+                for(let x=0; x<width; x+=step) {
+                    for(let y=0; y<height; y+=step) {
+                        let g = getGradV(x, y);
+                        let mag = Math.hypot(g.x, g.y);
+                        if(mag < 0.01) continue;
+                        let dx = (g.x/mag)*15, dy = (g.y/mag)*15;
+                        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x-dx, y-dy); ctx.stroke();
+                        ctx.beginPath(); ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.arc(x-dx, y-dy, 1, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            }
+
+            if(document.getElementById('chk-hessian').checked) {
+                const step = 60;
+                for(let x=0; x<width; x+=step) {
+                    for(let y=0; y<height; y+=step) {
+                        const H = getHessian(x, y); const e = getEigen(H);
+                        const s1 = Math.min(40, 5 / Math.sqrt(Math.abs(e.l1) + 0.01));
+                        const s2 = Math.min(40, 5 / Math.sqrt(Math.abs(e.l2) + 0.01));
+                        ctx.save(); ctx.translate(x, y); ctx.rotate(-e.theta);
+                        ctx.beginPath(); ctx.ellipse(0, 0, s1, s2, 0, 0, Math.PI*2);
+                        if (e.l1 > 0 && e.l2 > 0) ctx.strokeStyle = "rgba(0, 255, 0, 0.3)";
+                        else if (e.l1 < 0 && e.l2 < 0) ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+                        else ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
+                        ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+                    }
+                }
+            }
+
+            const showHist = document.getElementById('chk-history').checked;
+            for(let i=0; i<N; i++) {
+                let a = agents[i];
+                if(showHist && a.history.length > 1) {
+                    ctx.beginPath(); ctx.strokeStyle = COLORS[a.type]; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+                    ctx.moveTo(a.history[0].x, a.history[0].y);
+                    for(let p of a.history) ctx.lineTo(p.x, p.y);
+                    ctx.stroke(); ctx.globalAlpha = 1.0;
+                }
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + a.vx*2, a.y + a.vy*2);
+                ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+                ctx.beginPath(); ctx.arc(a.x, a.y, 5, 0, Math.PI*2); ctx.fillStyle = COLORS[a.type];
+                if(selectedAgent === i) { ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
+                else ctx.shadowBlur = 0;
+                ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
+
+        function initCharts() {
+            try {
+                if(typeof Chart === 'undefined') throw new Error("Chart.js not loaded");
+                const commonOpts = { responsive: true, animation: false, elements: { point: { radius: 0 } }, scales: { x: { display: false }, y: { display: true, grid: { color: '#333' } } }, plugins: { legend: { display: false } } };
+                sysChart = new Chart(document.getElementById('sys-chart'), { type: 'line', data: { labels: Array(100).fill(''), datasets: [ { label: 'Mean Energy', data: [], borderColor: '#ff00ff', borderWidth: 1 }, { label: 'Entropy', data: [], borderColor: '#00ffff', borderWidth: 1 } ] }, options: commonOpts });
+                agentChart = new Chart(document.getElementById('agent-chart'), { type: 'line', data: { labels: Array(100).fill(''), datasets: [{ label: 'V(X)', data: [], borderColor: '#ffff00', borderWidth: 1 }] }, options: commonOpts });
+            } catch(e) { logError("Chart Init Failed: " + e.message); }
+        }
+
+        function updateCharts() {
+            if(sysChart) { sysChart.data.datasets[0].data = sysHistory.meanE; sysChart.data.datasets[1].data = sysHistory.entropy; sysChart.update('none'); }
+            if(selectedAgent !== null && agentChart) { agentChart.data.datasets[0].data = agents[selectedAgent].energyLog; agentChart.update('none'); }
+        }
+
+        function loop() {
+            try {
+                update();
+                draw();
+                if(step % 5 === 0) updateCharts();
+                step++;
+                setTimeout(() => requestAnimationFrame(loop), delay);
+            } catch(e) { logError(e.message); }
+        }
+
+        document.getElementById('slider-n').addEventListener('input', e => { N = parseInt(e.target.value); document.getElementById('val-n').innerText = N; initAgents(); });
+        document.getElementById('sel-v').addEventListener('change', e => vType = e.target.value);
+        document.getElementById('sel-w').addEventListener('change', e => wType = e.target.value);
+        document.getElementById('slider-noise').addEventListener('input', e => { sigma = parseFloat(e.target.value); document.getElementById('val-sigma').innerText = sigma; });
+        document.getElementById('slider-dt').addEventListener('input', e => { dt = parseFloat(e.target.value); document.getElementById('val-dt').innerText = dt; });
+        document.getElementById('slider-speed').addEventListener('input', e => delay = parseInt(e.target.value));
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            let closest = -1, minD = 1000;
+            for(let i=0; i<N; i++) {
+                let d = Math.hypot(agents[i].x - mx, agents[i].y - my);
+                if(d < 30 && d < minD) { minD = d; closest = i; }
+            }
+            if(closest !== -1) { selectedAgent = closest; document.getElementById('agent-box').style.display = 'block'; document.getElementById('insp-id').innerText = closest; }
+            else { selectedAgent = null; document.getElementById('agent-box').style.display = 'none'; }
+        });
+
+        initAgents();
+        initCharts();
+        loop();
+    </script>
+</body>
+</html>

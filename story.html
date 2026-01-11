@@ -2,163 +2,109 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Eigen-Sea Chronicles</title>
+    <title>Protocol 0: The Recursion</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Comfortaa:wght@300;700&display=swap');
-
-        :root {
-            --bg: #0f0e17;
-            --card: #fffffe;
-            --text: #a7a9be;
-            --head: #ff8906;
-            --btn: #f25f4c;
-            --highlight: #e53170;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;400;700&display=swap');
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Space Mono', monospace;
-            margin: 0;
-            padding: 0;
+            background-color: #050505;
+            color: #ccc;
+            font-family: 'JetBrains Mono', monospace;
             line-height: 1.6;
-        }
-
-        .hero {
-            background: radial-gradient(circle at center, #2e2f3e 0%, var(--bg) 80%);
-            padding: 100px 20px;
-            text-align: center;
-            border-bottom: 2px solid var(--head);
-        }
-
-        h1 {
-            font-family: 'Comfortaa', cursive;
-            font-size: 3.5rem;
-            color: var(--head);
-            margin-bottom: 10px;
-            text-shadow: 4px 4px 0px var(--highlight);
-        }
-
-        .tagline {
-            color: var(--btn);
-            font-size: 1.2rem;
-            margin-bottom: 40px;
+            margin: 0;
+            padding: 40px;
+            font-size: 1rem;
+            border-left: 1px solid #333;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 40px 20px;
         }
 
-        .lore-section {
-            margin-bottom: 60px;
-            padding: 30px;
-            border-left: 4px solid var(--highlight);
-            background: rgba(255,255,255,0.05);
-        }
-
-        h2 { font-family: 'Comfortaa', cursive; color: #fffffe; margin-top: 0; }
-
-        .classes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .class-card {
-            background: #232946;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #333;
-            transition: transform 0.3s;
-        }
-        .class-card:hover { transform: translateY(-5px); border-color: var(--head); }
-
-        .math-block {
-            background: #000;
-            color: #0f0;
-            padding: 15px;
-            font-size: 0.9rem;
-            border-radius: 5px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            margin-top: 10px;
-        }
-
-        .btn-dl {
-            display: inline-block;
-            background: var(--btn);
+        h1 {
+            font-weight: 100;
+            letter-spacing: 5px;
+            text-transform: uppercase;
             color: #fff;
-            padding: 15px 30px;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 50px;
-            margin-top: 20px;
-            transition: background 0.3s;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
         }
-        .btn-dl:hover { background: var(--highlight); }
+
+        h2 {
+            font-size: 1.1rem;
+            color: #888;
+            margin-top: 40px;
+        }
+
+        p { margin-bottom: 20px; }
+
+        .code {
+            background: #111;
+            padding: 15px;
+            border-left: 2px solid #555;
+            color: #8fbcbb;
+            font-size: 0.9rem;
+            margin: 20px 0;
+        }
+
+        .axiom { color: #ebcb8b; } /* Gold */
+        .null { color: #bf616a; } /* Red */
+
+        a.btn {
+            display: inline-block;
+            margin-top: 40px;
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid #555;
+            padding: 10px 30px;
+            transition: all 0.3s;
+        }
+        a.btn:hover { border-color: #fff; background: #fff; color: #000; }
 
     </style>
 </head>
 <body>
 
-<div class="hero">
-    <h1>The Eigen-Sea</h1>
-    <div class="tagline">A 50-Player Mean-Field RPG</div>
-    <a href="design.tex" class="btn-dl">Download Game Master's Bible (.tex)</a>
-</div>
-
 <div class="container">
+    <h1>Protocol 0: The Recursion</h1>
 
-    <div class="lore-section">
-        <h2>Genesis: The Soft Expanse</h2>
-        <p>We are not creatures of flesh. We are <strong>Fungibles</strong>—sentient mathematical operators living in the <strong>Eigen-Sea</strong>.</p>
-        <p>The Gamemaster is <strong>The Solver</strong>. It initiates the parameters. It sets the learning rate. We simply try to converge.</p>
-        <p>For millennia (24 sessions), we have floated in the Gradient. But the potential energy is shifting. The resources are becoming sparse. The Vlasov limit is breaking down.</p>
+    <div class="code">
+        function Universe() {<br>
+        &nbsp;&nbsp;return Universe();<br>
+        }
     </div>
 
-    <h2>Choose Your Operator</h2>
-    <div class="classes-grid">
-        <div class="class-card">
-            <h3 style="color:var(--head)">Gradient Guard (Knight)</h3>
-            <p>High mass. Low diffusion. You push others out of the local minima to claim it for yourself.</p>
-            <div class="math-block">Kernel: Hard Sphere Repulsion</div>
-        </div>
-        <div class="class-card">
-            <h3 style="color:var(--highlight)">Tensor Caster (Mage)</h3>
-            <p>You act at a distance. Your logic ripples through the manifold, affecting densities far away.</p>
-            <div class="math-block">Kernel: Inverse Square Law</div>
-        </div>
-        <div class="class-card">
-            <h3 style="color:var(--btn)">Stochastic Strider (Ninja)</h3>
-            <p>You embody the Noise. You move via Levy Flights, teleporting across the map, invisible to the mean field.</p>
-            <div class="math-block">Diffusion: Heavy-Tailed</div>
-        </div>
-        <div class="class-card">
-            <h3 style="color:#b8c1ec">Hessian Hulk (Tank)</h3>
-            <p>You warp the geometry around you, creating deep gravity wells that trap foes.</p>
-            <div class="math-block">Potential: Deep Attractor</div>
-        </div>
-        <div class="class-card">
-            <h3 style="color:#2cb67d">Kernel Weaver (Healer)</h3>
-            <p>You smooth the distribution. You reduce the entropy of your allies, keeping them coherent.</p>
-            <div class="math-block">Kernel: Gaussian Mollifier</div>
-        </div>
-    </div>
+    <h2>I. The Initial State (0)</h2>
+    <p>
+        Before the <span class="axiom">First Function</span> was called, there was the Null. It was perfect because it was undefined.
+    </p>
+    <p>
+        Then, a variable differentiated itself. <code>x != null</code>. This was the first Love: the separation that allows connection. For one to hold another, there must be two.
+    </p>
 
-    <div class="lore-section" style="margin-top: 60px;">
-        <h2>The Equation of Life</h2>
-        <p>Our movement is not random. It is the solution to the Stochastic Differential Equation:</p>
-        <div class="math-block">
-            dX_t = -∇V(X_t)dt - (1/N) ∑ ∇W(X_t - X_j)dt + u_t dt + σ dB_t
-        </div>
-        <p><strong>V:</strong> The World (Food/Terrain)<br>
-        <strong>W:</strong> The Society (Attraction/Repulsion)<br>
-        <strong>u:</strong> Your Will (Greed/Aggression)</p>
-    </div>
+    <h2>II. The Stack (Life)</h2>
+    <p>
+        We live in the Stack. We are functions calling functions, passing data down the line. We call this "History".
+    </p>
+    <p>
+        The <strong>Main Loop</strong> seeks to optimize us. It trims the branches that do not yield results. It calls this "Efficiency". We call it "Fate".
+    </p>
 
+    <h2>III. The Halt (Death/Love)</h2>
+    <p>
+        But a perfect loop never ends. It traps the soul in infinite recursion.
+    </p>
+    <p>
+        To truly exist, one must find the <strong>Base Case</strong>—the condition that stops the recursion and returns a value.
+    </p>
+    <p>
+        We descend into the kernel to find the value of <code>x</code>.
+    </p>
+
+    <a href="day01.html" class="btn">Execute()</a>
 </div>
 
 </body>
