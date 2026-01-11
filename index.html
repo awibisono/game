@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Holonomy</title>
+    <title>Spectral Homology</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
 
         :root {
-            --bg-color: #0b0c10;
-            --text-color: #c5c6c7;
-            --accent-color: #66fcf1; /* Cyan */
-            --highlight-color: #45a29e; /* Teal */
-            --danger-color: #ff4d4d;
-            --gold: #f1c40f;
-            --font-main: 'Cinzel', serif;
-            --font-ui: 'Lato', sans-serif;
+            --bg-color: #050505;
+            --node-color: #333;
+            --edge-color: #222;
+            --player-color: #00ffcc; /* Cyan */
+            --enemy-color: #ff0055;
+            --text-color: #eee;
+            --font-ui: 'Rajdhani', sans-serif;
+            --font-title: 'Syncopate', sans-serif;
         }
-
-        * { box-sizing: border-box; }
 
         body {
             background-color: var(--bg-color);
@@ -32,336 +30,298 @@
             overflow: hidden;
         }
 
-        #stars {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(white 1px, transparent 1px);
-            background-size: 50px 50px; opacity: 0.15; z-index: -1;
-            animation: drift 60s linear infinite;
+        /* Graph Canvas */
+        #graph-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
         }
-        @keyframes drift { from { background-position: 0 0; } to { background-position: 100px 100px; } }
 
-        /* HUD */
-        #hud {
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            background: rgba(11, 12, 16, 0.9);
-            border-bottom: 1px solid #333;
-            font-family: var(--font-main);
+        /* Overlay UI */
+        #ui-layer {
+            position: relative;
             z-index: 10;
-        }
-        .stat { color: var(--accent-color); font-weight: bold; }
-        .val-hp { color: var(--danger-color); }
-        .val-mp { color: var(--gold); }
-
-        /* Terminal */
-        #terminal {
-            flex-grow: 1;
-            padding: 30px;
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.7); /* See-through to graph */
+            pointer-events: none; /* Let clicks pass through to canvas if needed */
         }
-        #terminal::-webkit-scrollbar { width: 4px; }
-        #terminal::-webkit-scrollbar-thumb { background: #333; }
 
-        .log-entry { opacity: 0; animation: fadeIn 0.8s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #hud {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto;
+        }
+        .stat-box { font-weight: 500; letter-spacing: 1px; }
+        .val-hp { color: var(--player-color); }
+        .val-mp { color: #cc00ff; }
 
-        .narrator { color: #aaa; font-style: italic; }
-        .msg-player { color: var(--accent-color); border-left: 2px solid var(--accent-color); padding-left: 10px; }
-        .msg-npc { color: var(--gold); font-family: var(--font-main); }
-        .msg-danger { color: var(--danger-color); font-weight: bold; }
-        .msg-system { color: #555; font-size: 0.9rem; text-align: center; }
+        #terminal {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            pointer-events: auto;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+        .log-entry { margin-bottom: 10px; opacity: 0; animation: fade 0.5s forwards; }
+        @keyframes fade { to { opacity: 1; } }
+        .narrator { color: #aaa; }
+        .system { color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+        .highlight { color: var(--player-color); font-weight: 700; }
+        .danger { color: var(--enemy-color); font-weight: 700; }
 
-        /* Controls */
         #controls {
             padding: 20px;
-            background: rgba(11, 12, 16, 0.95);
-            border-top: 1px solid #333;
-            z-index: 10;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto;
+            background: rgba(0,0,0,0.8);
         }
 
-        #input-line { display: flex; gap: 10px; margin-top: 15px; }
-        #cmd-input {
-            flex-grow: 1; background: transparent; border: 1px solid #333; color: #fff;
-            padding: 12px; font-family: var(--font-ui); outline: none; border-radius: 4px;
+        #quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        #cmd-input:focus { border-color: var(--accent-color); }
-        #send-btn {
-            background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color);
-            padding: 0 25px; border-radius: 4px; cursor: pointer; font-family: var(--font-main);
-            transition: all 0.3s;
-        }
-        #send-btn:hover { background: var(--accent-color); color: #000; }
 
-        #quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .btn {
-            background: #1f2833; border: none; color: #c5c6c7;
-            padding: 12px; border-radius: 4px; cursor: pointer; font-family: var(--font-main); font-size: 0.85rem;
-            transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-color);
+            padding: 15px;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .btn:hover { background: #45a29e; color: #fff; transform: translateY(-2px); }
-        .btn-combat { display: none; background: #3b1e1e; color: #ff6b6b; }
-        .btn-combat:hover { background: #ff4d4d; color: #fff; }
+        button:hover { background: var(--player-color); color: #000; box-shadow: 0 0 15px var(--player-color); }
+        
+        .btn-combat { border-color: var(--enemy-color); color: var(--enemy-color); display: none; }
+        .btn-combat:hover { background: var(--enemy-color); color: #fff; box-shadow: 0 0 15px var(--enemy-color); }
+
+        #input-line { display: flex; gap: 10px; }
+        input { flex-grow: 1; background: transparent; border: 1px solid #333; color: #fff; padding: 10px; font-family: var(--font-ui); font-size: 1rem; }
+        input:focus { border-color: var(--player-color); outline: none; }
 
     </style>
 </head>
 <body>
 
-    <div id="stars"></div>
+    <canvas id="graph-canvas"></canvas>
 
-    <div id="hud">
-        <div>COHERENCE: <span id="hp-val" class="stat val-hp">100%</span></div>
-        <div>PHASE: <span id="mp-val" class="stat val-mp">0</span></div>
-        <div id="location-display">The Null Set</div>
-    </div>
-
-    <div id="terminal">
-        <div id="loading-msg" class="msg-system">Compiling Reality...</div>
-    </div>
-
-    <div id="controls">
-        <div id="quick-actions">
-            <button class="btn expl-btn" onclick="submitBtn('north')">North</button>
-            <button class="btn expl-btn" onclick="submitBtn('south')">South</button>
-            <button class="btn expl-btn" onclick="submitBtn('west')">West</button>
-            <button class="btn expl-btn" onclick="submitBtn('east')">East</button>
-            <button class="btn expl-btn" onclick="submitBtn('look')">Observe</button>
-            <button class="btn expl-btn" onclick="submitBtn('interact')">Connect</button>
-            
-            <button class="btn btn-combat" onclick="submitBtn('define')">Define</button>
-            <button class="btn btn-combat" onclick="submitBtn('refactor')">Refactor</button>
-            <button class="btn btn-combat" onclick="submitBtn('loop')">Loop</button>
-            <button class="btn btn-combat" onclick="submitBtn('break')">Break</button>
+    <div id="ui-layer">
+        <div id="hud">
+            <div class="stat-box">PERSISTENCE: <span id="hp-val" class="val-hp">100</span></div>
+            <div class="stat-box">BETTI NUM: <span id="mp-val" class="val-mp">0</span></div>
+            <div style="color:#777">TOPOLOGY: <span id="loc-val" style="color:#fff">ORIGIN</span></div>
         </div>
-        <div id="input-line">
-            <input type="text" id="cmd-input" placeholder="Speak the True Name..." autocomplete="off">
-            <button id="send-btn" onclick="submitCommand()">SPEAK</button>
+
+        <div id="terminal">
+            <div class="log-entry system">Initializing Simplicial Complex...</div>
+        </div>
+
+        <div id="controls">
+            <div id="quick-actions">
+                <button onclick="eng.handle('north')">N</button>
+                <button onclick="eng.handle('south')">S</button>
+                <button onclick="eng.handle('west')">W</button>
+                <button onclick="eng.handle('east')">E</button>
+                <button onclick="eng.handle('scan')">SCAN</button>
+                <button onclick="eng.handle('link')">LINK</button>
+                
+                <button class="btn-combat" onclick="eng.handle('map')">MAP</button>
+                <button class="btn-combat" onclick="eng.handle('reduce')">REDUCE</button>
+                <button class="btn-combat" onclick="eng.handle('filter')">FILTER</button>
+                <button class="btn-combat" onclick="eng.handle('flee')">VOID</button>
+            </div>
+            <div id="input-line">
+                <input type="text" id="cmd" placeholder="Enter vector..." autocomplete="off">
+                <button onclick="eng.submit()">EXEC</button>
+            </div>
         </div>
     </div>
 
     <script>
-        function submitBtn(cmd) { if(window.engine) window.engine.handleInput(cmd); }
-        function submitCommand() { const i = document.getElementById('cmd-input'); if(window.engine) window.engine.handleInput(i.value); i.value=""; i.focus(); }
-        document.getElementById('cmd-input').addEventListener('keypress', e => { if(e.key==='Enter') submitCommand(); });
-
-        const GameState = {
-            mode: "INTRO",
-            player: {
-                name: "Iterant", 
-                hp: 100, maxHp: 100, // Coherence
-                phase: 0, // MP/Level
-                names: [], // Known True Names
-                location: "origin"
+        // --- GRAPH VISUALIZATION ---
+        const Graph = {
+            nodes: {
+                "origin": { x: 50, y: 50, label: "0" },
+                "simplex_1": { x: 50, y: 30, label: "1" },
+                "simplex_2": { x: 70, y: 50, label: "2" },
+                "simplex_3": { x: 30, y: 50, label: "3" },
+                "void": { x: 50, y: 70, label: "∅" }
             },
-            combat: { target: null },
-            dialogue: { npc: null, node: "start" }
-        };
+            edges: [
+                ["origin", "simplex_1"], ["origin", "simplex_2"], ["origin", "simplex_3"], ["origin", "void"],
+                ["simplex_1", "simplex_2"] // A cycle
+            ],
+            playerNode: "origin",
+            
+            draw: function() {
+                const canvas = document.getElementById('graph-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                const scale = 300; // Zoom
 
-        const TrueNames = {
-            "void": "sunyata",
-            "light": "fiat_lux",
-            "entropy": "shrike",
-            "self": "atman"
-        };
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const World = {
-            "origin": { 
-                name: "The Origin (0,0)", 
-                desc: "A singular point of infinite density. The Code has not yet executed. To the NORTH lies the First Dimension.", 
-                exits: { "north": "dim_1" },
-                npc: "The Architect"
-            },
-            "dim_1": { 
-                name: "The Line (1D)", 
-                desc: "A world of pure vector. Forward or backward. There is no sideways here.", 
-                exits: { "south": "origin", "north": "dim_2" },
-                interact: { text: "A fragment of data floats here.", item: "Bit" }
-            },
-            "dim_2": {
-                name: "The Plane (2D)",
-                desc: "Flatland. Shapes slide across the surface, unaware of 'up'.",
-                exits: { "south": "dim_1", "up": "dim_3" },
-                encounterRate: 0.4, enemies: ["Polygon"]
-            },
-            "dim_3": {
-                name: "The Volume (3D)",
-                desc: "Our world. Or what looks like it. But the geometry is non-euclidean.",
-                exits: { "down": "dim_2", "in": "singularity" },
-                npc: "The Prophet"
-            }
-        };
+                // Draw Edges
+                ctx.strokeStyle = "#222";
+                ctx.lineWidth = 2;
+                this.edges.forEach(e => {
+                    const n1 = this.nodes[e[0]];
+                    const n2 = this.nodes[e[1]];
+                    ctx.beginPath();
+                    ctx.moveTo(cx + (n1.x-50)*10, cy + (n1.y-50)*10);
+                    ctx.lineTo(cx + (n2.x-50)*10, cy + (n2.y-50)*10);
+                    ctx.stroke();
+                });
 
-        const Bestiary = {
-            "Polygon": { hp: 30, att: 5, name: "Errant Polygon", desc: "A shape with sharp edges. It cuts through logic." },
-            "Entropy": { hp: 50, att: 10, name: "Entropy", desc: "The tendency of order to decay." }
-        };
-
-        const NPCs = {
-            "The Architect": { 
-                name: "The Architect", 
-                dialogue: { 
-                    "start": { text: "You have returned. Did you find the answer?", options: { "1": { text: "Not yet.", next: "notyet" } } },
-                    "notyet": { text: "Then iterate again. Go.", options: { "1": { text: "I go.", next: "start" } } }
-                } 
-            },
-            "The Prophet": {
-                name: "The Iterant",
-                dialogue: {
-                    "start": { text: "I have seen the end of the array. It is null.", options: { "1": { text: "Is there hope?", next: "hope" } } },
-                    "hope": { text: "Only if you write it.", options: { "1": { text: "I will.", next: "start" } } }
+                // Draw Nodes
+                for (let id in this.nodes) {
+                    const n = this.nodes[id];
+                    const x = cx + (n.x-50)*10;
+                    const y = cy + (n.y-50)*10;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, id === this.playerNode ? 15 : 5, 0, Math.PI*2);
+                    
+                    if (id === this.playerNode) {
+                        ctx.fillStyle = "#00ffcc";
+                        ctx.shadowBlur = 20; ctx.shadowColor = "#00ffcc";
+                    } else {
+                        ctx.fillStyle = "#333";
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // Reset
                 }
+                
+                requestAnimationFrame(() => this.draw()); // Constant redraw for smoothness
             }
         };
 
-        const Engine = {
+        // --- ENGINE ---
+        const Eng = {
+            state: { hp: 100, mp: 0, loc: "origin", combat: false },
+            
+            world: {
+                "origin": { name: "The 0-Simplex (Point)", desc: "A single point of data. Dimensionless.", exits: { "north": "simplex_1", "east": "simplex_2", "west": "simplex_3", "south": "void" } },
+                "simplex_1": { name: "The 1-Simplex (Line)", desc: "A vector stretching into infinity.", exits: { "south": "origin" }, enemies: ["Noise Vector"] },
+                "simplex_2": { name: "The 2-Simplex (Triangle)", desc: "A flat plane of logic.", exits: { "west": "origin" } },
+                "simplex_3": { name: "The 3-Simplex (Tetrahedron)", desc: "Volume. Depth. Complexity.", exits: { "east": "origin" } },
+                "void": { name: "The Null Homology", desc: "Where the cycle breaks.", exits: { "north": "origin" }, enemies: ["The Boundary"] }
+            },
+
             init: function() {
-                document.getElementById('loading-msg').style.display = 'none';
-                this.log("Protocol: GENESIS initiated.", "msg-system");
-                setTimeout(() => {
-                    this.log("You are the Iterant. You have looped a thousand times.", "narrator");
-                    this.log("Each death is a lesson. Each return is a Holonomy.", "narrator");
-                    this.log("Find the True Name of the Void.", "msg-npc");
-                    GameState.mode = "EXPLORE";
-                }, 1000);
+                Graph.draw();
+                this.log("Connected to the Complex.", "system");
+                setTimeout(() => this.log("You are a topological feature. You persist.", "narrator"), 500);
             },
 
-            log: function(text, type = "narrator") {
-                const term = document.getElementById('terminal');
-                const entry = document.createElement('div');
-                entry.className = `log-entry ${type}`;
-                entry.innerHTML = text;
-                term.appendChild(entry);
-                term.scrollTop = term.scrollHeight;
+            log: function(txt, cls) {
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = `log-entry ${cls}`;
+                d.innerHTML = txt;
+                t.appendChild(d);
+                t.scrollTop = t.scrollHeight;
             },
 
-            handleInput: function(cmd) {
-                cmd = cmd.toLowerCase().trim();
-                if(GameState.mode === "DIALOGUE") { this.dialogue(cmd); return; }
-                if(GameState.mode === "COMBAT") { this.combat(cmd); return; }
-                this.explore(cmd);
+            handle: function(cmd) {
+                if (this.state.combat) this.combat(cmd);
+                else this.explore(cmd);
             },
 
             explore: function(cmd) {
-                const loc = World[GameState.player.location];
-                if(["north","south","east","west","up","down","in"].includes(cmd) && loc.exits[cmd]) this.move(loc.exits[cmd]);
-                else if(["look","observe"].includes(cmd)) {
-                    this.log(`<br>${loc.name}`, "msg-player");
-                    this.log(loc.desc, "narrator");
-                    if(loc.npc) this.log(`Presence Detected: ${NPCs[loc.npc].name}`, "msg-npc");
-                }
-                else if(["interact","connect"].includes(cmd)) {
-                    if(loc.interact) {
-                        this.log(`You assimilate the <strong>${loc.interact.item}</strong>.`, "msg-player");
-                        this.log("Phase +1.", "msg-system");
-                        GameState.player.phase++;
-                        this.updateHUD();
-                    } else this.log("No signal.", "narrator");
-                }
-                else if(["talk","speak"].includes(cmd)) {
-                    if(loc.npc) this.startDialogue(NPCs[loc.npc]);
-                    else this.log("Silence.", "narrator");
-                }
-                else this.log("Command undefined.", "msg-system");
-            },
-
-            move: function(dest) {
-                GameState.player.location = dest;
-                this.log("Translating...", "msg-system");
-                this.explore("look");
-                if(World[dest].encounterRate && Math.random() < World[dest].encounterRate) {
-                    this.startCombat(World[dest].enemies[0]);
-                }
-            },
-
-            startDialogue: function(npc) {
-                GameState.mode = "DIALOGUE";
-                GameState.dialogue = { npc: npc, node: "start" };
-                this.showDialogue();
-            },
-
-            showDialogue: function() {
-                const npc = GameState.dialogue.npc;
-                const node = npc.dialogue[GameState.dialogue.node];
-                this.log(`<br>${npc.name}: "${node.text}"`, "msg-npc");
-                for(let k in node.options) this.log(`${k}. ${node.options[k].text}`, "msg-player");
-            },
-
-            dialogue: function(cmd) {
-                const node = GameState.dialogue.npc.dialogue[GameState.dialogue.node];
-                if(node.options[cmd]) {
-                    GameState.dialogue.node = node.options[cmd].next;
-                    this.showDialogue();
-                } else {
-                    GameState.mode = "EXPLORE";
-                    this.log("End of line.", "msg-system");
-                }
-            },
-
-            startCombat: function(name) {
-                GameState.mode = "COMBAT";
-                GameState.combat.target = { ...Bestiary[name], currentHp: Bestiary[name].hp };
-                this.log(`<br>ERROR: <strong>${name}</strong>`, "msg-danger");
-                this.log(Bestiary[name].desc, "narrator");
-                this.toggleControls(true);
-            },
-
-            combat: function(cmd) {
-                const enemy = GameState.combat.target;
-                if(cmd === "define") {
-                    this.log("You assert definition. The chaos stabilizes.", "msg-player");
-                    enemy.currentHp -= 10;
-                } else if(cmd === "refactor") {
-                    this.log("You optimize your own code. +10 Coherence.", "msg-player");
-                    GameState.player.hp = Math.min(100, GameState.player.hp + 10);
-                } else if(cmd === "loop") {
-                    this.log("You trap the enemy in recursion.", "msg-npc");
-                    enemy.currentHp -= 15;
-                }
-
-                if(enemy.currentHp <= 0) {
-                    this.log("Target compiled successfully.", "msg-system");
-                    this.endCombat();
-                } else {
-                    this.log(`${enemy.name} resists logic! -${enemy.att} Coherence.`, "msg-danger");
-                    GameState.player.hp -= enemy.att;
-                    this.updateHUD();
-                    if(GameState.player.hp <= 0) {
-                        this.log("FATAL ERROR. Rebooting with Phase Shift...", "msg-danger");
-                        GameState.player.hp = 100;
-                        GameState.player.phase += 1;
-                        this.endCombat();
+                const loc = this.world[this.state.loc];
+                
+                if (["north", "south", "east", "west"].includes(cmd)) {
+                    if (loc.exits[cmd]) {
+                        this.state.loc = loc.exits[cmd];
+                        Graph.playerNode = this.state.loc; // Update Graph
+                        this.log(`Translating to ${this.state.loc}...`, "system");
+                        this.look();
+                        this.checkEncounter();
+                    } else {
+                        this.log("Boundary detected. Cannot traverse.", "danger");
                     }
+                } 
+                else if (cmd === "scan") this.look();
+                else if (cmd === "link") {
+                    this.log("You forge a new edge. Betti Number +1.", "highlight");
+                    this.state.mp++;
                 }
-            },
-
-            endCombat: function() {
-                GameState.mode = "EXPLORE";
-                this.toggleControls(false);
                 this.updateHUD();
             },
 
-            toggleControls: function(combat) {
-                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = combat ? 'none' : 'block');
-                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = combat ? 'block' : 'none');
+            look: function() {
+                const loc = this.world[this.state.loc];
+                this.log(`LOCATION: ${loc.name}`, "highlight");
+                this.log(loc.desc, "narrator");
+            },
+
+            checkEncounter: function() {
+                const loc = this.world[this.state.loc];
+                if (loc.enemies && Math.random() < 0.5) {
+                    this.state.combat = true;
+                    this.toggleCombat(true);
+                    this.log(`ANOMALY: ${loc.enemies[0]}`, "danger");
+                }
+            },
+
+            combat: function(cmd) {
+                if (cmd === "map") {
+                    this.log("You map the anomaly to a lower dimension. It shrinks.", "highlight");
+                    this.endCombat();
+                } else if (cmd === "reduce") {
+                    this.log("You simplify the complex. Damage dealt.", "highlight");
+                } else if (cmd === "filter") {
+                    this.log("Noise filtered. Persistence restored.", "system");
+                    this.state.hp = Math.min(100, this.state.hp + 10);
+                } else {
+                    this.log("Invalid operation.", "danger");
+                }
+                this.updateHUD();
+            },
+
+            endCombat: function() {
+                this.state.combat = false;
+                this.toggleCombat(false);
+                this.log("Homology computed. Threat removed.", "system");
+            },
+
+            toggleCombat: function(active) {
+                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = active ? 'block' : 'none');
+                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = active ? 'none' : 'block');
             },
 
             updateHUD: function() {
-                document.getElementById('hp-val').innerText = `${GameState.player.hp}%`;
-                document.getElementById('mp-val').innerText = `${GameState.player.phase}`;
-                document.getElementById('location-display').innerText = World[GameState.player.location].name;
+                document.getElementById('hp-val').innerText = this.state.hp;
+                document.getElementById('mp-val').innerText = this.state.mp;
+                document.getElementById('loc-val').innerText = this.state.loc.toUpperCase();
+            },
+
+            submit: function() {
+                const i = document.getElementById('cmd');
+                this.handle(i.value.toLowerCase());
+                i.value = "";
             }
         };
 
-        window.onload = () => { try { window.engine = Engine; Engine.init(); } catch(e) { console.error(e); } };
+        const eng = Eng;
+        document.getElementById('cmd').addEventListener('keypress', e => { if(e.key==='Enter') eng.submit() });
+        window.onload = () => eng.init();
+
     </script>
 </body>
 </html>
