@@ -116,6 +116,7 @@
         
         <div class="control-group">
             <label><input type="checkbox" id="chk-field"> Show Gradient Field (∇V)</label>
+            <label><input type="checkbox" id="chk-hessian"> Show Hessian (Curvature)</label>
             <label><input type="checkbox" id="chk-contour" checked> Show Potential Heatmap</label>
             <label><input type="checkbox" id="chk-history"> Show Trajectories</label>
         </div>
@@ -217,17 +218,37 @@
         }
 
         function getGradV(x, y) {
-            const h = 1.0; // Finite difference step
+            const h = 1.0; 
             const v0 = getV(x, y);
             const vx = getV(x + h, y);
             const vy = getV(x, y + h);
             return { x: (vx - v0)/h, y: (vy - v0)/h };
         }
 
+        function getHessian(x, y) {
+            const h = 1.0;
+            const f = getV;
+            const fxx = (f(x+h, y) - 2*f(x, y) + f(x-h, y)) / (h*h);
+            const fyy = (f(x, y+h) - 2*f(x, y) + f(x, y-h)) / (h*h);
+            const fxy = (f(x+h, y+h) - f(x+h, y-h) - f(x-h, y+h) + f(x-h, y-h)) / (4*h*h);
+            return { xx: fxx, yy: fyy, xy: fxy };
+        }
+
+        function getEigen(H) {
+            const a = H.xx, b = H.xy, d = H.yy;
+            const trace = a + d;
+            const det = a*d - b*b;
+            const delta = Math.sqrt(Math.max(0, trace*trace - 4*det));
+            const l1 = (trace + delta) / 2;
+            const l2 = (trace - delta) / 2;
+            const theta = (b !== 0) ? Math.atan2(l1 - a, b) : (l1 > l2 ? 0 : Math.PI/2);
+            return { l1, l2, theta };
+        }
+
         function getGradW(rx, ry) {
             const r2 = rx*rx + ry*ry;
             const r = Math.sqrt(r2);
-            if (r < 5) return {x:0, y:0}; // Soft core
+            if (r < 5) return {x:0, y:0}; 
 
             let mag = 0;
             if (wType === 'coulomb') mag = 2000 / (r2 * r); 
@@ -274,7 +295,7 @@
                 if(a.y < 0 || a.y > height) { a.y = Math.max(0, Math.min(height, a.y)); a.vy *= -1; }
 
                 // History
-                if(time % 1 < dt*1.5) { // Roughly every integer second
+                if(time % 1 < dt*1.5) { 
                      a.history.push({x: a.x, y: a.y});
                      if(a.history.length > 50) a.history.shift();
                 }
@@ -322,12 +343,12 @@
                     let mag = Math.hypot(g.x, g.y);
                     if(mag < 0.01) continue;
                     
-                    let dx = (g.x / mag) * 15; // Normalize for display
+                    let dx = (g.x / mag) * 15; 
                     let dy = (g.y / mag) * 15;
                     
                     ctx.beginPath();
                     ctx.moveTo(x, y);
-                    ctx.lineTo(x - dx, y - dy); // Draw negative gradient (flow direction)
+                    ctx.lineTo(x - dx, y - dy); 
                     ctx.stroke();
                     
                     ctx.beginPath();
@@ -338,20 +359,46 @@
             }
         }
 
+        function drawHessianField() {
+            if(!document.getElementById('chk-hessian').checked) return;
+            const step = 60;
+            
+            for(let x=0; x<width; x+=step) {
+                for(let y=0; y<height; y+=step) {
+                    const H = getHessian(x, y);
+                    const e = getEigen(H);
+                    
+                    const s1 = Math.min(40, 5 / Math.sqrt(Math.abs(e.l1) + 0.01));
+                    const s2 = Math.min(40, 5 / Math.sqrt(Math.abs(e.l2) + 0.01));
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(-e.theta); 
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, s1, s2, 0, 0, Math.PI*2);
+                    
+                    if (e.l1 > 0 && e.l2 > 0) ctx.strokeStyle = "rgba(0, 255, 0, 0.3)"; 
+                    else if (e.l1 < 0 && e.l2 < 0) ctx.strokeStyle = "rgba(255, 0, 0, 0.3)"; 
+                    else ctx.strokeStyle = "rgba(255, 255, 0, 0.3)"; 
+                    
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
         function drawContour() {
             if(!document.getElementById('chk-contour').checked) {
                 ctx.fillStyle = '#0f0e17';
                 ctx.fillRect(0,0,width,height);
                 return;
             }
-            
-            // Generate Heatmap
-            const res = 10; // Pixel size
+            const res = 10;
             for(let x=0; x<width; x+=res) {
                 for(let y=0; y<height; y+=res) {
                     let v = getV(x + res/2, y + res/2);
-                    // Color mapping: Purple (low) -> Blue -> Teal -> Green (High)
-                    let t = Math.min(1, v / 50); // Normalize roughly
+                    let t = Math.min(1, v / 50); 
                     let r = Math.floor(20 + t * 40);
                     let g = Math.floor(10 + t * 80);
                     let b = Math.floor(40 + t * 60);
@@ -364,6 +411,7 @@
         function draw() {
             drawContour();
             drawVectorField();
+            drawHessianField();
 
             const showHist = document.getElementById('chk-history').checked;
 
@@ -381,6 +429,14 @@
                     ctx.stroke();
                     ctx.globalAlpha = 1.0;
                 }
+
+                // Velocity
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(a.x + a.vx * 2, a.y + a.vy * 2); 
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+                ctx.lineWidth = 1;
+                ctx.stroke();
 
                 // Agent
                 ctx.beginPath();
@@ -408,7 +464,6 @@
                 plugins: { legend: { display: false } }
             };
 
-            // Sys Chart
             sysChart = new Chart(document.getElementById('sys-chart'), {
                 type: 'line',
                 data: { 
@@ -421,7 +476,6 @@
                 options: commonOpts
             });
 
-            // Agent Chart
             agentChart = new Chart(document.getElementById('agent-chart'), {
                 type: 'line',
                 data: { 
