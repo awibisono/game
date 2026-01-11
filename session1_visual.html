@@ -136,12 +136,16 @@
         // --- HASH VERIFICATION (SHA-256) ---
         // Hash for "1303": e206a54e97690cce50cc872dd70ee8966ef85f9c3e625d970543568e495691
         async function verifyPasscode(input) {
+            console.log("Checking passcode:", input); // DEBUG
             const encoder = new TextEncoder();
             const data = encoder.encode(input);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            console.log("Hash generated:", hashHex); // DEBUG
+            
             if (hashHex === "e206a54e97690cce50cc872dd70ee8966ef85f9c3e625d970543568e495691") {
+                console.log("Access Granted");
                 document.getElementById('god-panel').style.display = 'block';
                 document.getElementById('passcode-modal').style.display = 'none';
             }
