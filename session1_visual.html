@@ -3,29 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <title>Session 1: The Initialization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { margin: 0; background: #0f0e17; color: #a7a9be; font-family: monospace; overflow: hidden; }
-        #canvas { display: block; }
+        #canvas { display: block; cursor: crosshair; }
+        
         #ui {
             position: absolute; top: 20px; left: 20px;
             background: rgba(20, 20, 30, 0.8);
             padding: 20px; border-radius: 8px; border: 1px solid #ff8906;
             max-width: 300px;
             pointer-events: none;
+            z-index: 10;
         }
         h1 { margin: 0 0 10px 0; color: #ff8906; font-size: 1.2rem; }
         .math { font-style: italic; color: #f25f4c; margin-bottom: 10px; }
-        .stat { font-size: 0.8rem; }
+        
+        /* God View Elements */
+        #god-panel {
+            display: none;
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(10, 10, 15, 0.95);
+            padding: 20px; border: 2px solid #00ffff;
+            border-radius: 8px; width: 300px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        .god-header { color: #00ffff; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .owl-icon { font-size: 24px; text-shadow: 0 0 10px #00ffff; }
+        
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8rem; color: #ccc; }
+        input[type=range] { width: 100%; }
+        
+        #inspector {
+            display: none;
+            position: absolute; bottom: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #fff; padding: 15px;
+            width: 400px; height: 200px;
+        }
+        
+        #passcode-modal {
+            position: absolute; bottom: 10px; right: 10px;
+            opacity: 0.3; transition: opacity 0.3s;
+        }
+        #passcode-modal:hover { opacity: 1; }
+        #passcode-input { background: #333; border: 1px solid #555; color: #fff; padding: 5px; }
+
     </style>
 </head>
 <body>
     <div id="ui">
         <h1>Session 1: Initialization</h1>
         <div class="math">dX = -∇V(x)dt - ∇W*μ(x)dt + σdB</div>
-        <p>The system is cooling. 50 Agents are seeking the global minimum while repelling each other (Coulomb interaction).</p>
+        <p>The system is cooling. Agents seek the minimum.</p>
         <div class="stat">Time Step: <span id="step">0</span></div>
-        <div class="stat">System Energy: <span id="energy">0</span></div>
+        <div class="stat">Energy: <span id="energy">0</span></div>
     </div>
+
+    <!-- God View Panel -->
+    <div id="god-panel">
+        <div class="god-header"><span class="owl-icon">🦉</span> THE SOLVER VIEW</div>
+        
+        <div class="control-group">
+            <label>Gravity (V Potential)</label>
+            <input type="range" id="slider-gravity" min="0" max="0.2" step="0.01" value="0.05">
+        </div>
+        <div class="control-group">
+            <label>Repulsion (W Kernel)</label>
+            <input type="range" id="slider-repulsion" min="0" max="100" step="5" value="20">
+        </div>
+        <div class="control-group">
+            <label>Noise (Sigma)</label>
+            <input type="range" id="slider-noise" min="0" max="2" step="0.1" value="0.5">
+        </div>
+        
+        <div class="control-group">
+            <label><input type="checkbox" id="chk-field"> Show Vector Field</label>
+            <label><input type="checkbox" id="chk-history"> Show Trajectories</label>
+        </div>
+    </div>
+
+    <!-- Inspector Panel -->
+    <div id="inspector">
+        <div style="color:#fff; border-bottom:1px solid #555; margin-bottom:5px;">AGENT <span id="insp-id">#</span> Analysis</div>
+        <canvas id="chart-canvas"></canvas>
+    </div>
+
+    <div id="passcode-modal">
+        <input type="password" id="passcode-input" placeholder="GM Access">
+    </div>
+
     <canvas id="canvas"></canvas>
 
     <script>
@@ -36,23 +104,30 @@
         // --- CONFIGURATION ---
         const N = 50;
         const DT = 0.1;
-        const SIGMA = 0.5; // Noise
-        const GRAVITY = 0.05; // Harmonic V(x)
-        const REPULSION = 20.0; // Coulomb W(x)
+        let params = {
+            sigma: 0.5,
+            gravity: 0.05,
+            repulsion: 20.0,
+            showField: false,
+            showHistory: false
+        };
 
-        // --- CLASSES ---
         const CLASSES = [
-            { name: "Guard", color: "#ff8906", mass: 2.0 }, // Heavy, Orange
-            { name: "Mage", color: "#e53170", mass: 0.8 },  // Light, Pink
-            { name: "Ninja", color: "#f25f4c", mass: 1.0 }, // Fast, Red
-            { name: "Tank", color: "#a7a9be", mass: 3.0 },  // Very Heavy, Grey
-            { name: "Healer", color: "#2cb67d", mass: 1.0 } // Green
+            { name: "Guard", color: "#ff8906", mass: 2.0 },
+            { name: "Mage", color: "#e53170", mass: 0.8 },
+            { name: "Ninja", color: "#f25f4c", mass: 1.0 },
+            { name: "Tank", color: "#a7a9be", mass: 3.0 },
+            { name: "Healer", color: "#2cb67d", mass: 1.0 }
         ];
 
         // --- STATE ---
         let agents = [];
         let step = 0;
+        let selectedAgent = null;
+        let energyHistory = []; // For chart
+        let chart = null;
 
+        // --- INIT ---
         function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
@@ -63,110 +138,227 @@
         function init() {
             for(let i=0; i<N; i++) {
                 agents.push({
+                    id: i,
                     x: Math.random() * width,
                     y: Math.random() * height,
                     vx: 0, vy: 0,
-                    type: Math.floor(Math.random() * 5)
+                    type: Math.floor(Math.random() * 5),
+                    history: [], // For trails
+                    energyLog: [] // For chart
                 });
             }
+            initChart();
         }
 
+        // --- DYNAMICS ---
         function dynamics() {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            let totalEnergy = 0;
+            const cx = width / 2;
+            const cy = height / 2;
+            let sysEnergy = 0;
 
-            // 1. Calculate Forces
             for(let i=0; i<N; i++) {
                 let a = agents[i];
                 let fx = 0, fy = 0;
 
-                // A. Environment Potential V(x) = 0.5 * k * x^2 (Pull to center)
-                let dx = centerX - a.x;
-                let dy = centerY - a.y;
-                fx += dx * GRAVITY;
-                fy += dy * GRAVITY;
-                totalEnergy += 0.5 * (dx*dx + dy*dy); // Potential Energy
+                // Drift V(x)
+                let dx = cx - a.x;
+                let dy = cy - a.y;
+                fx += dx * params.gravity;
+                fy += dy * params.gravity;
+                let potE = 0.5 * (dx*dx + dy*dy);
 
-                // B. Interaction Potential W(x) = 1/|x| (Repulsion)
+                // Interaction W(x)
                 for(let j=0; j<N; j++) {
                     if(i === j) continue;
                     let b = agents[j];
                     let rx = a.x - b.x;
                     let ry = a.y - b.y;
-                    let distSq = rx*rx + ry*ry;
-                    let dist = Math.sqrt(distSq);
-                    
-                    if(dist < 5) dist = 5; // Softening parameter to avoid singularity
-
-                    // Gradient of 1/r is -1/r^2 * (unit vector)
-                    // F = k * r / dist^3
-                    let force = REPULSION / (dist * dist * dist); 
-                    
-                    // Class Logic: Knights (0) push harder
-                    if(a.type === 0) force *= 1.5; 
-
+                    let dist = Math.sqrt(rx*rx + ry*ry);
+                    if(dist < 5) dist = 5;
+                    let force = params.repulsion / (dist * dist * dist);
                     fx += rx * force;
                     fy += ry * force;
                 }
 
-                // C. Stochastic Term (Brownian Motion)
-                fx += (Math.random() - 0.5) * SIGMA * 50;
-                fy += (Math.random() - 0.5) * SIGMA * 50;
+                // Noise
+                fx += (Math.random() - 0.5) * params.sigma * 50;
+                fy += (Math.random() - 0.5) * params.sigma * 50;
 
-                // Update Velocity (Damped Langevin)
-                // m * dv = F - gamma*v
-                const friction = 0.1;
+                // Update
                 const mass = CLASSES[a.type].mass;
-                
                 a.vx += (fx / mass) * DT;
                 a.vy += (fy / mass) * DT;
-                
-                a.vx *= (1 - friction);
-                a.vy *= (1 - friction);
-            }
+                a.vx *= 0.9; // Friction
+                a.vy *= 0.9;
 
-            // 2. Update Positions
-            for(let i=0; i<N; i++) {
-                let a = agents[i];
                 a.x += a.vx;
                 a.y += a.vy;
 
-                // Boundaries
-                if(a.x < 0 || a.x > width) a.vx *= -1;
-                if(a.y < 0 || a.y > height) a.vy *= -1;
+                // Store History
+                if(step % 5 === 0) {
+                    a.history.push({x: a.x, y: a.y});
+                    if(a.history.length > 50) a.history.shift();
+                    a.energyLog.push(potE);
+                    if(a.energyLog.length > 50) a.energyLog.shift();
+                }
+                
+                sysEnergy += potE;
             }
+            return sysEnergy;
+        }
 
-            return totalEnergy;
+        // --- VISUALIZATION ---
+        function drawVectorField() {
+            if(!params.showField) return;
+            const cx = width/2;
+            const cy = height/2;
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.1)";
+            ctx.lineWidth = 1;
+            
+            for(let x=0; x<width; x+=50) {
+                for(let y=0; y<height; y+=50) {
+                    let dx = cx - x;
+                    let dy = cy - y;
+                    let len = Math.sqrt(dx*dx + dy*dy);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + (dx/len)*20, y + (dy/len)*20);
+                    ctx.stroke();
+                }
+            }
         }
 
         function draw() {
-            // Trail effect
-            ctx.fillStyle = 'rgba(15, 14, 23, 0.2)';
+            ctx.fillStyle = 'rgba(15, 14, 23, 0.3)';
             ctx.fillRect(0, 0, width, height);
+
+            drawVectorField();
 
             for(let i=0; i<N; i++) {
                 let a = agents[i];
                 let c = CLASSES[a.type];
                 
+                // Draw Trails
+                if(params.showHistory || selectedAgent === i) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = c.color;
+                    ctx.lineWidth = 1;
+                    a.history.forEach((p, idx) => {
+                        if(idx===0) ctx.moveTo(p.x, p.y);
+                        else ctx.lineTo(p.x, p.y);
+                    });
+                    ctx.stroke();
+                }
+
+                // Draw Agent
                 ctx.beginPath();
                 ctx.arc(a.x, a.y, 5 + c.mass * 2, 0, Math.PI*2);
                 ctx.fillStyle = c.color;
-                ctx.fill();
                 
-                // Draw ID
-                // ctx.fillStyle = "#fff";
-                // ctx.font = "10px Arial";
-                // ctx.fillText(i, a.x+10, a.y);
+                // Highlight Selection
+                if(selectedAgent === i) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = "#fff";
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fill();
+                ctx.shadowBlur = 0;
             }
         }
 
+        // --- INTERACTION ---
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            let clicked = -1;
+            // Find closest agent
+            let minD = 1000;
+            for(let i=0; i<N; i++) {
+                let dx = agents[i].x - mouseX;
+                let dy = agents[i].y - mouseY;
+                let d = Math.sqrt(dx*dx + dy*dy);
+                if(d < 30 && d < minD) {
+                    minD = d;
+                    clicked = i;
+                }
+            }
+
+            if(clicked !== -1) {
+                selectedAgent = clicked;
+                document.getElementById('inspector').style.display = 'block';
+                document.getElementById('insp-id').innerText = clicked + " (" + CLASSES[agents[clicked].type].name + ")";
+            } else {
+                selectedAgent = null;
+                document.getElementById('inspector').style.display = 'none';
+            }
+        });
+
+        // --- GM CONTROLS ---
+        document.getElementById('passcode-input').addEventListener('input', (e) => {
+            if(e.target.value === "1303") {
+                document.getElementById('god-panel').style.display = 'block';
+                document.getElementById('passcode-modal').style.display = 'none';
+            }
+        });
+
+        document.getElementById('slider-gravity').addEventListener('input', e => params.gravity = parseFloat(e.target.value));
+        document.getElementById('slider-repulsion').addEventListener('input', e => params.repulsion = parseFloat(e.target.value));
+        document.getElementById('slider-noise').addEventListener('input', e => params.sigma = parseFloat(e.target.value));
+        document.getElementById('chk-field').addEventListener('change', e => params.showField = e.target.checked);
+        document.getElementById('chk-history').addEventListener('change', e => params.showHistory = e.target.checked);
+
+        // --- CHART ---
+        function initChart() {
+            const ctxChart = document.getElementById('chart-canvas').getContext('2d');
+            chart = new Chart(ctxChart, {
+                type: 'line',
+                data: {
+                    labels: Array(50).fill(''),
+                    datasets: [{
+                        label: 'Potential Energy V(x)',
+                        data: Array(50).fill(0),
+                        borderColor: '#ff8906',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: {
+                        x: { display: false },
+                        y: { display: true, grid: {color: '#333'} }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateChart() {
+            if(selectedAgent !== null && chart) {
+                let a = agents[selectedAgent];
+                chart.data.datasets[0].data = a.energyLog;
+                chart.update();
+            }
+        }
+
+        // --- LOOP ---
         function loop() {
-            let energy = dynamics();
+            let e = dynamics();
             draw();
             step++;
             document.getElementById('step').innerText = step;
-            document.getElementById('energy').innerText = Math.floor(energy);
+            document.getElementById('energy').innerText = Math.floor(e);
+            
+            if(step % 5 === 0) updateChart();
+            
             requestAnimationFrame(loop);
         }
 
