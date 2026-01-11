@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Session 1: The Initialization</title>
+    <style>
+        body { margin: 0; background: #0f0e17; color: #a7a9be; font-family: monospace; overflow: hidden; }
+        #canvas { display: block; }
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(20, 20, 30, 0.8);
+            padding: 20px; border-radius: 8px; border: 1px solid #ff8906;
+            max-width: 300px;
+            pointer-events: none;
+        }
+        h1 { margin: 0 0 10px 0; color: #ff8906; font-size: 1.2rem; }
+        .math { font-style: italic; color: #f25f4c; margin-bottom: 10px; }
+        .stat { font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>Session 1: Initialization</h1>
+        <div class="math">dX = -∇V(x)dt - ∇W*μ(x)dt + σdB</div>
+        <p>The system is cooling. 50 Agents are seeking the global minimum while repelling each other (Coulomb interaction).</p>
+        <div class="stat">Time Step: <span id="step">0</span></div>
+        <div class="stat">System Energy: <span id="energy">0</span></div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        // --- CONFIGURATION ---
+        const N = 50;
+        const DT = 0.1;
+        const SIGMA = 0.5; // Noise
+        const GRAVITY = 0.05; // Harmonic V(x)
+        const REPULSION = 20.0; // Coulomb W(x)
+
+        // --- CLASSES ---
+        const CLASSES = [
+            { name: "Guard", color: "#ff8906", mass: 2.0 }, // Heavy, Orange
+            { name: "Mage", color: "#e53170", mass: 0.8 },  // Light, Pink
+            { name: "Ninja", color: "#f25f4c", mass: 1.0 }, // Fast, Red
+            { name: "Tank", color: "#a7a9be", mass: 3.0 },  // Very Heavy, Grey
+            { name: "Healer", color: "#2cb67d", mass: 1.0 } // Green
+        ];
+
+        // --- STATE ---
+        let agents = [];
+        let step = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function init() {
+            for(let i=0; i<N; i++) {
+                agents.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: 0, vy: 0,
+                    type: Math.floor(Math.random() * 5)
+                });
+            }
+        }
+
+        function dynamics() {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            let totalEnergy = 0;
+
+            // 1. Calculate Forces
+            for(let i=0; i<N; i++) {
+                let a = agents[i];
+                let fx = 0, fy = 0;
+
+                // A. Environment Potential V(x) = 0.5 * k * x^2 (Pull to center)
+                let dx = centerX - a.x;
+                let dy = centerY - a.y;
+                fx += dx * GRAVITY;
+                fy += dy * GRAVITY;
+                totalEnergy += 0.5 * (dx*dx + dy*dy); // Potential Energy
+
+                // B. Interaction Potential W(x) = 1/|x| (Repulsion)
+                for(let j=0; j<N; j++) {
+                    if(i === j) continue;
+                    let b = agents[j];
+                    let rx = a.x - b.x;
+                    let ry = a.y - b.y;
+                    let distSq = rx*rx + ry*ry;
+                    let dist = Math.sqrt(distSq);
+                    
+                    if(dist < 5) dist = 5; // Softening parameter to avoid singularity
+
+                    // Gradient of 1/r is -1/r^2 * (unit vector)
+                    // F = k * r / dist^3
+                    let force = REPULSION / (dist * dist * dist); 
+                    
+                    // Class Logic: Knights (0) push harder
+                    if(a.type === 0) force *= 1.5; 
+
+                    fx += rx * force;
+                    fy += ry * force;
+                }
+
+                // C. Stochastic Term (Brownian Motion)
+                fx += (Math.random() - 0.5) * SIGMA * 50;
+                fy += (Math.random() - 0.5) * SIGMA * 50;
+
+                // Update Velocity (Damped Langevin)
+                // m * dv = F - gamma*v
+                const friction = 0.1;
+                const mass = CLASSES[a.type].mass;
+                
+                a.vx += (fx / mass) * DT;
+                a.vy += (fy / mass) * DT;
+                
+                a.vx *= (1 - friction);
+                a.vy *= (1 - friction);
+            }
+
+            // 2. Update Positions
+            for(let i=0; i<N; i++) {
+                let a = agents[i];
+                a.x += a.vx;
+                a.y += a.vy;
+
+                // Boundaries
+                if(a.x < 0 || a.x > width) a.vx *= -1;
+                if(a.y < 0 || a.y > height) a.vy *= -1;
+            }
+
+            return totalEnergy;
+        }
+
+        function draw() {
+            // Trail effect
+            ctx.fillStyle = 'rgba(15, 14, 23, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            for(let i=0; i<N; i++) {
+                let a = agents[i];
+                let c = CLASSES[a.type];
+                
+                ctx.beginPath();
+                ctx.arc(a.x, a.y, 5 + c.mass * 2, 0, Math.PI*2);
+                ctx.fillStyle = c.color;
+                ctx.fill();
+                
+                // Draw ID
+                // ctx.fillStyle = "#fff";
+                // ctx.font = "10px Arial";
+                // ctx.fillText(i, a.x+10, a.y);
+            }
+        }
+
+        function loop() {
+            let energy = dynamics();
+            draw();
+            step++;
+            document.getElementById('step').innerText = step;
+            document.getElementById('energy').innerText = Math.floor(energy);
+            requestAnimationFrame(loop);
+        }
+
+        init();
+        loop();
+
+    </script>
+</body>
+</html>
