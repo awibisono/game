@@ -60,7 +60,7 @@
 <body>
     <div id="ui">
         <h1>Mean Field Dynamics</h1>
-        <div class="math">dX_t = -∇(V+V_obs)dt - ∇W*μdt + σdB</div>
+        <div class="math">dX_t = -∇V(X_t)dt - ∇W*μdt + σdB</div>
         <div class="stat-row"><span>Time T:</span> <span id="time-val" class="val">0.00</span></div>
         <div class="stat-row"><span>Mean Energy E[V]:</span> <span id="mean-e" class="val">0</span></div>
         <div class="stat-row"><span>Entropy S:</span> <span id="entropy" class="val">0</span></div>
@@ -70,12 +70,24 @@
 
     <div id="god-panel">
         <div class="god-header">🦉 THE SOLVER VIEW</div>
+        
+        <div class="control-group" style="border-bottom: 1px solid #444; padding-bottom: 10px;">
+            <label style="color: #ff00ff; font-weight: bold;">SCENARIO PRESETS</label>
+            <select id="sel-scenario">
+                <option value="custom">Custom Configuration</option>
+                <option value="case1">Case 1: The Migration (Double Well)</option>
+                <option value="case2">Case 2: The Hidden Center (Ring)</option>
+            </select>
+            <button onclick="loadScenario()">LOAD SCENARIO</button>
+        </div>
+
         <div class="control-group"><label>Population (N): <span id="val-n">50</span></label><input type="range" id="slider-n" min="10" max="200" step="10" value="50"></div>
         <div class="control-group">
             <label>Drift Potential V(x)</label>
             <select id="sel-v">
                 <option value="quadratic">Quadratic (Gravity)</option>
                 <option value="double_well">Double-Well (Bifurcation)</option>
+                <option value="ring_center">Ring & Center (Hidden Gem)</option>
                 <option value="rastrigin">Rastrigin (Multi-modal)</option>
                 <option value="rosenbrock">Rosenbrock (Valley)</option>
                 <option value="flat">Zero (Brownian)</option>
@@ -97,7 +109,7 @@
             <label><input type="checkbox" id="chk-field"> Show Gradient Field</label>
             <label><input type="checkbox" id="chk-hessian"> Show Hessian</label>
             <label><input type="checkbox" id="chk-contour" checked> Show Potential</label>
-            <label><input type="checkbox" id="chk-terrain" checked> Show Terrain (Forest/Water)</label>
+            <label><input type="checkbox" id="chk-terrain" checked> Show Terrain</label>
             <label><input type="checkbox" id="chk-history"> Show Trajectories</label>
         </div>
     </div>
@@ -138,7 +150,10 @@
         let selectedAgent = null;
         let sysChart = null, agentChart = null;
         let sysHistory = { meanE: [], entropy: [] };
-        const COLORS = ["#ff8906", "#e53170", "#f25f4c", "#a7a9be", "#2cb67d"];
+        
+        // Classes: 0=Guard, 1=Mage, 2=Ninja, 3=Tank, 4=Healer, 5=Swimmer (Amphibious)
+        const COLORS = ["#ff8906", "#e53170", "#f25f4c", "#a7a9be", "#2cb67d", "#00ffff"];
+        const CLASS_NAMES = ["Guard", "Mage", "Ninja", "Tank", "Healer", "Swimmer"];
 
         // --- TERRAIN DATA ---
         let obstacles = [];
@@ -171,7 +186,7 @@
                     x: (Math.random() - 0.5) * width/3 + width/2,
                     y: (Math.random() - 0.5) * height/3 + height/2,
                     vx: 0, vy: 0,
-                    type: i % 5,
+                    type: i % 6, // 0-5
                     history: [],
                     energyLog: []
                 });
@@ -179,12 +194,53 @@
             if(selectedAgent >= N) selectedAgent = null;
         }
 
+        // --- SCENARIO LOADER ---
+        function loadScenario() {
+            const scen = document.getElementById('sel-scenario').value;
+            if (scen === 'case1') {
+                // The Migration: Start Left, Target Right (Double Well)
+                vType = 'double_well';
+                wType = 'coulomb'; // Push each other to explore
+                sigma = 0.8; // High noise to jump barrier
+                document.getElementById('sel-v').value = vType;
+                document.getElementById('sel-w').value = wType;
+                document.getElementById('slider-noise').value = sigma;
+                initAgents();
+                // Force start pos to left well
+                agents.forEach(a => { a.x = width*0.2 + (Math.random()-0.5)*50; a.y = height*0.5 + (Math.random()-0.5)*50; });
+            } 
+            else if (scen === 'case2') {
+                // The Hidden Center: Ring Distribution
+                vType = 'ring_center';
+                wType = 'none'; // Independent search
+                sigma = 1.0;
+                document.getElementById('sel-v').value = vType;
+                document.getElementById('sel-w').value = wType;
+                document.getElementById('slider-noise').value = sigma;
+                initAgents();
+                // Force start pos to ring
+                agents.forEach(a => { 
+                    let theta = Math.random() * Math.PI * 2;
+                    let r = 200; 
+                    a.x = width/2 + r*Math.cos(theta); 
+                    a.y = height/2 + r*Math.sin(theta); 
+                });
+            }
+        }
+
         function getV(x, y) {
             const cx = width/2, cy = height/2;
             const dx = (x - cx)/100, dy = (y - cy)/100;
             let val = 0;
+            
             if (vType === 'quadratic') val = 0.5 * (dx*dx + dy*dy);
-            else if (vType === 'double_well') val = 0.25 * Math.pow(dx*dx - 4, 2) + 0.5*dy*dy;
+            else if (vType === 'double_well') val = 0.5 * Math.pow(dx*dx - 4, 2) + 0.5*dy*dy; // x=+/-2 are minima
+            else if (vType === 'ring_center') {
+                let r = Math.sqrt(dx*dx + dy*dy);
+                // Min at r=3 and r=0. But r=0 is narrow.
+                // V(r) = (r-3)^2 - 5*exp(-r^2/0.1)
+                val = 2 * Math.pow(r - 3, 2) - 10 * Math.exp(-(r*r)/0.1); 
+            }
             else if (vType === 'rastrigin') val = 20 + (dx*dx - 10*Math.cos(2*Math.PI*dx)) + (dy*dy - 10*Math.cos(2*Math.PI*dy));
             else if (vType === 'rosenbrock') val = Math.pow(1-dx, 2) + 10*Math.pow(dy - dx*dx, 2);
             
@@ -199,7 +255,7 @@
             }
             for(let zone of waterZones) {
                 let d = Math.hypot(x - zone.x, y - zone.y);
-                if(d < zone.r) val -= 20 * (1 - d/zone.r); // Attraction (Water) but creates drag in update
+                if(d < zone.r) val -= 20 * (1 - d/zone.r); // Attraction (Water) 
             }
             return val;
         }
@@ -260,10 +316,17 @@
 
                 a.vx = fx; a.vy = fy;
                 
-                // Water Drag
+                // Water Drag / Swimmer Logic
                 for(let zone of waterZones) {
                     let d = Math.hypot(a.x - zone.x, a.y - zone.y);
-                    if(d < zone.r) { a.vx *= 0.1; a.vy *= 0.1; } // High viscous drag
+                    if(d < zone.r) { 
+                        // If Swimmer (Type 5), low drag. Else high drag.
+                        if (a.type === 5) {
+                            a.vx *= 0.9; a.vy *= 0.9; // Minimal friction
+                        } else {
+                            a.vx *= 0.1; a.vy *= 0.1; // Heavy mud
+                        }
+                    }
                 }
 
                 a.x += a.vx * dt; a.y += a.vy * dt;
@@ -307,8 +370,17 @@
                 for(let x=0; x<width; x+=res) {
                     for(let y=0; y<height; y+=res) {
                         let v = getV(x+res/2, y+res/2);
-                        let t = Math.min(1, v/50);
-                        let r = Math.floor(20 + t*40), g = Math.floor(10 + t*80), b = Math.floor(40 + t*60);
+                        // Normalize: v can be negative (water/grass) or positive (walls)
+                        // Range approx -20 to 100+
+                        // Blue (-20) -> Black (0) -> Red (100)
+                        let r=0, g=0, b=0;
+                        if(v < 0) { // Attractive zone
+                            b = Math.min(255, Math.floor(Math.abs(v) * 10));
+                            g = b/2;
+                        } else {
+                            r = Math.min(255, Math.floor(v * 2));
+                            g = r/4;
+                        }
                         ctx.fillStyle = `rgb(${r},${g},${b})`;
                         ctx.fillRect(x, y, res, res);
                     }
@@ -381,12 +453,20 @@
                     for(let p of a.history) ctx.lineTo(p.x, p.y);
                     ctx.stroke(); ctx.globalAlpha = 1.0;
                 }
+                
+                // Velocity Arrow
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + a.vx*2, a.y + a.vy*2);
                 ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+
                 ctx.beginPath(); ctx.arc(a.x, a.y, 5, 0, Math.PI*2); ctx.fillStyle = COLORS[a.type];
                 if(selectedAgent === i) { ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
                 else ctx.shadowBlur = 0;
                 ctx.fill(); ctx.shadowBlur = 0;
+                
+                // Swimmer Indicator
+                if (a.type === 5) {
+                    ctx.font = "10px serif"; ctx.fillStyle = "#fff"; ctx.fillText("🦈", a.x+5, a.y-5);
+                }
             }
         }
 
@@ -429,7 +509,7 @@
                 let d = Math.hypot(agents[i].x - mx, agents[i].y - my);
                 if(d < 30 && d < minD) { minD = d; closest = i; }
             }
-            if(closest !== -1) { selectedAgent = closest; document.getElementById('agent-box').style.display = 'block'; document.getElementById('insp-id').innerText = closest; }
+            if(closest !== -1) { selectedAgent = closest; document.getElementById('agent-box').style.display = 'block'; document.getElementById('insp-id').innerText = closest + " (" + (CLASS_NAMES[agents[closest].type] || 'Agent') + ")"; }
             else { selectedAgent = null; document.getElementById('agent-box').style.display = 'none'; }
         });
 
