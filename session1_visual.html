@@ -44,15 +44,13 @@
             width: 400px; height: 200px; z-index: 15;
         }
         
-        #passcode-modal {
-            position: absolute; bottom: 10px; right: 10px;
-            opacity: 0.3; transition: opacity 0.3s; z-index: 30;
-        }
-        #passcode-modal:hover { opacity: 1; }
-        #passcode-input { background: #333; border: 1px solid #555; color: #fff; padding: 5px; }
+        /* Removed Passcode Modal */
 
         a.math-link { color: #00ffff; text-decoration: none; font-size: 0.8rem; display: block; margin-top: 10px; text-align: center; }
         a.math-link:hover { text-decoration: underline; }
+
+        /* Konami Hint */
+        .hint { position: absolute; bottom: 5px; right: 5px; color: #333; font-size: 0.7rem; pointer-events: none; }
 
     </style>
 </head>
@@ -126,32 +124,53 @@
         <canvas id="chart-canvas"></canvas>
     </div>
 
-    <div id="passcode-modal">
-        <input type="password" id="passcode-input" placeholder="GM Access">
-    </div>
+    <div class="hint">N -> S -> W -> E</div>
 
     <canvas id="canvas"></canvas>
 
     <script>
-        // --- HASH VERIFICATION (SHA-256) ---
-        // Hash for "1303": e206a54e97690cce50cc872dd70ee8966ef85f9c3e625d970543568e495691
-        async function verifyPasscode(input) {
-            console.log("Checking passcode:", input); // DEBUG
-            const encoder = new TextEncoder();
-            const data = encoder.encode(input);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            console.log("Hash generated:", hashHex); // DEBUG
+        // --- GOD MODE UNLOCK (Sequence) ---
+        let unlockSequence = [];
+        const correctSequence = ['north', 'south', 'west', 'east'];
+
+        function checkUnlock(action) {
+            // Only track directional inputs
+            if (!['north', 'south', 'west', 'east'].includes(action)) return;
+
+            unlockSequence.push(action);
+            if (unlockSequence.length > 4) unlockSequence.shift();
             
-            if (hashHex === "e206a54e97690cce50cc872dd70ee8966ef85f9c3e625d970543568e495691") {
-                console.log("Access Granted");
+            console.log("Seq:", unlockSequence); // Debug
+
+            if (JSON.stringify(unlockSequence) === JSON.stringify(correctSequence)) {
                 document.getElementById('god-panel').style.display = 'block';
-                document.getElementById('passcode-modal').style.display = 'none';
+                console.log("God Mode Unlocked!");
             }
         }
 
-        document.getElementById('passcode-input').addEventListener('input', (e) => verifyPasscode(e.target.value));
+        // Mock function to be called by the game's UI buttons (if they existed in this view)
+        // Since this view is purely simulation, we'll listen for keypresses or create hidden buttons for testing
+        // But the user asked for "click a sequence of boxes". 
+        // I will add overlay buttons to simulate the game controls so the sequence can be entered.
+        
+        // Wait, the previous file didn't have the game controls (N/S/E/W buttons), it was just the sim.
+        // I need to add those buttons back so the user can click them!
+    </script>
+
+    <!-- Adding Control Buttons for the Unlock Sequence -->
+    <div style="position: absolute; bottom: 20px; right: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; z-index: 10;">
+        <div></div>
+        <button onclick="submitBtn('north')">N</button>
+        <div></div>
+        <button onclick="submitBtn('west')">W</button>
+        <button onclick="submitBtn('south')">S</button>
+        <button onclick="submitBtn('east')">E</button>
+    </div>
+
+    <script>
+        function submitBtn(cmd) {
+            checkUnlock(cmd);
+        }
 
         // --- SIMULATION ENGINE ---
         const canvas = document.getElementById('canvas');
