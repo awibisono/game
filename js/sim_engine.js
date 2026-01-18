@@ -111,25 +111,32 @@ class Engine {
         this.rng = new PRNG(this.seed);
         this.islandSeed = 1337; // Fixed terrain seed for consistency
         
-        // Physics Params (Default)
+        // Physics Params (Underdamped)
         this.params = {
-            dt: 0.02,
-            sigma: 0.05,
-            k: 1.0, // Attraction to type center
-            alpha: 0.6, // Mean contraction
-            beta: 2.2, // Rotation
-            rps: 1.2, // Rock-Paper-Scissors strength
-            eco: 0.9, // Ecology strength
-            shore: 0.8 // Shore repulsion
+            dt: 0.05,        // Time step
+            sigma: 0.8,      // Noise strength (Diffusion)
+            friction: 2.5,   // Damping (Gamma)
+            mass: 1.0,       // Mass
+            k: 0.5,          // Attraction to type center
+            alpha: 0.6,      // Mean contraction
+            beta: 2.2,       // Rotation
+            rps: 1.2,        // RPS strength
+            eco: 1.5,        // Ecology strength
+            shore: 20.0      // Strong Shoreline repulsion
         };
         
-        // Override with saved params if exists
+        // Override with saved params
         if(worldData.config) Object.assign(this.params, worldData.config);
+
+        // Initialize Velocity if missing
+        this.data.agents.forEach(a => {
+            if (typeof a.vx === 'undefined') a.vx = 0;
+            if (typeof a.vy === 'undefined') a.vy = 0;
+        });
     }
 
     // Gradient of preferred terrain
     gradEco(type, x, y) {
-        // Finite difference on the fly (simpler than grid for now, optimizations later)
         const eps = 0.05;
         const p = (tx, ty) => this.ecoPhi(type, tx, ty);
         const gx = (p(x + eps, y) - p(x - eps, y)) / (2 * eps);
@@ -139,14 +146,13 @@ class Engine {
 
     ecoPhi(type, x, y) {
         const m = islandMask(x, y, this.islandSeed);
-        // R: Beach, G: Forest, B: Water
+        // R: Beach, G: Forest, B: Water (but Inland)
         if (type === 'R') return smoothstepAB(0.42, 0.48, m) * (1 - smoothstepAB(0.48, 0.62, m));
         if (type === 'G') return smoothstepAB(0.62, 0.80, m);
-        if (type === 'B') return m < 0.42 ? 1.0 : 0.0;
+        if (type === 'B') return (m > 0.42 && m < 0.55) ? 1.0 : 0.0; // Puddles/Lowlands
         return 0;
     }
 
-    // Rock-Paper-Scissors Coupling
     rpsDrift(type, means) {
         const r = means.R || {x:0, y:0}, g = means.G || {x:0, y:0}, b = means.B || {x:0, y:0};
         const gamma = this.params.rps;
@@ -180,40 +186,70 @@ class Engine {
 
             const x = agent.pos[0];
             const y = agent.pos[1];
+            const vx = agent.vx;
+            const vy = agent.vy;
             const center = TYPE_CENTERS[agent.type];
 
-            // 1. Drift to Type Center (Ornstein-Uhlenbeck)
-            let fx = -p.k * (x - center.x);
-            let fy = -p.k * (y - center.y);
+            // --- FORCE CALCULATION ---
+            let fx = 0, fy = 0;
 
-            // 2. Mean Contraction + Rotation (McKean-Vlasov)
+            // 1. Drift to Center
+            fx += -p.k * (x - center.x);
+            fy += -p.k * (y - center.y);
+
+            // 2. Mean Contraction
             const dx = x - means.ALL.x;
             const dy = y - means.ALL.y;
-            fx += -p.alpha * dx + p.beta * dy; // beta*dy is J*dx (Rotation)
+            fx += -p.alpha * dx + p.beta * dy;
             fy += -p.alpha * dy - p.beta * dx;
 
-            // 3. RPS Coupling
+            // 3. RPS
             const rps = this.rpsDrift(agent.type, means);
             fx += rps.x;
             fy += rps.y;
 
-            // 4. Ecology
+            // 4. Ecology (Gradient Climb)
             const eco = this.gradEco(agent.type, x, y);
             fx += p.eco * eco.x;
             fy += p.eco * eco.y;
 
-            // 5. Shoreline Repulsion (Hard constraint soft penalty)
-            if (islandMask(x, y, this.islandSeed) < 0.4) {
-                fx += -x * p.shore * 2;
-                fy += -y * p.shore * 2;
+            // 5. Shoreline Containment (Hard Soft-Wall)
+            // Calculate mask gradient to know which way is "Inland"
+            const eps = 0.05;
+            const m = islandMask(x, y, this.islandSeed);
+            if (m < 0.45) { // Warning Zone
+                const mX = islandMask(x + eps, y, this.islandSeed);
+                const mY = islandMask(x, y + eps, this.islandSeed);
+                const gX = (mX - m) / eps;
+                const gY = (mY - m) / eps;
+                
+                // Force = Steep push towards higher ground
+                const pen = (0.45 - m) * p.shore; 
+                fx += gX * pen * 50; 
+                fy += gY * pen * 50;
+                
+                // Damping increase in water (muddy)
+                agent.vx *= 0.9;
+                agent.vy *= 0.9;
             }
 
-            // Update
+            // --- INTEGRATION (Underdamped Langevin) ---
+            // dV = (-gamma*V + F/m)dt + (sigma/m)*dW
+            // dX = V*dt
+            
             const noiseX = this.rng.nextGaussian();
             const noiseY = this.rng.nextGaussian();
 
-            agent.pos[0] += fx * dt + p.sigma * sqDt * noiseX;
-            agent.pos[1] += fy * dt + p.sigma * sqDt * noiseY;
+            // Update Velocity
+            const dvx = (-p.friction * vx + fx / p.mass) * dt + (p.sigma / p.mass) * sqDt * noiseX;
+            const dvy = (-p.friction * vy + fy / p.mass) * dt + (p.sigma / p.mass) * sqDt * noiseY;
+            
+            agent.vx += dvx;
+            agent.vy += dvy;
+
+            // Update Position
+            agent.pos[0] += agent.vx * dt;
+            agent.pos[1] += agent.vy * dt;
         });
     }
 }
