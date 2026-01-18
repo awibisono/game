@@ -2,16 +2,109 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Island Admin</title>
+    <title>Island Admin Panel</title>
+    <style>
+        body { background: #222; color: #eee; font-family: monospace; padding: 20px; }
+        .panel { background: #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        h1 { color: #f0a500; }
+        button { padding: 10px 20px; background: #444; color: white; border: 1px solid #666; cursor: pointer; font-family: inherit; margin-right: 10px; }
+        button:hover { background: #555; }
+        button.action { background: #d32f2f; border-color: #ff5252; }
+        textarea { width: 100%; height: 150px; background: #111; color: #0f0; border: 1px solid #444; margin-top: 10px; }
+        #status { color: #0f0; margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <h1>Simulation Admin Panel</h1>
-    <p>This is a placeholder for the Instructor's Control Dashboard.</p>
-    <p>Future functionality:</p>
-    <ul>
-        <li>Load world.json</li>
-        <li>Run Physics Engine (SDE)</li>
-        <li>Export new JSON</li>
-    </ul>
+
+    <h1>GOD MODE: SIMULATION CONTROL</h1>
+
+    <div class="panel">
+        <h2>1. Load World State</h2>
+        <p>Load the current world.json from the repository (or paste local JSON).</p>
+        <button onclick="loadFromRepo()">Load from Server (data/world.json)</button>
+        <div id="load-status"></div>
+    </div>
+
+    <div class="panel">
+        <h2>2. Run Simulation (Week++)</h2>
+        <p>Advance the stochastic differential equations by one week.</p>
+        <div>
+            Steps per week: <input type="number" id="steps" value="1000">
+            DT: <input type="number" id="dt" value="0.02" step="0.01">
+        </div>
+        <br>
+        <button class="action" onclick="runSimulation()">SIMULATE WEEK</button>
+        <div id="sim-status"></div>
+    </div>
+
+    <div class="panel">
+        <h2>3. Export State</h2>
+        <p>Copy this JSON and commit it to <code>data/world.json</code> in the repo.</p>
+        <button onclick="exportJSON()">Generate JSON</button>
+        <button onclick="downloadJSON()">Download File</button>
+        <textarea id="output"></textarea>
+    </div>
+
+    <!-- Load Engine -->
+    <script src="js/sim_engine.js"></script>
+
+    <script>
+        let engine = null;
+        let worldData = null;
+
+        async function loadFromRepo() {
+            try {
+                document.getElementById('load-status').innerText = "Fetching...";
+                const res = await fetch('data/world.json?t=' + Date.now());
+                worldData = await res.json();
+                engine = new Engine(worldData);
+                document.getElementById('load-status').innerText = `Loaded Week ${worldData.meta.week}. ${worldData.agents.length} Agents.`;
+            } catch(e) {
+                document.getElementById('load-status').innerText = "Error: " + e.message;
+            }
+        }
+
+        function runSimulation() {
+            if(!engine) return alert("Load world first!");
+            
+            const steps = parseInt(document.getElementById('steps').value);
+            engine.params.dt = parseFloat(document.getElementById('dt').value);
+            
+            document.getElementById('sim-status').innerText = `Simulating ${steps} steps...`;
+            
+            // Run loop
+            setTimeout(() => {
+                const t0 = performance.now();
+                for(let i=0; i<steps; i++) {
+                    engine.step();
+                }
+                const t1 = performance.now();
+                
+                // Update Meta
+                engine.data.meta.week += 1;
+                engine.data.meta.last_updated = new Date().toISOString().split('T')[0];
+                
+                document.getElementById('sim-status').innerText = `Completed in ${(t1-t0).toFixed(2)}ms. New Week: ${engine.data.meta.week}`;
+            }, 10);
+        }
+
+        function exportJSON() {
+            if(!engine) return;
+            const str = JSON.stringify(engine.data, null, 2);
+            document.getElementById('output').value = str;
+        }
+
+        function downloadJSON() {
+            if(!engine) return;
+            const str = JSON.stringify(engine.data, null, 2);
+            const blob = new Blob([str], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "world.json";
+            a.click();
+        }
+    </script>
+
 </body>
 </html>

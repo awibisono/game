@@ -1,20 +1,52 @@
 {
   "meta": {
-    "week": 0,
+    "week": 1,
     "last_updated": "2026-01-18",
-    "simulation_speed": 1.0
+    "seed": 9999
+  },
+  "config": {
+    "dt": 0.02,
+    "sigma": 0.05,
+    "k": 0.8,
+    "alpha": 0.5,
+    "beta": 1.5,
+    "rps": 1.5,
+    "eco": 1.2,
+    "shore": 1.0
   },
   "agents": [
-    { "id": "r1", "type": "R", "x": -50, "y": -50, "hp": 100, "mp": 20, "name": "Charm" },
-    { "id": "r2", "type": "R", "x": -40, "y": -60, "hp": 100, "mp": 20, "name": "Ember" },
-    { "id": "g1", "type": "G", "x": 50, "y": 50, "hp": 120, "mp": 10, "name": "Bulb" },
-    { "id": "g2", "type": "G", "x": 60, "y": 40, "hp": 120, "mp": 10, "name": "Leaf" },
-    { "id": "b1", "type": "B", "x": 0, "y": 80, "hp": 80, "mp": 50, "name": "Squirt" },
-    { "id": "b2", "type": "B", "x": -10, "y": 90, "hp": 80, "mp": 50, "name": "Splash" }
+    { "id": "r1", "name": "Ember", "type": "R", "pos": [1.0, 0.1], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r2", "name": "Ash", "type": "R", "pos": [1.1, -0.1], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r3", "name": "Spark", "type": "R", "pos": [0.9, 0.05], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r4", "name": "Pyro", "type": "R", "pos": [1.05, 0.0], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r5", "name": "Magma", "type": "R", "pos": [0.95, -0.05], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r6", "name": "Inferno", "type": "R", "pos": [1.0, 0.2], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r7", "name": "Cinder", "type": "R", "pos": [1.1, 0.1], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r8", "name": "Blaze", "type": "R", "pos": [0.9, -0.1], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r9", "name": "Scorch", "type": "R", "pos": [1.0, -0.2], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "r10", "name": "Flare", "type": "R", "pos": [1.05, 0.05], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+
+    { "id": "g1", "name": "Sprout", "type": "G", "pos": [-0.5, 0.86], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g2", "name": "Vine", "type": "G", "pos": [-0.6, 0.9], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g3", "name": "Leaf", "type": "G", "pos": [-0.4, 0.8], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g4", "name": "Moss", "type": "G", "pos": [-0.55, 0.85], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g5", "name": "Fern", "type": "G", "pos": [-0.45, 0.88], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g6", "name": "Root", "type": "G", "pos": [-0.5, 0.95], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g7", "name": "Branch", "type": "G", "pos": [-0.6, 0.82], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g8", "name": "Bud", "type": "G", "pos": [-0.4, 0.9], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g9", "name": "Bloom", "type": "G", "pos": [-0.5, 0.8], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "g10", "name": "Thorn", "type": "G", "pos": [-0.55, 0.92], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+
+    { "id": "b1", "name": "Bubble", "type": "B", "pos": [-0.5, -0.86], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b2", "name": "Splash", "type": "B", "pos": [-0.6, -0.9], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b3", "name": "Tide", "type": "B", "pos": [-0.4, -0.8], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b4", "name": "Wave", "type": "B", "pos": [-0.55, -0.85], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b5", "name": "Coral", "type": "B", "pos": [-0.45, -0.88], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b6", "name": "Fin", "type": "B", "pos": [-0.5, -0.95], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b7", "name": "Gill", "type": "B", "pos": [-0.6, -0.82], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b8", "name": "Mist", "type": "B", "pos": [-0.4, -0.9], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b9", "name": "Rain", "type": "B", "pos": [-0.5, -0.8], "stats": { "hp": 100, "xp": 0 }, "status": "alive" },
+    { "id": "b10", "name": "Drop", "type": "B", "pos": [-0.55, -0.92], "stats": { "hp": 100, "xp": 0 }, "status": "alive" }
   ],
-  "food": [
-    { "x": 0, "y": 0, "val": 50 },
-    { "x": 100, "y": -100, "val": 30 },
-    { "x": -100, "y": 100, "val": 30 }
-  ]
+  "history": []
 }
