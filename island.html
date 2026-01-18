@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Recluse: The Integrated World</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,600;1,400&family=Share+Tech+Mono&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+  :root{
+    --bg-color:#111;
+    --accent-gold:#ffd700;
+    --accent-blue:#2d9cdb;
+    --accent-green:#27ae60;
+    --accent-purple:#9b51e0;
+    --chat-bg: rgba(20,20,30,0.95);
+    --chat-border: #4a4a6a;
+  }
+  body{ margin:0; overflow:hidden; background:var(--bg-color); font-family:'Nunito',sans-serif; }
+  #game-layer{ position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; }
+  canvas{ display:block; }
+
+  /* UI Overlay */
+  #ui-layer{ position:absolute; top:20px; left:20px; z-index:10; pointer-events:none; }
+  .status-pill{
+    background:rgba(0,0,0,0.8);
+    padding:10px 15px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.2);
+    color:white;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .dot{ width:10px; height:10px; border-radius:50%; background:red; box-shadow:0 0 5px red; }
+  .dot.active{ background:#0f0; box-shadow:0 0 5px #0f0; }
+  .dot.bridge{ background:#0ff; box-shadow:0 0 5px #0ff; }
+  .dot.active-pulse{ animation:pulse-green 1.5s infinite; }
+  .dot.failed-pulse{ animation:pulse-red 1.5s infinite; }
+
+  @keyframes pulse-green{
+    0%{ box-shadow:0 0 0 0 rgba(0,255,0,0.7); }
+    70%{ box-shadow:0 0 0 10px rgba(0,255,0,0); }
+    100%{ box-shadow:0 0 0 0 rgba(0,255,0,0); }
+  }
+  @keyframes pulse-red{
+    0%{ box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
+    70%{ box-shadow:0 0 0 10px rgba(255,0,0,0); }
+    100%{ box-shadow:0 0 0 0 rgba(255,0,0,0); }
+  }
+
+  /* MINIMAP */
+  #minimap-container{
+    position:absolute; bottom:20px; right:20px; z-index:10;
+    width:200px; height:200px;
+    background:rgba(0,0,0,0.8);
+    border:2px solid #444;
+    border-radius:10px;
+    overflow:hidden;
+  }
+  #minimap{ width:100%; height:100%; display:block; }
+
+  /* CHAT */
+  #chat-overlay{
+    position:absolute;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    width:560px;
+    max-width:92%;
+    background:var(--chat-bg);
+    border:1px solid var(--chat-border);
+    border-radius:15px;
+    padding:14px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.5);
+    color:white;
+    z-index:20;
+    display:none;
+    pointer-events:auto;
+  }
+  #chat-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  #chat-title{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  #chat-title .h1{
+    font-weight:700;
+    letter-spacing:0.4px;
+  }
+  #chat-title .h2{
+    font-size:0.85em;
+    opacity:0.8;
+  }
+  #chat-dev-badge{
+    display:none;
+    font-size:0.78em;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.25);
+    background:rgba(155,81,224,0.14);
+    color:#e7d8ff;
+    user-select:none;
+  }
+  #chat-history{
+    max-height:190px;
+    overflow-y:auto;
+    padding-right:6px;
+  }
+
+  .msg{
+    display:flex;
+    gap:10px;
+    margin:10px 0;
+    align-items:flex-start;
+  }
+  .msg .bubble{
+    max-width:78%;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.06);
+    line-height:1.25;
+    word-wrap:break-word;
+    white-space:pre-wrap;
+  }
+  .msg .meta{
+    font-size:0.75em;
+    opacity:0.7;
+    margin-top:3px;
+  }
+
+  .msg.user{ justify-content:flex-end; }
+  .msg.user .bubble{
+    background:rgba(45,156,219,0.12);
+    border-color:rgba(45,156,219,0.35);
+  }
+  .msg.assistant{ justify-content:flex-start; }
+  .msg.assistant .bubble{
+    background:rgba(255,215,0,0.10);
+    border-color:rgba(255,215,0,0.28);
+  }
+  .msg.system .bubble{
+    background:rgba(255,255,255,0.07);
+    border-color:rgba(255,255,255,0.18);
+  }
+
+  /* Glows for most recent messages */
+  .glow-user .bubble{
+    box-shadow: 0 0 0 1px rgba(45,156,219,0.55), 0 0 18px rgba(45,156,219,0.35);
+  }
+  .glow-assistant .bubble{
+    box-shadow: 0 0 0 1px rgba(255,215,0,0.55), 0 0 18px rgba(255,215,0,0.30);
+  }
+
+  /* typing */
+  .typing-dots{
+    display:inline-flex;
+    gap:4px;
+    align-items:center;
+  }
+  .typing-dots span{
+    width:6px; height:6px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.65);
+    animation:typing 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2){ animation-delay:0.15s; }
+  .typing-dots span:nth-child(3){ animation-delay:0.30s; }
+  @keyframes typing{
+    0%, 80%, 100%{ transform:translateY(0); opacity:0.5; }
+    40%{ transform:translateY(-3px); opacity:1; }
+  }
+
+  .chat-input-row{ display:flex; gap:10px; margin-top:10px; }
+  .chat-input-row input{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    outline:none;
+  }
+  .chat-input-row button{
+    padding:10px 16px;
+    background:var(--accent-gold);
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .chat-input-row button:disabled{
+    opacity:0.6; cursor:not-allowed;
+  }
+
+  /* APP LAYERS */
+  .app-layer{
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    z-index:100; display:none; background:#000; overflow:auto;
+  }
+  .app-layer.active{ display:flex; flex-direction:column; }
+
+  .back-btn{
+    position:fixed; top:20px; left:20px; z-index:200;
+    padding:10px 20px;
+    background:rgba(255,255,255,0.1);
+    backdrop-filter: blur(5px);
+    border:1px solid rgba(255,255,255,0.3);
+    color:white;
+    border-radius:30px;
+    cursor:pointer;
+    font-weight:700;
+    font-family:'Nunito',sans-serif;
+    transition: transform 0.2s;
+  }
+  .back-btn:hover{ background:white; color:black; transform:scale(1.05); }
+
+  /* RECLUSE */
+  #app-recluse{
+    background: radial-gradient(circle at center, #2d1b4e, #1a0b2e);
+    color:white;
+    align-items:center;
+    justify-content:center;
+  }
+  .recluse-hat{ width:150px; animation:float 4s ease-in-out infinite; }
+  .recluse-box{
+    background:rgba(255,255,255,0.1);
+    padding:20px;
+    border-radius:20px;
+    width:440px;
+    max-width:92%;
+    text-align:center;
+    backdrop-filter: blur(10px);
+    border:1px solid rgba(255,255,255,0.2);
+    margin-top:20px;
+  }
+
+  /* GOD */
+  #app-god{
+    background: radial-gradient(circle at center, #fffbf0, #f0e6d2, #d4c5a3);
+    color:#5a4a32;
+    font-family:'Cormorant Garamond',serif;
+    align-items:center;
+    justify-content:center;
+  }
+  .halo{
+    border:1px solid rgba(218,165,32,0.5);
+    border-radius:50%;
+    position:absolute;
+    animation:rotate 20s linear infinite;
+  }
+
+  /* GARDEN */
+  #app-garden{
+    background:#051414;
+    color:#5f7a7a;
+    font-family:'Courier New',monospace;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .grass-stage{
+    position:absolute; bottom:0;
+    width:100%; height:100px;
+    display:flex;
+    justify-content:space-around;
+    pointer-events:none;
+  }
+  .blade{
+    width:4px;
+    background:linear-gradient(to top, #0f2e2e, #1a4f4f);
+    border-radius:5px 5px 0 0;
+    animation:sway 3s ease-in-out infinite;
+    transform-origin:bottom;
+  }
+
+  /* MACHINE */
+  #app-machine{
+    background: linear-gradient(180deg, #a0d8ef 0%, #e0f7fa 100%);
+    color:#444;
+    font-family:'Fredoka',sans-serif;
+  }
+  .machine-container{ max-width:800px; margin:80px auto; padding:20px; }
+  .machine-card{
+    background:rgba(255,255,255,0.9);
+    padding:30px;
+    border-radius:20px;
+    margin-bottom:20px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  }
+
+  /* RESOLVE */
+  #app-resolve{
+    background:#0a0a12;
+    color:#aaccff;
+    font-family:'Share Tech Mono',monospace;
+    align-items:center;
+    justify-content:center;
+  }
+  .resolve-ui{
+    width:600px;
+    max-width:92%;
+    border:1px solid #4466aa;
+    background:rgba(10,16,30,0.9);
+    padding:20px;
+    border-radius:5px;
+    box-shadow:0 0 20px rgba(68,102,170,0.3);
+  }
+
+  /* Debug overlay */
+  #debug-overlay{
+    position:absolute;
+    top:20px;
+    right:240px;
+    z-index:12;
+    padding:10px 12px;
+    border-radius:10px;
+    background:rgba(0,0,0,0.55);
+    border:1px solid rgba(255,255,255,0.18);
+    color:rgba(255,255,255,0.9);
+    font-family: 'Share Tech Mono', monospace;
+    font-size:12px;
+    display:none;
+    pointer-events:none;
+    min-width:220px;
+  }
+
+  @keyframes float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+  @keyframes rotate{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes sway{ 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+</style>
+</head>
+
+<body>
+<div id="game-layer">
+  <div id="ui-layer">
+    <div class="status-pill">
+      <div id="status-dot" class="dot"></div>
+      <span id="status-text">Neural Link: Checking...</span>
+    </div>
+    <div style="margin-top:5px; font-size:0.8em; color:rgba(255,255,255,0.7); text-align:center;">
+      WASD / Arrows to Move | Shift+Tab to Chat
+    </div>
+  </div>
+
+  <div id="debug-overlay"></div>
+
+  <div id="minimap-container">
+    <canvas id="minimap"></canvas>
+  </div>
+
+  <div id="chat-overlay">
+    <div id="chat-header">
+      <div id="chat-title">
+        <div class="h1">Neural Console</div>
+        <div class="h2" id="chat-subtitle">Assistant connected via Bridge (Gemini CLI) when available.</div>
+      </div>
+      <div id="chat-dev-badge">RECLUSE MODE</div>
+    </div>
+
+    <div id="chat-history"></div>
+
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Type message… (Shift+Tab toggles chat)" autocomplete="off"
+             onkeypress="if(event.key==='Enter') sendChatMsg()">
+      <button id="chat-send-btn" onclick="sendChatMsg()">Send</button>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+</div>
+
+<!-- === APP: RECLUSE === -->
+<div id="app-recluse" class="app-layer">
+  <button class="back-btn" onclick="closeApp()">← Return to World</button>
+
+  <div class="recluse-hat">
+    <svg viewBox="0 0 100 100" style="width:100%; height:100%; filter: drop-shadow(0 0 10px #9b59b6);">
+      <path d="M 20 70 Q 50 10 80 70 L 90 80 L 10 80 Z" fill="#2c003e" stroke="#9b59b6" stroke-width="2"/>
+      <ellipse cx="50" cy="80" rx="45" ry="10" fill="#1a0025" stroke="#9b59b6" stroke-width="2"/>
+      <circle cx="50" cy="55" r="5" fill="#ffd700"/>
+    </svg>
+  </div>
+
+  <h1 style="font-family:'Cinzel'; margin-bottom:0;">The Sanctum</h1>
+  <p style="opacity:0.7; margin-top:6px;">Neural Link + Simulation Parameters</p>
+
+  <div class="recluse-box">
+    <input type="password" id="api-key-input" placeholder="Optional: Gemini Browser API Key"
+           style="width:92%; padding:10px; border-radius:8px; border:none; margin-bottom:10px;">
+    <button onclick="saveKey()" style="padding:10px 20px; background:#9b59b6; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:800;">
+      Save Key
+    </button>
+
+    <p id="key-msg" style="font-size:0.85em; margin-top:10px; height:1.1em; opacity:0.9;"></p>
+
+    <hr style="border-color:rgba(255,255,255,0.1); margin:16px 0;">
+
+    <div style="font-size:0.95em; text-align:left; line-height:1.6;">
+      <strong>Visuals</strong><br>
+      <label><input type="checkbox" id="bg-anim-toggle" checked onchange="updateGameSettings()"> Cosmic Particles</label><br>
+      <label><input type="checkbox" id="tile-texture-toggle" checked onchange="updateGameSettings()"> Textured Ground</label><br>
+      <label><input type="checkbox" id="minimap-toggle" checked onchange="updateGameSettings()"> Minimap</label><br><br>
+
+      <strong>Connectivity</strong><br>
+      <label><input type="checkbox" id="require-bridge-toggle" onchange="updateGameSettings()"> Require Bridge (Gemini CLI only)</label><br>
+      <small style="opacity:0.8;">Bridge URL is configurable in Recluse Mode: <code>set bridgeurl http://127.0.0.1:5000</code></small><br><br>
+
+      <strong>Game</strong><br>
+      <label>Player Speed:
+        <input type="range" id="speed-slider" min="2" max="20" step="1" value="8" onchange="updateGameSettings()">
+        <span id="speed-label">8</span>
+      </label><br>
+      <label>World Seed:
+        <input type="number" id="seed-input" style="width:140px; padding:6px; border-radius:8px; border:none; margin-left:8px;"
+               onchange="updateGameSettings()" />
+      </label><br>
+      <button onclick="regenWorld()" style="margin-top:10px; padding:10px 14px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:white; border-radius:10px; cursor:pointer;">
+        Regenerate World
+      </button>
+
+      <div style="margin-top:14px; font-size:0.88em; opacity:0.85;">
+        <strong>Backdoor:</strong> open chat and type <code>recluse mode on</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === APP: GOD === -->
+<div id="app-god" class="app-layer">
+  <button class="back-btn" style="color:#5a4a32; border-color:#8a7346; background:rgba(255,255,255,0.5);" onclick="closeApp()">← Return</button>
+  <div style="position:relative; width:300px; height:300px; display:flex; justify-content:center; align-items:center;">
+    <div class="halo" style="width:100%; height:100%; border-style:dashed;"></div>
+    <div class="halo" style="width:80%; height:80%; animation-duration:15s; animation-direction:reverse;"></div>
+    <img src="images/content.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'" style="width:60%; border-radius:50%; box-shadow: 0 0 30px #ffd700;">
+    <div style="width:60%; height:60%; background:#ffd700; border-radius:50%; display:none; box-shadow: 0 0 30px #ffd700;"></div>
+  </div>
+  <h1 style="margin-top:20px; color:#8a7346;">The Principle</h1>
+  <p id="god-voice" style="font-style:italic; min-height:1.5em; max-width:600px; text-align:center; padding:0 20px;">"I am the Integral of your History."</p>
+  <input type="text" id="god-input" placeholder="Whisper to the Tautology..."
+         style="background:transparent; border:none; border-bottom:2px solid #8a7346; padding:10px; width:300px; text-align:center; font-family:inherit; font-size:1.2em; color:#5a4a32; outline:none;"
+         onkeypress="if(event.key==='Enter') speakToGod()">
+</div>
+
+<!-- === APP: MACHINE === -->
+<div id="app-machine" class="app-layer">
+  <button class="back-btn" style="background:var(--accent-blue);" onclick="closeApp()">← Return</button>
+  <div class="machine-container">
+    
+    <!-- HEADER -->
+    <div class="machine-card" style="text-align:center; border-left:5px solid var(--accent-blue);">
+      <h1 style="color:var(--accent-blue); margin-bottom:5px;">The Eigen-Sea</h1>
+      <p style="opacity:0.8;">McKean-Vlasov Stochastic Dynamics</p>
+      <div style="font-size:0.9em; background:#f0f8ff; padding:15px; border-radius:8px; display:inline-block; text-align:left;">
+        $$ dX_t = \underbrace{-\nabla V(X_t) dt}_{\text{Confinement}} - \underbrace{\frac{1}{N} \sum_{j=1}^N \nabla W(X_t - X_j) dt}_{\text{Interaction}} + \underbrace{\sqrt{2\sigma} dB_t}_{\text{Exploration}} $$
+      </div>
+    </div>
+
+    <!-- SIMULATION CANVAS & CONTROLS -->
+    <div class="machine-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0; color:#444;">Swarm Dynamics</h2>
+        <div style="font-size:0.8em; opacity:0.7;">N = 80 Agents</div>
+      </div>
+      
+      <canvas id="canvas-swarm" width="700" height="350" style="width:100%; background:#111; border-radius:10px; box-shadow:inset 0 0 20px #000; cursor:crosshair;"></canvas>
+      
+      <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:15px; padding-top:15px; border-top:1px solid #eee;">
+        <div style="flex:1; min-width:200px;">
+            <label style="font-weight:bold; color:var(--accent-blue);">Confinement Potential \( V(x) \)</label><br>
+            <select id="sde-potential" onchange="resetSwarm()" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; margin-top:5px;">
+                <option value="quadratic">Quadratic (Gravity Well)</option>
+                <option value="doublewell">Double-Well (Bistable)</option>
+                <option value="rastrigin">Rastrigin (Chaos Field)</option>
+            </select>
+        </div>
+        <div style="flex:1; min-width:200px;">
+            <label style="font-weight:bold; color:var(--accent-green);">Interaction Kernel \( W(x-y) \)</label><br>
+            <select id="sde-interaction" onchange="resetSwarm()" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; margin-top:5px;">
+                <option value="none">Independent (Ideal Gas)</option>
+                <option value="coulomb">Coulomb (Repulsion/Crystal)</option>
+                <option value="newtonian">Newtonian (Attraction/Collapse)</option>
+                <option value="morse">Morse (Biological Swarm)</option>
+            </select>
+        </div>
+        <div style="flex:1; min-width:200px;">
+             <label style="font-weight:bold; color:#9b51e0;">Exploration \( \sigma \)</label><br>
+             <input type="range" id="sde-noise" min="0" max="100" value="30" oninput="updateSwarmParams()" style="width:100%;">
+             <div style="font-size:0.8em; text-align:right;" id="sde-noise-val">0.30</div>
+        </div>
+      </div>
+      
+      <div style="margin-top:15px; text-align:center;">
+        <button onclick="resetSwarm()" style="padding:8px 20px; background:var(--accent-blue); color:white; border:none; border-radius:20px; font-weight:bold; cursor:pointer;">Reset Simulation</button>
+      </div>
+    </div>
+
+    <!-- EXPLANATION CARDS -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+      <div class="machine-card" style="margin:0;">
+        <h3 style="color:var(--accent-green); margin-top:0;">1. Interaction Society</h3>
+        <p style="font-size:0.9em; line-height:1.5;">
+          The term \( \nabla W(X_t - X_j) \) defines how agents "feel" each other. 
+          <br><br>
+          <strong>Repulsion:</strong> Agents spread to minimize energy, forming crystal lattices.<br>
+          <strong>Attraction:</strong> Agents collapse into a singularity.<br>
+          <strong>Morse:</strong> Short-range repulsion + long-range attraction creates stable, life-like swarms.
+        </p>
+      </div>
+      <div class="machine-card" style="margin:0;">
+        <h3 style="color:#9b51e0; margin-top:0;">2. The Thermal Bath</h3>
+        <p style="font-size:0.9em; line-height:1.5;">
+          The term \( \sqrt{2\sigma} dB_t \) represents the "temperature" of the system.
+          <br><br>
+          At <strong>High \( \sigma \)</strong>, entropy dominates; structures melt.<br>
+          At <strong>Zero \( \sigma \)</strong>, the system freezes into a local energy minimum (Gradient Descent).
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === APP: GARDEN === -->
+<div id="app-garden" class="app-layer">
+  <button class="back-btn" style="border-color:#5f7a7a; color:#5f7a7a;" onclick="closeApp()">← Return</button>
+  <div style="z-index:10; text-align:center;">
+    <h2 style="font-weight:normal; letter-spacing:5px;">The Resting Place</h2>
+    <div style="border:1px solid #2f4f4f; padding:30px; background:rgba(0,0,0,0.5); display:inline-block;">
+      <p>Plant a memory to let it become soil.</p>
+      <input type="text" id="garden-input" placeholder="Bury a thought..."
+             style="background:transparent; border:none; border-bottom:1px solid #5f7a7a; color:white; padding:10px; width:300px; text-align:center; outline:none;"
+             onkeypress="if(event.key==='Enter') buryMemory()">
+    </div>
+  </div>
+  <div class="grass-stage" id="grass-container"></div>
+</div>
+
+<!-- === APP: RESOLVE === -->
+<div id="app-resolve" class="app-layer">
+  <button class="back-btn" style="border-color:#4466aa; background:rgba(10,16,30,0.8);" onclick="closeApp()">← Return</button>
+  <div class="resolve-ui">
+    <h2 style="border-bottom:1px solid #4466aa; padding-bottom:10px; margin-top:0;">SUPERVISOR // ANDRE</h2>
+    <div id="resolve-log" style="height:300px; overflow-y:auto; border:1px solid #223355; background:rgba(0,0,0,0.3); padding:10px; margin-bottom:10px; font-size:0.9em;">
+      <div style="color:#4466aa;">[SYSTEM]: Online. Monitoring resolve...</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <input type="text" id="resolve-input" placeholder="Report status..."
+             style="flex:1; background:transparent; border:1px solid #4466aa; color:#aaccff; padding:10px; outline:none;"
+             onkeypress="if(event.key==='Enter') sendResolve()">
+      <button onclick="sendResolve()" style="background:#4466aa; color:white; border:none; padding:0 20px; cursor:pointer;">TRANSMIT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+  IMPORTANT NOTES
+  - The chat will PREFER the local bridge at BRIDGE_URL (/status and /chat).
+  - To connect to Gemini CLI, run your local bridge server on 127.0.0.1:5000.
+  - Browsers cannot call local CLI directly; the bridge does that.
+============================================================================ */
+
+console.log("Script starting...");
+
+// ---------------- SETTINGS (persisted) ----------------
+const DEFAULTS = {
+  cosmicParticles: true,
+  texturedGround: true,
+  minimap: true,
+  requireBridge: false,
+  playerSpeed: 8,
+  bridgeUrl: "http://127.0.0.1:5000",
+  devMode: false,
+  worldSeed: (Date.now() % 1000000000) | 0,
+  showDebug: false,
+};
+
+const settings = loadSettings();
+
+// Update Sanctum inputs from settings
+function syncSanctumUI() {
+  const bg = document.getElementById('bg-anim-toggle');
+  const tx = document.getElementById('tile-texture-toggle');
+  const mm = document.getElementById('minimap-toggle');
+  const rb = document.getElementById('require-bridge-toggle');
+  const sp = document.getElementById('speed-slider');
+  const sl = document.getElementById('speed-label');
+  const seed = document.getElementById('seed-input');
+
+  if (bg) bg.checked = !!settings.cosmicParticles;
+  if (tx) tx.checked = !!settings.texturedGround;
+  if (mm) mm.checked = !!settings.minimap;
+  if (rb) rb.checked = !!settings.requireBridge;
+
+  if (sp) sp.value = String(settings.playerSpeed);
+  if (sl) sl.innerText = String(settings.playerSpeed);
+
+  if (seed) seed.value = String(settings.worldSeed);
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('recluse_settings_v1');
+    if (!raw) return { ...DEFAULTS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULTS, ...parsed };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
+function saveSettings() {
+  localStorage.setItem('recluse_settings_v1', JSON.stringify(settings));
+}
+
+// Called by toggles/sliders
+function updateGameSettings() {
+  const bg = document.getElementById('bg-anim-toggle');
+  const tx = document.getElementById('tile-texture-toggle');
+  const mm = document.getElementById('minimap-toggle');
+  const rb = document.getElementById('require-bridge-toggle');
+  const sp = document.getElementById('speed-slider');
+  const sl = document.getElementById('speed-label');
+  const seed = document.getElementById('seed-input');
+
+  if (bg) settings.cosmicParticles = !!bg.checked;
+  if (tx) settings.texturedGround = !!tx.checked;
+  if (mm) settings.minimap = !!mm.checked;
+  if (rb) settings.requireBridge = !!rb.checked;
+
+  if (sp) settings.playerSpeed = clampInt(parseInt(sp.value, 10), 2, 20);
+  if (sl) sl.innerText = String(settings.playerSpeed);
+
+  if (seed) settings.worldSeed = clampInt(parseInt(seed.value, 10), 0, 2147483647);
+
+  player.speed = settings.playerSpeed;
+
+  // minimap visibility
+  document.getElementById('minimap-container').style.display = settings.minimap ? 'block' : 'none';
+
+  saveSettings();
+  refreshDevBadge();
+  updateChatSubtitle();
+}
+
+function updateChatSubtitle() {
+  const el = document.getElementById('chat-subtitle');
+  const mode = useBridge ? `Bridge active (${settings.bridgeUrl})` : (localStorage.getItem('gemini_api_key') ? 'Browser key fallback available' : 'Offline');
+  const req = settings.requireBridge ? ' (Bridge required)' : '';
+  el.innerText = `Assistant: ${mode}${req}.`;
+}
+
+function refreshDevBadge() {
+  const badge = document.getElementById('chat-dev-badge');
+  badge.style.display = settings.devMode ? 'inline-block' : 'none';
+}
+
+// ---------------- API & BRIDGE ----------------
+let useBridge = false;
+function BRIDGE_URL() { return settings.bridgeUrl; }
+
+async function checkConnection() {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+
+  dot.className = "dot";
+  txt.innerText = "Neural Link: Checking...";
+  useBridge = false;
+
+  let bridgeOnline = false;
+  try {
+    const res = await fetch(`${BRIDGE_URL()}/status`, { cache: "no-store" });
+    const data = await res.json();
+    if (data && data.status === 'online') bridgeOnline = true;
+  } catch (_) {}
+
+  if (bridgeOnline) {
+    useBridge = true;
+    dot.className = "dot bridge";
+    txt.innerText = "Neural Link: Bridge Active (Gemini CLI)";
+  } else {
+    if (settings.requireBridge) {
+      dot.className = "dot failed-pulse";
+      txt.innerText = "Neural Link: Offline (Bridge Required)";
+      useBridge = false;
+      updateChatSubtitle();
+      return;
+    }
+    if (localStorage.getItem('gemini_api_key')) {
+      dot.className = "dot active";
+      txt.innerText = "Neural Link: Browser Key";
+    } else {
+      dot.className = "dot";
+      txt.innerText = "Neural Link: Offline (No Key)";
+    }
+  }
+
+  // Optional test ping if available
+  const canAttempt = useBridge || (!settings.requireBridge && localStorage.getItem('gemini_api_key'));
+  if (!canAttempt) { updateChatSubtitle(); return; }
+
+  try {
+    txt.innerText = "Neural Link: Testing...";
+    const reply = await callLLM("Ping.", BASE_SYSTEM_PROMPT, true);
+    if (reply && !String(reply).includes("Error:")) {
+      dot.className = useBridge ? "dot bridge active-pulse" : "dot active active-pulse";
+      txt.innerText = "Neural Link: Online & Verified!";
+    } else {
+      dot.className = "dot failed-pulse";
+      txt.innerText = "Neural Link: Test Failed";
+    }
+  } catch {
+    dot.className = "dot failed-pulse";
+    txt.innerText = "Neural Link: Test Failed";
+  } finally {
+    updateChatSubtitle();
+  }
+}
+
+// Gemini browser API fallback (optional)
+async function callLLM_browser(prompt, systemPrompt) {
+  const key = localStorage.getItem('gemini_api_key');
+  if (!key) return "Error: Key missing in Browser (Visit Sanctum).";
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+    const payload = { contents: [{ parts: [{ text: systemPrompt + "\nUser: " + prompt }] }] };
+    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.candidates && data.candidates[0].content) return data.candidates[0].content.parts[0].text;
+    if (data.error) return "Gemini API Error: " + data.error.message;
+    return "Error: Unexpected API response.";
+  } catch(e) {
+    return "Network Error.";
+  }
+}
+
+// Bridge call (Gemini CLI via your local server)
+async function callLLM_bridge(prompt, systemPrompt) {
+  try {
+    const res = await fetch(`${BRIDGE_URL()}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ message: prompt, system: systemPrompt })
+    });
+    const data = await res.json();
+    if (data.reply) return data.reply;
+    if (data.error) return "Error: " + data.error;
+    return "Error: Unknown response from Bridge.";
+  } catch (e) {
+    return "Connection Error: Is bridge.py running?";
+  }
+}
+
+// Unified
+async function callLLM(prompt, systemPrompt, noContext=false) {
+  const sys = noContext ? systemPrompt : (systemPrompt + "\n\n" + buildConversationContext());
+  if (useBridge) return await callLLM_bridge(prompt, sys);
+  if (settings.requireBridge) return "Error: Bridge required but not available.";
+  return await callLLM_browser(prompt, sys);
+}
+
+// ---------------- CHAT (timestamps, glows, delay, memory) ----------------
+const BASE_SYSTEM_PROMPT =
+`You are an intelligent assistant.
+Respond formally, precisely, and concisely.
+Do not use roleplay, emojis, or animal personas.
+If the user asks for "model version/instance", state you cannot access runtime instance identifiers.`;
+
+const chatState = {
+  messages: [],     // {role: 'system'|'user'|'assistant', text: string, ts: number}
+  maxMessages: 18,  // for context window
+  pending: false,
+};
+
+function nowTs() { return Date.now(); }
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function pushChat(role, text, ts=nowTs()) {
+  chatState.messages.push({ role, text, ts });
+  while (chatState.messages.length > 200) chatState.messages.shift(); // keep bounded
+  renderChat();
+}
+
+function renderChat() {
+  const hist = document.getElementById('chat-history');
+  hist.innerHTML = "";
+
+  // Identify last user and last assistant indices for glow
+  let lastUserIdx = -1, lastAsstIdx = -1;
+  for (let i=chatState.messages.length-1; i>=0; i--) {
+    if (lastUserIdx === -1 && chatState.messages[i].role === 'user') lastUserIdx = i;
+    if (lastAsstIdx === -1 && chatState.messages[i].role === 'assistant') lastAsstIdx = i;
+    if (lastUserIdx !== -1 && lastAsstIdx !== -1) break;
+  }
+
+  chatState.messages.forEach((m, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${m.role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = escapeHtml(m.text);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerText = fmtTime(m.ts);
+
+    const inner = document.createElement('div');
+    inner.style.display = 'flex';
+    inner.style.flexDirection = 'column';
+    inner.style.alignItems = (m.role === 'user') ? 'flex-end' : 'flex-start';
+    inner.appendChild(bubble);
+    inner.appendChild(meta);
+
+    wrap.appendChild(inner);
+
+    // apply glows
+    if (idx === lastUserIdx && m.role === 'user') wrap.classList.add('glow-user');
+    if (idx === lastAsstIdx && m.role === 'assistant') wrap.classList.add('glow-assistant');
+
+    hist.appendChild(wrap);
+  });
+
+  hist.scrollTop = hist.scrollHeight;
+}
+
+function buildConversationContext() {
+  // only include recent messages, and do NOT include dev commands execution logs
+  const recent = chatState.messages
+    .filter(m => m.role !== 'system')
+    .slice(-chatState.maxMessages);
+
+  const lines = recent.map(m => {
+    const who = (m.role === 'user') ? 'User' : 'Assistant';
+    return `${who} [${fmtTime(m.ts)}]: ${m.text}`;
+  });
+
+  return `Conversation context (for continuity; do not quote verbatim unless asked):\n` + lines.join("\n");
+}
+
+function setChatPending(p) {
+  chatState.pending = p;
+  const btn = document.getElementById('chat-send-btn');
+  const inp = document.getElementById('chat-input');
+  btn.disabled = p;
+  inp.disabled = p;
+}
+
+// Typing placeholder message ID handling
+let typingMessageIndex = -1;
+function addTyping() {
+  const ts = nowTs();
+  chatState.messages.push({ role:'assistant', text:'', ts, _typing:true });
+  typingMessageIndex = chatState.messages.length - 1;
+  renderChat();
+  // Replace bubble HTML with dots (safe: we set innerHTML below)
+  const hist = document.getElementById('chat-history');
+  const nodes = hist.querySelectorAll('.msg.assistant .bubble');
+  if (nodes.length > 0) {
+    const last = nodes[nodes.length - 1];
+    last.innerHTML = `<span class="typing-dots"><span></span><span></span><span></span></span>`;
+  }
+}
+
+function removeTyping() {
+  if (typingMessageIndex >= 0 && typingMessageIndex < chatState.messages.length) {
+    chatState.messages.splice(typingMessageIndex, 1);
+    typingMessageIndex = -1;
+    renderChat();
+  }
+}
+
+// ---------------- RECLUSE MODE (backdoor) ----------------
+function enableDevMode(on) {
+  settings.devMode = !!on;
+  saveSettings();
+  refreshDevBadge();
+  pushChat('system', settings.devMode
+    ? "Recluse Mode enabled. Type 'help' for commands."
+    : "Recluse Mode disabled.");
+}
+
+function isMagicPhrase(s, phrase) {
+  return String(s).trim().toLowerCase() === phrase.toLowerCase();
+}
+
+function isDevCommand(s) {
+  if (!settings.devMode) return false;
+  const t = String(s).trim().toLowerCase();
+  return (
+    t === 'help' ||
+    t === 'status' ||
+    t === 'show debug' ||
+    t === 'hide debug' ||
+    t === 'regen' ||
+    t.startsWith('set ') ||
+    t.startsWith('toggle ') ||
+    t.startsWith('teleport ')
+  );
+}
+
+function handleDevCommand(raw) {
+  const t = String(raw).trim();
+  const low = t.toLowerCase();
+
+  const say = (msg) => pushChat('system', msg);
+
+  if (low === 'help') {
+    say(
+`Recluse Mode commands:
+- status
+- show debug | hide debug
+- regen
+- set speed <2..20>
+- set seed <int>
+- set bridgeurl <http://127.0.0.1:5000>
+- set requirebridge <on|off>
+- toggle cosmic
+- toggle textured
+- toggle minimap
+- teleport <tileX> <tileY>`
+    );
+    return true;
+  }
+
+  if (low === 'status') {
+    say(`Status:
+- devMode=${settings.devMode}
+- bridgeUrl=${settings.bridgeUrl}
+- requireBridge=${settings.requireBridge}
+- useBridge=${useBridge}
+- cosmicParticles=${settings.cosmicParticles}
+- texturedGround=${settings.texturedGround}
+- minimap=${settings.minimap}
+- speed=${settings.playerSpeed}
+- seed=${settings.worldSeed}`);
+    return true;
+  }
+
+  if (low === 'show debug') {
+    settings.showDebug = true; saveSettings();
+    say("Debug overlay enabled.");
+    return true;
+  }
+  if (low === 'hide debug') {
+    settings.showDebug = false; saveSettings();
+    say("Debug overlay disabled.");
+    return true;
+  }
+
+  if (low === 'regen') {
+    regenWorld();
+    say("World regenerated.");
+    return true;
+  }
+
+  if (low.startsWith('toggle ')) {
+    const what = low.slice('toggle '.length).trim();
+    if (what === 'cosmic') settings.cosmicParticles = !settings.cosmicParticles;
+    else if (what === 'textured') settings.texturedGround = !settings.texturedGround;
+    else if (what === 'minimap') settings.minimap = !settings.minimap;
+    else { say("Unknown toggle. Try: toggle cosmic | toggle textured | toggle minimap"); return true; }
+    saveSettings();
+    syncSanctumUI();
+    updateGameSettings();
+    say(`Toggled ${what}.`);
+    return true;
+  }
+
+  if (low.startsWith('set ')) {
+    const rest = t.slice(4).trim();
+    const parts = rest.split(/\s+/);
+    const key = (parts[0] || '').toLowerCase();
+    const val = parts.slice(1).join(' ').trim();
+
+    if (key === 'speed') {
+      const n = clampInt(parseInt(val, 10), 2, 20);
+      settings.playerSpeed = n; player.speed = n;
+      saveSettings(); syncSanctumUI(); updateGameSettings();
+      say(`Set speed=${n}.`);
+      return true;
+    }
+    if (key === 'seed') {
+      const n = clampInt(parseInt(val, 10), 0, 2147483647);
+      settings.worldSeed = n;
+      saveSettings(); syncSanctumUI();
+      say(`Set seed=${n}. Use 'regen' to apply.`);
+      return true;
+    }
+    if (key === 'bridgeurl') {
+      if (!val.startsWith('http://') && !val.startsWith('https://')) {
+        say("bridgeurl must start with http:// or https://");
+        return true;
+      }
+      settings.bridgeUrl = val.replace(/\/+$/,'');
+      saveSettings(); updateChatSubtitle();
+      say(`Set bridgeUrl=${settings.bridgeUrl}.`);
+      return true;
+    }
+    if (key === 'requirebridge') {
+      const on = val.toLowerCase();
+      if (on !== 'on' && on !== 'off') { say("Usage: set requirebridge on|off"); return true; }
+      settings.requireBridge = (on === 'on');
+      saveSettings(); syncSanctumUI(); updateGameSettings();
+      say(`Set requireBridge=${settings.requireBridge}.`);
+      return true;
+    }
+
+    say("Unknown set command. Try: set speed | set seed | set bridgeurl | set requirebridge");
+    return true;
+  }
+
+  if (low.startsWith('teleport ')) {
+    const args = low.slice('teleport '.length).trim().split(/\s+/);
+    if (args.length < 2) { say("Usage: teleport <tileX> <tileY>"); return true; }
+    const tx = clampInt(parseInt(args[0], 10), 0, MAP_W-1);
+    const ty = clampInt(parseInt(args[1], 10), 0, MAP_H-1);
+    player.x = tx * TILE;
+    player.y = ty * TILE;
+    familiar.x = player.x; familiar.y = player.y;
+    say(`Teleported to (${tx}, ${ty}).`);
+    return true;
+  }
+
+  return false;
+}
+
+// ---------------- GAME ENGINE ----------------
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const miniCanvas = document.getElementById('minimap');
+const miniCtx = miniCanvas.getContext('2d');
+
+let width = 0, height = 0, dpr = 1;
+
+let TILE = 64;                // mutable if you later want to support set tilesize
+const MAP_W = 50, MAP_H = 50;
+
+const player = { x: 25*TILE, y: 25*TILE, speed: settings.playerSpeed, facing: 'right' };
+const familiar = { x: 25*TILE, y: 25*TILE };
+
+let map = [];
+let gameRunning = true;
+let frameTick = 0;
+let npcs = [];
+
+const portals = [
+  { x: 25, y: 5,  color: '#ffd700', label: 'The Tautology', app: 'app-god' },
+  { x: 45, y: 25, color: '#2d9cdb', label: 'Machine', app: 'app-machine' },
+  { x: 5,  y: 25, color: '#2f4f4f', label: 'Garden', app: 'app-garden' },
+  { x: 25, y: 45, color: '#9b59b6', label: 'Resolve', app: 'app-resolve' },
+  { x: 25, y: 25, color: '#555',    label: 'Sanctum', app: 'app-recluse' }
+];
+
+// ASSETS
+const assets = { player_right: [], player_left: [], golem: [], flow: [], mouse: [] };
+function loadSprites(key, prefix, count, suffix='') {
+  assets[key] = [];
+  for (let i=1; i<=count; i++) {
+    const img = new Image();
+    img.src = `images/${prefix}${i}${suffix}.png`;
+    img.onload = () => console.log(`Loaded: ${key}[${i}]`);
+    img.onerror = () => console.error(`FAILED: images/${prefix}${i}${suffix}.png`);
+    assets[key].push(img);
+  }
+}
+loadSprites('player_right', 'andre', 4);
+loadSprites('player_left', 'andre', 4, '_left');
+loadSprites('golem', 'golem', 8);
+loadSprites('flow', 'flow', 5);
+loadSprites('mouse', 'mouse', 4);
+
+// Procedural tile patterns
+const tileColors = {
+  0:'#2e7d32', // grass
+  1:'#1e88e5', // water
+  2:'#444',    // floor
+  3:'#e6c9a8', // sand
+  4:'#1b5e20', // forest
+  5:'#795548', // path
+  6:'#607d8b', // mountain
+};
+const tilePatterns = {};
+function makePattern(drawFn) {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  drawFn(g, c.width, c.height);
+  return ctx.createPattern(c, 'repeat');
+}
+function initTilePatterns() {
+  tilePatterns[0] = makePattern((g,w,h)=>{ // grass
+    g.fillStyle='#2e7d32'; g.fillRect(0,0,w,h);
+    for(let i=0;i<90;i++){
+      const x=(Math.random()*w)|0, y=(Math.random()*h)|0;
+      g.fillStyle=(i%3===0)?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.06)';
+      g.fillRect(x,y,1,2);
+    }
+    for(let i=0;i<18;i++){
+      const x=Math.random()*w, y=Math.random()*h;
+      g.fillStyle='rgba(30,120,40,0.35)';
+      g.beginPath(); g.arc(x,y,(Math.random()*2+1),0,Math.PI*2); g.fill();
+    }
+  });
+  tilePatterns[1] = makePattern((g,w,h)=>{ // water
+    g.fillStyle='#1e88e5'; g.fillRect(0,0,w,h);
+    g.strokeStyle='rgba(255,255,255,0.18)'; g.lineWidth=2;
+    for(let y=10;y<h;y+=14){
+      g.beginPath();
+      for(let x=0;x<=w;x+=8){
+        const yy=y+Math.sin(x/10)*2;
+        g.lineTo(x,yy);
+      }
+      g.stroke();
+    }
+    g.fillStyle='rgba(0,0,0,0.08)'; g.fillRect(0,0,w,h);
+  });
+  tilePatterns[2] = makePattern((g,w,h)=>{ // floor
+    g.fillStyle='#3f3f3f'; g.fillRect(0,0,w,h);
+    for(let i=0;i<18;i++){
+      const x=Math.random()*w, y=Math.random()*h;
+      const rw=10+Math.random()*18, rh=8+Math.random()*14;
+      g.fillStyle='rgba(255,255,255,0.06)'; g.fillRect(x,y,rw,rh);
+      g.strokeStyle='rgba(0,0,0,0.18)'; g.strokeRect(x,y,rw,rh);
+    }
+  });
+  tilePatterns[3] = makePattern((g,w,h)=>{ // sand
+    g.fillStyle='#e6c9a8'; g.fillRect(0,0,w,h);
+    for(let i=0;i<120;i++){
+      const x=(Math.random()*w)|0, y=(Math.random()*h)|0;
+      g.fillStyle=(i%2===0)?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
+      g.fillRect(x,y,1,1);
+    }
+    g.strokeStyle='rgba(255,255,255,0.12)'; g.beginPath(); g.arc(20,20,10,0,Math.PI*2); g.stroke();
+  });
+  tilePatterns[4] = makePattern((g,w,h)=>{ // forest
+    g.fillStyle='#1b5e20'; g.fillRect(0,0,w,h);
+    for(let i=0;i<24;i++){
+      const x=Math.random()*w, y=Math.random()*h;
+      g.fillStyle='rgba(0,0,0,0.12)'; g.beginPath(); g.arc(x,y,6+Math.random()*10,0,Math.PI*2); g.fill();
+      g.fillStyle='rgba(255,255,255,0.04)'; g.beginPath(); g.arc(x+3,y-2,4+Math.random()*8,0,Math.PI*2); g.fill();
+    }
+  });
+  tilePatterns[5] = makePattern((g,w,h)=>{ // path
+    g.fillStyle='#795548'; g.fillRect(0,0,w,h);
+    for(let i=0;i<30;i++){
+      const x=Math.random()*w, y=Math.random()*h, r=2+Math.random()*4;
+      g.fillStyle='rgba(255,255,255,0.07)'; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+    }
+    g.fillStyle='rgba(0,0,0,0.10)'; g.fillRect(0,0,w,h);
+  });
+  tilePatterns[6] = makePattern((g,w,h)=>{ // mountain
+    g.fillStyle='#607d8b'; g.fillRect(0,0,w,h);
+    g.fillStyle='rgba(255,255,255,0.10)';
+    for(let i=0;i<6;i++){
+      const x=i*12+Math.random()*6;
+      g.beginPath();
+      g.moveTo(x,50); g.lineTo(x+14,20+Math.random()*10); g.lineTo(x+28,50);
+      g.closePath(); g.fill();
+    }
+    g.fillStyle='rgba(0,0,0,0.12)'; g.fillRect(0,0,w,h);
+  });
+}
+
+// Backdrop particles
+const skyParticles = [];
+function initSkyParticles() {
+  skyParticles.length = 0;
+  for (let i=0;i<120;i++){
+    skyParticles.push({
+      x: Math.random()*width,
+      y: Math.random()*height,
+      r: 0.6 + Math.random()*1.6,
+      vx: -0.2 - Math.random()*0.35,
+      vy: -0.05 + Math.random()*0.10,
+      a: 0.25 + Math.random()*0.35,
+    });
+  }
+}
+
+function drawBackdrop() {
+  const g = ctx.createLinearGradient(0,0,0,height);
+  g.addColorStop(0,'#7cc6ff');
+  g.addColorStop(0.55,'#bfe8ff');
+  g.addColorStop(1,'#e9f7ff');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,width,height);
+
+  // clouds
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  const t = frameTick * 0.003;
+  for(let i=0;i<8;i++){
+    const cx=(width*(0.15+i*0.12)+Math.sin(t+i)*90)%(width+200)-100;
+    const cy=height*0.18+i*18+Math.cos(t*1.2+i)*8;
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,80,22,0,0,Math.PI*2);
+    ctx.ellipse(cx+50,cy+6,55,18,0,0,Math.PI*2);
+    ctx.ellipse(cx-45,cy+8,45,16,0,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  if (settings.cosmicParticles){
+    for (const p of skyParticles){
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -10) p.x = width + 10;
+      if (p.y < -10) p.y = height + 10;
+      if (p.y > height + 10) p.y = -10;
+      ctx.fillStyle = `rgba(255,255,255,${p.a})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // vignette
+  const vg = ctx.createRadialGradient(width/2,height/2,Math.min(width,height)*0.2, width/2,height/2, Math.max(width,height)*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,0,0.25)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,width,height);
+}
+
+// Seeded RNG (so seed changes are meaningful)
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function generateWorld() {
+  map = []; npcs = [];
+  const rand = mulberry32(settings.worldSeed);
+
+  const noise = (x,y) => Math.sin(x*0.15) + Math.cos(y*0.15) + Math.sin(x*0.05 + y*0.05)*0.5;
+
+  for (let y=0; y<MAP_H; y++){
+    const row = [];
+    for (let x=0; x<MAP_W; x++){
+      const n = noise(x,y);
+      let t = 0;
+      if (n > 1.2) t = 1;
+      else if (n > 0.8) t = 3;
+      else if (n < -0.5) t = 4;
+      else if (n < -1.2) t = 6;
+      row.push(t);
+
+      if (t === 0 && rand() < 0.05) spawnNPC('mouse', x, y, 0.6, true);
+      if (t === 6 && rand() < 0.05) spawnNPC('golem', x, y, 1.2, false);
+      if (t === 4 && rand() < 0.02) spawnNPC('flow', x, y, 1.0, true);
+    }
+    map.push(row);
+  }
+
+  const center = portals[4];
+  portals.forEach(p => {
+    const cx = center.x, cy = center.y;
+    const dx = p.x - cx, dy = p.y - cy;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy)) || 1;
+
+    for (let i=0; i<=steps; i++){
+      const tx = Math.floor(cx + dx*(i/steps));
+      const ty = Math.floor(cy + dy*(i/steps));
+      if (map[ty] && map[ty][tx] !== 1) map[ty][tx] = 5;
+    }
+
+    for (let ddy=-1; ddy<=1; ddy++){
+      for (let ddx=-1; ddx<=1; ddx++){
+        const yy = p.y+ddy, xx = p.x+ddx;
+        if (yy>=0 && yy<MAP_H && xx>=0 && xx<MAP_W) map[yy][xx] = 2;
+      }
+    }
+  });
+
+  spawnNPC('golem', portals[1].x-2, portals[1].y, 1.5, false);
+  spawnNPC('flow', portals[0].x, portals[0].y+2, 1.0, true);
+
+  player.x = 25*TILE; player.y = 25*TILE;
+  familiar.x = player.x; familiar.y = player.y;
+}
+
+function spawnNPC(type, tx, ty, scale, wander) {
+  npcs.push({
+    type,
+    x: tx*TILE + TILE/2,
+    y: ty*TILE + TILE/2,
+    scale,
+    wander,
+    baseX: tx*TILE + TILE/2,
+    baseY: ty*TILE + TILE/2
+  });
+}
+
+function regenWorld() {
+  generateWorld();
+}
+
+// Resize / HiDPI
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  width = window.innerWidth;
+  height = window.innerHeight;
+
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  miniCanvas.style.width = '200px';
+  miniCanvas.style.height = '200px';
+  miniCanvas.width = Math.floor(200 * dpr);
+  miniCanvas.height = Math.floor(200 * dpr);
+  miniCtx.setTransform(dpr,0,0,dpr,0,0);
+
+  initSkyParticles();
+}
+
+// Input
+const keys = {};
+window.addEventListener('keydown', e => {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  keys[e.key] = true;
+
+  if (e.key === 'Tab' && e.shiftKey) {
+    e.preventDefault();
+    toggleChat();
+  }
+});
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+// Update loop
+function update(){
+  if (document.getElementById('chat-overlay').style.display === 'block') return;
+
+  if (keys['w'] || keys['ArrowUp']) player.y -= player.speed;
+  if (keys['s'] || keys['ArrowDown']) player.y += player.speed;
+  if (keys['a'] || keys['ArrowLeft']) { player.x -= player.speed; player.facing = 'left'; }
+  if (keys['d'] || keys['ArrowRight']) { player.x += player.speed; player.facing = 'right'; }
+
+  player.x = Math.max(0, Math.min(player.x, MAP_W*TILE - TILE));
+  player.y = Math.max(0, Math.min(player.y, MAP_H*TILE - TILE));
+
+  familiar.x += (player.x - 40 - familiar.x) * 0.08;
+  familiar.y += (player.y - 40 - familiar.y) * 0.08;
+
+  npcs.forEach(n => {
+    if (n.wander) {
+      n.x = n.baseX + Math.sin(frameTick*0.02 + n.y*0.01)*30;
+      n.y = n.baseY + Math.cos(frameTick*0.02 + n.x*0.01)*30;
+    }
+  });
+
+  const px = Math.floor((player.x+32)/TILE);
+  const py = Math.floor((player.y+32)/TILE);
+
+  portals.forEach(p => {
+    const dx = px - p.x, dy = py - p.y;
+    if (dx*dx + dy*dy < 1) { openApp(p.app); player.y += 64; }
+  });
+}
+
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+
+  drawBackdrop();
+
+  ctx.save();
+  const cx = width/2 - player.x;
+  const cy = height/2 - player.y;
+  ctx.translate(cx, cy);
+
+  const startCol = Math.floor((-cx)/TILE);
+  const endCol = startCol + (width/TILE) + 2;
+  const startRow = Math.floor((-cy)/TILE);
+  const endRow = startRow + (height/TILE) + 2;
+
+  for (let y=startRow; y<=endRow; y++){
+    for (let x=startCol; x<=endCol; x++){
+      if (y<0 || y>=MAP_H || x<0 || x>=MAP_W) continue;
+      const t = map[y][x];
+
+      if (settings.texturedGround && tilePatterns[t]) ctx.fillStyle = tilePatterns[t];
+      else ctx.fillStyle = tileColors[t] || '#2e7d32';
+
+      ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.strokeRect(x*TILE, y*TILE, TILE, TILE);
+
+      if (t === 1) {
+        const phase = frameTick*0.06 + (x+y)*0.6;
+        ctx.fillStyle = `rgba(255,255,255,${0.06 + 0.04*Math.sin(phase)})`;
+        ctx.fillRect(x*TILE, y*TILE + 10 + (Math.sin(phase)*3), TILE, 6);
+      }
+
+      if (t === 4) {
+        ctx.fillStyle = 'rgba(0,0,0,0.20)';
+        ctx.beginPath();
+        ctx.moveTo(x*TILE+32, y*TILE+10);
+        ctx.lineTo(x*TILE+10, y*TILE+50);
+        ctx.lineTo(x*TILE+54, y*TILE+50);
+        ctx.fill();
+      }
+      if (t === 6) {
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(x*TILE+32, y*TILE+10);
+        ctx.lineTo(x*TILE+10, y*TILE+60);
+        ctx.lineTo(x*TILE+54, y*TILE+60);
+        ctx.fill();
+      }
+      if (t === 0 && (x+y)%7===0) {
+        ctx.fillStyle = '#e91e63';
+        ctx.beginPath(); ctx.arc(x*TILE+32, y*TILE+32, 4, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+
+  // Portals
+  portals.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x*TILE+TILE/2, p.y*TILE+TILE/2, 30, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = 'bold 16px Nunito';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.label, p.x*TILE+32, p.y*TILE-20);
+
+    if (p.app === 'app-god') {
+      ctx.fillStyle = '#ccc'; ctx.fillRect(p.x*TILE, p.y*TILE-60, 64, 40);
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.moveTo(p.x*TILE, p.y*TILE-60);
+      ctx.lineTo(p.x*TILE+32, p.y*TILE-90);
+      ctx.lineTo(p.x*TILE+64, p.y*TILE-60);
+      ctx.fill();
+    }
+    if (p.app === 'app-garden') {
+      ctx.fillStyle = '#5d4037'; ctx.fillRect(p.x*TILE+10, p.y*TILE-40, 44, 30);
+      ctx.fillStyle = '#3e2723';
+      ctx.beginPath();
+      ctx.moveTo(p.x*TILE+10, p.y*TILE-40);
+      ctx.lineTo(p.x*TILE+32, p.y*TILE-60);
+      ctx.lineTo(p.x*TILE+54, p.y*TILE-40);
+      ctx.fill();
+    }
+  });
+
+  // NPCs
+  npcs.forEach(n => {
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(n.x, n.y+10, 10*n.scale, 5*n.scale, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    const sprites = assets[n.type];
+    if (sprites && sprites.length > 0) {
+      const frame = Math.floor(frameTick / 10) % sprites.length;
+      const img = sprites[frame];
+      const size = 64 * n.scale;
+      if (img.complete && img.naturalHeight !== 0) {
+        ctx.drawImage(img, n.x - size/2, n.y - size/2 - 10, size, size);
+      } else {
+        ctx.fillStyle = '#ff00ff';
+        ctx.fillRect(n.x-20, n.y-40, 40, 40);
+      }
+    }
+  });
+
+  // Player
+  const pSprites = (player.facing === 'left') ? assets.player_left : assets.player_right;
+  const pSize = 64;
+  if (pSprites && pSprites.length > 0) {
+    const pFrame = Math.floor(frameTick / 8) % pSprites.length;
+    const pImg = pSprites[pFrame];
+    if (pImg && pImg.complete && pImg.naturalHeight !== 0) {
+      ctx.drawImage(pImg, player.x-16, player.y-32, pSize, pSize);
+    } else {
+      ctx.fillStyle = '#ff00ff';
+      ctx.beginPath(); ctx.arc(player.x, player.y, 20, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Familiar (simple orb)
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath(); ctx.arc(familiar.x, familiar.y, 10, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(familiar.x-3, familiar.y-2, 3, 0, Math.PI*2);
+  ctx.arc(familiar.x+3, familiar.y-2, 3, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // subtle screen tint
+  ctx.fillStyle='rgba(40,60,90,0.06)';
+  ctx.fillRect(0,0,width,height);
+
+  // debug overlay
+  const dbg = document.getElementById('debug-overlay');
+  if (settings.showDebug) {
+    dbg.style.display = 'block';
+    const tx = Math.floor(player.x / TILE);
+    const ty = Math.floor(player.y / TILE);
+    dbg.innerText =
+`seed=${settings.worldSeed}
+bridge=${useBridge ? 'on' : 'off'}
+requireBridge=${settings.requireBridge}
+devMode=${settings.devMode}
+pos=(tile ${tx},${ty})
+posPx=(${Math.floor(player.x)},${Math.floor(player.y)})
+speed=${player.speed}`;
+  } else {
+    dbg.style.display = 'none';
+  }
+}
+
+function drawMinimap(){
+  if (!settings.minimap) return;
+  miniCtx.setTransform(dpr,0,0,dpr,0,0);
+  miniCtx.clearRect(0,0,200,200);
+
+  const scaleX = 200 / (MAP_W*TILE);
+  const scaleY = 200 / (MAP_H*TILE);
+
+  miniCtx.fillStyle = '#2e7d32';
+  miniCtx.fillRect(0,0,200,200);
+
+  miniCtx.fillStyle = '#fff';
+  miniCtx.beginPath();
+  miniCtx.arc(player.x*scaleX, player.y*scaleY, 3, 0, Math.PI*2);
+  miniCtx.fill();
+
+  portals.forEach(p => {
+    miniCtx.fillStyle = p.color;
+    miniCtx.beginPath();
+    miniCtx.arc((p.x*TILE)*scaleX, (p.y*TILE)*scaleY, 2, 0, Math.PI*2);
+    miniCtx.fill();
+  });
+}
+
+function loop(){
+  if (gameRunning) { update(); frameTick++; }
+  draw();
+  drawMinimap();
+  requestAnimationFrame(loop);
+}
+
+// ---------------- APP LOGIC ----------------
+function openApp(id){
+  gameRunning = false;
+  document.getElementById(id).classList.add('active');
+  if (id === 'app-machine') initMachineAnim();
+  if (id === 'app-garden') initGarden();
+}
+function closeApp(){
+  document.querySelectorAll('.app-layer').forEach(el => el.classList.remove('active'));
+  gameRunning = true;
+  checkConnection();
+}
+function saveKey(){
+  localStorage.setItem('gemini_api_key', document.getElementById('api-key-input').value);
+  document.getElementById('key-msg').innerText = "Saved.";
+  checkConnection();
+}
+
+// ---------------- CHAT UI ----------------
+function toggleChat(){
+  const el = document.getElementById('chat-overlay');
+  el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  if (el.style.display === 'block') {
+    document.getElementById('chat-input').focus();
+    renderChat();
+  }
+}
+
+async function sendChatMsg(){
+  const inp = document.getElementById('chat-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+
+  // Magic phrases (always active)
+  if (isMagicPhrase(txt, "recluse mode on")) {
+    inp.value = "";
+    pushChat('user', txt);
+    enableDevMode(true);
+    return;
+  }
+  if (isMagicPhrase(txt, "recluse mode off")) {
+    inp.value = "";
+    pushChat('user', txt);
+    enableDevMode(false);
+    return;
+  }
+
+  // Dev commands (intercept locally, do not send to LLM)
+  if (isDevCommand(txt)) {
+    inp.value = "";
+    pushChat('user', txt);
+    handleDevCommand(txt);
+    return;
+  }
+
+  inp.value = "";
+  pushChat('user', txt);
+
+  setChatPending(true);
+  addTyping();
+
+  // Enforce a small minimum delay so reply appears a fraction later
+  const minDelayMs = 180;
+  const t0 = performance.now();
+
+  let reply = "";
+  try {
+    reply = await callLLM(txt, BASE_SYSTEM_PROMPT, false);
+  } catch (e) {
+    reply = "Error: request failed.";
+  }
+
+  const elapsed = performance.now() - t0;
+  if (elapsed < minDelayMs) {
+    await new Promise(r => setTimeout(r, minDelayMs - elapsed));
+  }
+
+  removeTyping();
+  pushChat('assistant', reply);
+
+  setChatPending(false);
+}
+
+// ---------------- OTHER APP INTERACTIONS ----------------
+async function speakToGod() {
+  const inp = document.getElementById('god-input');
+  const voice = document.getElementById('god-voice');
+  const txt = inp.value.trim(); if(!txt) return;
+  inp.value=''; voice.innerText="...";
+
+  const sys = "You are The Tautology, a God of Least Action and Physics. Profound, distant, mathematical metaphors.";
+  try {
+    const reply = await callLLM(txt, sys, true);
+    voice.innerText = `"${reply}"`;
+  } catch(e) {
+    voice.innerText = "The signal fades...";
+  }
+}
+
+async function sendResolve() {
+  const inp = document.getElementById('resolve-input');
+  const log = document.getElementById('resolve-log');
+  const txt = inp.value.trim(); if(!txt) return;
+
+  log.innerHTML += `<div>&gt; ${escapeHtml(txt)}</div>`;
+  inp.value = '';
+
+  const sys = "You are Supervisor Andre, a high-tech discipline AI. Stern but encouraging. Use tech jargon.";
+  try {
+    const reply = await callLLM(txt, sys, true);
+    log.innerHTML += `<div style="color:#aaccff">[SUPERVISOR]: ${escapeHtml(reply)}</div>`;
+    log.scrollTop = log.scrollHeight;
+  } catch(e) {
+    log.innerHTML += `<div style="color:red">OFFLINE</div>`;
+  }
+}
+
+function initGarden(){
+  const c = document.getElementById('grass-container');
+  if (c.children.length > 0) return;
+  for (let i=0;i<50;i++){
+    const b=document.createElement('div');
+    b.className='blade';
+    b.style.height=(30+Math.random()*50)+'px';
+    b.style.left=(Math.random()*100)+'%';
+    b.style.position='absolute';
+    b.style.animationDelay=(Math.random())+'s';
+    c.appendChild(b);
+  }
+}
+function buryMemory(){
+  const inp=document.getElementById('garden-input');
+  if (!inp.value) return;
+  inp.value="";
+  const f=document.createElement('div');
+  f.style.width='10px'; f.style.height='10px'; f.style.background='white'; f.style.borderRadius='50%';
+  f.style.position='absolute'; f.style.bottom='20px'; f.style.left=(10+Math.random()*80)+'%';
+  f.style.boxShadow="0 0 10px white";
+  document.getElementById('grass-container').appendChild(f);
+}
+
+let machineInterval;
+let swarmAgents = [];
+let swarmParams = { N: 80, sigma: 0.3, dt: 0.05 };
+
+function initMachineAnim(){
+  if(machineInterval) return;
+  resetSwarm();
+  
+  const canvas = document.getElementById('canvas-swarm');
+  const ctx = canvas.getContext('2d');
+  
+  machineInterval = setInterval(() => {
+    updateSwarm(canvas.width, canvas.height);
+    drawSwarm(ctx, canvas.width, canvas.height);
+  }, 30);
+}
+
+function updateSwarmParams() {
+    const s = document.getElementById('sde-noise');
+    swarmParams.sigma = parseInt(s.value) / 100.0;
+    document.getElementById('sde-noise-val').innerText = swarmParams.sigma.toFixed(2);
+}
+
+function resetSwarm() {
+    swarmAgents = [];
+    // Initialize N agents with random positions (Gaussian-ish clump in center)
+    for(let i=0; i<swarmParams.N; i++) {
+        swarmAgents.push({
+            x: 350 + (Math.random()-0.5)*200,
+            y: 175 + (Math.random()-0.5)*100,
+            vx: 0, vy: 0, // for momentum if we wanted Underdamped, but we are doing Overdamped
+            color: `hsl(${Math.random()*60 + 200}, 80%, 60%)` // Blues/Cyans
+        });
+    }
+}
+
+function updateSwarm(w, h) {
+    const potType = document.getElementById('sde-potential').value;
+    const intType = document.getElementById('sde-interaction').value;
+    const sigma = swarmParams.sigma;
+    const dt = swarmParams.dt;
+    const N = swarmParams.N;
+    
+    // Pre-calc interaction forces to avoid O(N^2) double loops if possible, 
+    // but N=80 is small enough for O(N^2) in JS.
+    
+    let newPos = [];
+    
+    for(let i=0; i<N; i++) {
+        let p = swarmAgents[i];
+        let fx = 0, fy = 0;
+        
+        // 1. Confinement Force -Grad(V)
+        if (potType === 'quadratic') {
+            // V = 0.5*k*(r^2) -> F = -k*r
+            // Target center (350, 175)
+            const dx = p.x - 350;
+            const dy = p.y - 175;
+            fx -= 0.05 * dx;
+            fy -= 0.05 * dy;
+        } 
+        else if (potType === 'doublewell') {
+            // Two wells at x=150 and x=550
+            // Simplified: F pushes to nearest well
+            const d1 = Math.abs(p.x - 200);
+            const d2 = Math.abs(p.x - 500);
+            const targetX = (d1 < d2) ? 200 : 500;
+            fx -= 0.05 * (p.x - targetX);
+            fy -= 0.05 * (p.y - 175); // Centered Y
+        }
+        else if (potType === 'rastrigin') {
+            // F = -x + A*sin(2*pi*x)
+            // Center pull + local wiggles
+            const dx = p.x - 350;
+            const dy = p.y - 175;
+            fx -= 0.01 * dx - 20 * Math.sin((p.x-350)*0.1);
+            fy -= 0.01 * dy - 20 * Math.sin((p.y-175)*0.1);
+        }
+
+        // 2. Interaction Force - (1/N) * sum(Grad(W))
+        let ix = 0, iy = 0;
+        if (intType !== 'none') {
+            for(let j=0; j<N; j++) {
+                if(i===j) continue;
+                const other = swarmAgents[j];
+                const dx = p.x - other.x;
+                const dy = p.y - other.y;
+                const distSq = dx*dx + dy*dy;
+                const dist = Math.sqrt(distSq) || 0.001;
+                
+                if (intType === 'coulomb') {
+                    // Repulsion: F = k/r^2 * (r_vec/r) = k/r^3 * r_vec
+                    // Soften to avoid explosion
+                    if (dist < 100) {
+                        const str = 2000 / (distSq + 10);
+                        ix += str * (dx/dist);
+                        iy += str * (dy/dist);
+                    }
+                }
+                else if (intType === 'newtonian') {
+                    // Attraction: F = -k*r
+                    ix -= 0.01 * dx;
+                    iy -= 0.01 * dy;
+                }
+                else if (intType === 'morse') {
+                    // Short repulsion, long attraction
+                    // Force = (Ca*exp(-r/La) - Cr*exp(-r/Lr)) * r_hat
+                    // Simplified params
+                    const rep = 800 * Math.exp(-dist/20);
+                    const att = 50 * Math.exp(-dist/80);
+                    const fVal = (rep - att); 
+                    ix += fVal * (dx/dist);
+                    iy += fVal * (dy/dist);
+                }
+            }
+            // Mean field scaling
+            ix /= (N * 0.2); // Tuned for visual effect
+            iy /= (N * 0.2);
+        }
+
+        // 3. Noise (Exploration)
+        const noiseX = (Math.random()-0.5) * 2 * Math.sqrt(dt) * sigma * 50; 
+        const noiseY = (Math.random()-0.5) * 2 * Math.sqrt(dt) * sigma * 50;
+        
+        // Update
+        newPos.push({
+            x: p.x + (fx + ix)*dt + noiseX,
+            y: p.y + (fy + iy)*dt + noiseY,
+            color: p.color
+        });
+    }
+    
+    // Apply bounds (reflect)
+    for(let i=0; i<N; i++) {
+        let p = newPos[i];
+        if(p.x < 0) p.x = 0; if(p.x > w) p.x = w;
+        if(p.y < 0) p.y = 0; if(p.y > h) p.y = h;
+        swarmAgents[i].x = p.x;
+        swarmAgents[i].y = p.y;
+    }
+}
+
+function drawSwarm(ctx, w, h) {
+    // Fade effect
+    ctx.fillStyle = 'rgba(17, 17, 17, 0.25)';
+    ctx.fillRect(0,0,w,h);
+    
+    // Draw Agents
+    for(let p of swarmAgents) {
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+        ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+}
+
+// Utilities
+function clampInt(x, lo, hi) {
+  if (!Number.isFinite(x)) return lo;
+  return Math.max(lo, Math.min(hi, x|0));
+}
+
+// ---------------- INIT ----------------
+function initGame(){
+  resize();
+  window.addEventListener('resize', resize);
+
+  initTilePatterns();
+
+  // Setup chat defaults
+  pushChat('system', "Assistant ready. Type 'recluse mode on' for parameter control.");
+  refreshDevBadge();
+
+  // Apply settings to UI + game
+  syncSanctumUI();
+  updateGameSettings();
+
+  // Generate world
+  generateWorld();
+
+  // Connection check
+  checkConnection();
+
+  // Start loop
+  requestAnimationFrame(loop);
+}
+
+initGame();
+</script>
+</body>
+</html>
