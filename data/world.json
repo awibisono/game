@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "week": 0,
+    "last_updated": "2026-01-18",
+    "simulation_speed": 1.0
+  },
+  "agents": [
+    { "id": "r1", "type": "R", "x": -50, "y": -50, "hp": 100, "mp": 20, "name": "Charm" },
+    { "id": "r2", "type": "R", "x": -40, "y": -60, "hp": 100, "mp": 20, "name": "Ember" },
+    { "id": "g1", "type": "G", "x": 50, "y": 50, "hp": 120, "mp": 10, "name": "Bulb" },
+    { "id": "g2", "type": "G", "x": 60, "y": 40, "hp": 120, "mp": 10, "name": "Leaf" },
+    { "id": "b1", "type": "B", "x": 0, "y": 80, "hp": 80, "mp": 50, "name": "Squirt" },
+    { "id": "b2", "type": "B", "x": -10, "y": 90, "hp": 80, "mp": 50, "name": "Splash" }
+  ],
+  "food": [
+    { "x": 0, "y": 0, "val": 50 },
+    { "x": 100, "y": -100, "val": 30 },
+    { "x": -100, "y": 100, "val": 30 }
+  ]
+}
