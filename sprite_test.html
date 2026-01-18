@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Animation Test</title>
+    <style>
+        body { background: #222; color: #eee; font-family: monospace; text-align: center; }
+        .container { display: flex; justify-content: center; gap: 50px; margin-top: 50px; }
+        .character-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 2px solid #444;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        h2 { color: #f0a500; }
+    </style>
+</head>
+<body>
+
+    <h1>Character Sprite Animation Test</h1>
+    <div class="container">
+        <div class="character-box">
+            <h2>Red (Fire)</h2>
+            <canvas id="canvas-R" width="128" height="128"></canvas>
+        </div>
+        <div class="character-box">
+            <h2>Green (Grass)</h2>
+            <canvas id="canvas-G" width="128" height="128"></canvas>
+        </div>
+        <div class="character-box">
+            <h2>Blue (Water)</h2>
+            <canvas id="canvas-B" width="128" height="128"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const SPRITE_W = 128; // Approximate width of one frame based on sheets
+        const SPRITE_H = 128; // Approximate height
+        const SCALE = 1.0;
+
+        // Assets
+        const assets = {
+            'R': { src: 'images/chars/red-walk.png', count: 4, img: new Image() },
+            'G': { src: 'images/chars/green-walk.png', count: 4, img: new Image() },
+            'B': { src: 'images/chars/blue-walk.png', count: 4, img: new Image() }
+        };
+
+        // Load Images
+        let loaded = 0;
+        Object.keys(assets).forEach(k => {
+            assets[k].img.src = assets[k].src;
+            assets[k].img.onload = () => {
+                loaded++;
+                if (loaded === 3) startAnimation();
+            };
+        });
+
+        function startAnimation() {
+            let frame = 0;
+            let lastTime = 0;
+            const fps = 8;
+            const interval = 1000 / fps;
+
+            function loop(time) {
+                if (time - lastTime > interval) {
+                    lastTime = time;
+                    frame = (frame + 1) % 4; // 4 frames per sheet
+                    draw(frame);
+                }
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        }
+
+        function draw(frame) {
+            ['R', 'G', 'B'].forEach(type => {
+                const canvas = document.getElementById(`canvas-${type}`);
+                const ctx = canvas.getContext('2d');
+                const asset = assets[type];
+                
+                // Clear
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Calculate source position
+                // Assuming sprites are laid out horizontally
+                // We need to estimate the width of a single frame from the total image width
+                const frameW = asset.img.width / asset.count;
+                const frameH = asset.img.height;
+                
+                // Draw Frame
+                ctx.drawImage(
+                    asset.img,
+                    frame * frameW, 0, frameW, frameH, // Source
+                    0, 0, 128, 128                     // Dest
+                );
+            });
+        }
+    </script>
+</body>
+</html>
