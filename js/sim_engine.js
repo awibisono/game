@@ -110,59 +110,39 @@ class Engine {
         this.seed = worldData.meta.seed || 1337;
         this.rng = new PRNG(this.seed);
         this.islandSeed = 1337;
-        this.time = 0; // Simulation time for wind/waves
+        this.time = 0; 
         
-        // Physics Params (Underdamped)
+        // Physics Params (Refined for stability)
         this.params = {
-            dt: 0.05,
-            sigma: 0.8,
-            friction: 2.5,
+            dt: 0.03,        // Slower time step
+            sigma: 0.3,      // Lower noise
+            friction: 4.0,   // Higher damping (more grounded)
             mass: 1.0,
-            k: 0.5,
-            alpha: 0.6,
-            beta: 2.2,
-            rps: 1.2,
-            eco: 1.5,
-            shore: 20.0
+            k: 0.3,          // Lower global attraction
+            alpha: 0.4,
+            beta: 1.5,
+            rps: 1.0,
+            eco: 2.0,        // Stronger biome preference
+            shore: 50.0      // DRASTIC shore repulsion
         };
         if(worldData.config) Object.assign(this.params, worldData.config);
 
-        // Initialize Velocity
         this.data.agents.forEach(a => {
             if (typeof a.vx === 'undefined') a.vx = 0;
             if (typeof a.vy === 'undefined') a.vy = 0;
         });
     }
 
-    // ------------------------------------------------------------------
-    // BIOME LOGIC (Tri-Sector Island)
-    // ------------------------------------------------------------------
-    
     getBiome(x, y) {
-        // 3 Sectors: Red (Volcano), Green (Forest), Blue (Swamp)
-        // Angle determines sector, Noise determines boundary wobble
-        const angle = Math.atan2(y, x); // -PI to PI
-        const r = Math.sqrt(x*x + y*y);
-        
-        // Wobble the boundaries
-        const wobble = fbm(x * 2, y * 2, this.islandSeed + 99) * 0.5;
-        const a = angle + wobble;
-
-        // Normalizing angle to [0, 2PI) for easier logic
-        let na = a;
+        const angle = Math.atan2(y, x);
+        const wobble = fbm(x * 1.5, y * 1.5, this.islandSeed + 99) * 0.4;
+        let na = angle + wobble;
         if (na < 0) na += Math.PI * 2;
-
-        // Sectors (120 degrees each)
-        // 0 to 2.09 (0 to 120): Red/Volcano
-        // 2.09 to 4.18 (120 to 240): Green/Forest
-        // 4.18 to 6.28 (240 to 360): Blue/Swamp
-        
-        if (na < 2.094) return 'R'; // Volcano
-        if (na < 4.188) return 'G'; // Forest
-        return 'B';                 // Swamp
+        if (na < 2.094) return 'R';
+        if (na < 4.188) return 'G';
+        return 'B';
     }
 
-    // Gradient of preferred terrain
     gradEco(type, x, y) {
         const eps = 0.05;
         const p = (tx, ty) => this.ecoPhi(type, tx, ty);
@@ -174,19 +154,13 @@ class Engine {
     ecoPhi(type, x, y) {
         const m = islandMask(x, y, this.islandSeed);
         const biome = this.getBiome(x, y);
-        
-        // Base preference: Stay on land
-        if (m < 0.45) return -10.0; // Hate water/void
-
-        // Strong preference for own biome
+        if (m < 0.45) return -20.0; // Strong penalty for water
         if (biome === type) {
-            // Within own biome, prefer certain features
-            if (type === 'R') return m; // Fire likes high peaks (Volcano)
-            if (type === 'G') return 1.0 - Math.abs(m - 0.6); // Green likes mid-elevation
-            if (type === 'B') return (1.0 - m); // Blue likes low-elevation (Swamp)
+            if (type === 'R') return m;
+            if (type === 'G') return 1.0 - Math.abs(m - 0.65);
+            if (type === 'B') return (1.0 - m) * 2.0; 
         }
-        
-        return 0.0; // Neutral to other land
+        return 0.0;
     }
 
     rpsDrift(type, means) {
@@ -211,11 +185,9 @@ class Engine {
         return means;
     }
 
-    // Dynamic Wind Field (Curl Noise)
     getWind(x, y, t) {
-        const scale = 1.5;
-        const speed = 0.5;
-        // Curl of noise potential = (dPsi/dy, -dPsi/dx) -> divergence free
+        const scale = 1.0;
+        const speed = 0.2;
         const eps = 0.01;
         const psi = (tx, ty) => fbm(tx * scale + t*speed, ty * scale, this.islandSeed + 123);
         const wy = (psi(x + eps, y) - psi(x - eps, y)) / (2 * eps);
@@ -230,34 +202,19 @@ class Engine {
         const sqDt = Math.sqrt(dt);
         this.time += dt;
 
-        // 1. STOCHASTIC FOOD GROWTH
-        if (this.rng.next() < 0.03) { 
-            const x = (this.rng.next() - 0.5) * 3.2;
-            const y = (this.rng.next() - 0.5) * 3.2;
+        if (this.rng.next() < 0.02) { 
+            const x = (this.rng.next() - 0.5) * 3.0;
+            const y = (this.rng.next() - 0.5) * 3.0;
             if (islandMask(x, y, this.islandSeed) > 0.5) {
                 if (!this.data.food) this.data.food = [];
-                this.data.food.push({ 
-                    x, y, 
-                    val: 15, 
-                    type: this.getBiome(x, y),
-                    id: "food_" + Math.floor(this.rng.next() * 100000)
-                });
+                this.data.food.push({ x, y, val: 15, type: this.getBiome(x, y) });
             }
         }
 
-        // 2. AGENT BIOLOGY & COMBAT
         this.data.agents.forEach(agent => {
             if (agent.status === 'fainted') {
-                // Revival Logic: Slowly heal at home center
                 const center = TYPE_CENTERS[agent.type];
-                const dToCenter = Math.hypot(agent.pos[0] - center.x, agent.pos[1] - center.y);
-                if (dToCenter > 0.2) {
-                    // Warp to center
-                    agent.pos[0] = center.x;
-                    agent.pos[1] = center.y;
-                    agent.vx = 0; agent.vy = 0;
-                }
-                agent.stats.hp += 0.1; // Slow heal
+                agent.stats.hp += 0.05;
                 if (agent.stats.hp >= 50) agent.status = 'alive';
                 return;
             }
@@ -268,12 +225,10 @@ class Engine {
             const vy = agent.vy;
             const center = TYPE_CENTERS[agent.type];
 
-            // 2a. EATING
             if (this.data.food) {
                 for (let i = this.data.food.length - 1; i >= 0; i--) {
                     const f = this.data.food[i];
-                    const dist = Math.hypot(x - f.x, y - f.y);
-                    if (dist < 0.15) { 
+                    if (Math.hypot(x - f.x, y - f.y) < 0.12) { 
                         agent.stats.hp = Math.min(100, agent.stats.hp + f.val);
                         agent.stats.xp += 5;
                         this.data.food.splice(i, 1);
@@ -282,75 +237,48 @@ class Engine {
                 }
             }
 
-            // 2b. COMBAT (Proximity detection)
             this.data.agents.forEach(other => {
                 if (agent === other || other.status !== 'alive') return;
                 const dist = Math.hypot(x - other.pos[0], y - other.pos[1]);
-                if (dist < 0.12) {
-                    // Resolve RPS Advantage
-                    // R > G, G > B, B > R
-                    let advantage = false;
-                    if (agent.type === 'R' && other.type === 'G') advantage = true;
-                    if (agent.type === 'G' && other.type === 'B') advantage = true;
-                    if (agent.type === 'B' && other.type === 'R') advantage = true;
-
+                if (dist < 0.1) {
+                    let advantage = (agent.type==='R'&&other.type==='G')||(agent.type==='G'&&other.type==='B')||(agent.type==='B'&&other.type==='R');
                     if (advantage) {
-                        const dmg = 1.0 + (agent.stats.xp / 100);
-                        other.stats.hp -= dmg;
-                        agent.stats.xp += 0.2;
-                        if (other.stats.hp <= 0) {
-                            other.stats.hp = 0;
-                            other.status = 'fainted';
-                            agent.stats.xp += 50; // Big reward for "Knockout"
-                        }
+                        other.stats.hp -= 0.5;
+                        if (other.stats.hp <= 0) { other.status = 'fainted'; agent.stats.xp += 20; }
                     }
                 }
             });
 
-            // --- FORCE CALCULATION ---
             let fx = 0, fy = 0;
+            fx += -p.k * 0.2 * (x - center.x);
+            fy += -p.k * 0.2 * (y - center.y);
 
-            // 3. Drift to Center (Reduced)
-            fx += -p.k * 0.3 * (x - center.x);
-            fy += -p.k * 0.3 * (y - center.y);
-
-            // 4. Mean Contraction
             const dx = x - means.ALL.x;
             const dy = y - means.ALL.y;
             fx += -p.alpha * dx + p.beta * dy;
             fy += -p.alpha * dy - p.beta * dx;
 
-            // 5. RPS (Biological Social Drift)
             const rps = this.rpsDrift(agent.type, means);
-            fx += rps.x;
-            fy += rps.y;
+            fx += rps.x; fy += rps.y;
 
-            // 6. Ecology
             const eco = this.gradEco(agent.type, x, y);
-            fx += p.eco * 4.0 * eco.x;
-            fy += p.eco * 4.0 * eco.y;
+            fx += p.eco * 5.0 * eco.x;
+            fy += p.eco * 5.0 * eco.y;
 
-            // 7. Wind
             const wind = this.getWind(x, y, this.time);
-            fx += wind.x * 0.4;
-            fy += wind.y * 0.4;
+            fx += wind.x * 0.2; fy += wind.y * 0.2;
 
-            // 8. Shoreline
             const m = islandMask(x, y, this.islandSeed);
-            if (m < 0.45) {
+            if (m < 0.46) {
                 const eps = 0.05;
-                const mX = islandMask(x + eps, y, this.islandSeed);
-                const mY = islandMask(x, y + eps, this.islandSeed);
-                const gX = (mX - m) / eps;
-                const gY = (mY - m) / eps;
-                const pen = (0.45 - m) * p.shore; 
-                fx += gX * pen * 100; 
-                fy += gY * pen * 100;
-                agent.vx *= 0.7;
-                agent.vy *= 0.7;
+                const gX = (islandMask(x+eps,y,this.islandSeed) - m)/eps;
+                const gY = (islandMask(x,y+eps,this.islandSeed) - m)/eps;
+                const pen = (0.46 - m) * p.shore;
+                fx += gX * pen * 150; 
+                fy += gY * pen * 150;
+                agent.vx *= 0.5; agent.vy *= 0.5; // Muddy water
             }
 
-            // --- INTEGRATION ---
             const noiseX = this.rng.nextGaussian();
             const noiseY = this.rng.nextGaussian();
 
@@ -360,19 +288,29 @@ class Engine {
             agent.vx += dvx;
             agent.vy += dvy;
 
+            // Velocity Clamp
+            const maxV = 0.8;
+            const curV = Math.hypot(agent.vx, agent.vy);
+            if (curV > maxV) { agent.vx *= maxV/curV; agent.vy *= maxV/curV; }
+
             agent.pos[0] += agent.vx * dt;
             agent.pos[1] += agent.vy * dt;
+
+            // HARD BOUNDARY CLAMP
+            agent.pos[0] = Math.max(-1.7, Math.min(1.7, agent.pos[0]));
+            agent.pos[1] = Math.max(-1.7, Math.min(1.7, agent.pos[1]));
         });
     }
 }
 
 // Helper to determine pixel color for rendering based on Tri-Biome
+const _biomeEngine = new Engine({meta:{}, agents:[]}); // Shared instance for static lookup
+
 function getTerrainColor(m, x, y, seed) {
     if (m < 0.42) return [10, 70, 110]; // Ocean
     if (m < 0.48) return [224, 206, 140]; // Beach
 
-    const eng = new Engine({meta:{}, agents:[]}); // Temp engine for static lookup
-    const biome = eng.getBiome(x, y);
+    const biome = _biomeEngine.getBiome(x, y);
     const noise = fbm(x*3, y*3, seed + 555); // Texture detail
 
     if (biome === 'R') {

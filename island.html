@@ -97,14 +97,37 @@
     let particles = []; // Wind/Environment particles
 
     const sprites = {
-        'R': { img: new Image(), src: 'images/chars/red-walk.png', loaded: false },
-        'G': { img: new Image(), src: 'images/chars/green-walk.png', loaded: false },
-        'B': { img: new Image(), src: 'images/chars/blue-walk.png', loaded: false }
+        'R': { img: new Image(), src: 'images/chars/red-walk.png', loaded: false, canvas: null },
+        'G': { img: new Image(), src: 'images/chars/green-walk.png', loaded: false, canvas: null },
+        'B': { img: new Image(), src: 'images/chars/blue-walk.png', loaded: false, canvas: null }
     };
+
+    function processSprite(asset) {
+        const off = document.createElement('canvas');
+        off.width = asset.img.width;
+        off.height = asset.img.height;
+        const octx = off.getContext('2d');
+        octx.drawImage(asset.img, 0, 0);
+        
+        const imgData = octx.getImageData(0, 0, off.width, off.height);
+        const data = imgData.data;
+        
+        // Chroma Key: Remove near-white backgrounds
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2];
+            // If pixel is very bright (near white), make it transparent
+            if (r > 235 && g > 235 && b > 235) {
+                data[i+3] = 0;
+            }
+        }
+        octx.putImageData(imgData, 0, 0);
+        asset.canvas = off;
+        asset.loaded = true;
+    }
 
     Object.keys(sprites).forEach(k => {
         sprites[k].img.src = sprites[k].src;
-        sprites[k].img.onload = () => sprites[k].loaded = true;
+        sprites[k].img.onload = () => processSprite(sprites[k]);
     });
 
     // --- WIND PARTICLES ---
@@ -162,7 +185,7 @@
         const pCtx = document.getElementById('card-portrait').getContext('2d');
         pCtx.clearRect(0,0,64,64);
         if(sprites[agent.type].loaded) {
-            const img = sprites[agent.type].img;
+            const img = sprites[agent.type].canvas; // Use clean canvas
             const fw = img.width / 4;
             pCtx.drawImage(img, 0, 0, fw, img.height, 0, 0, 64, 64);
         }
@@ -180,30 +203,28 @@
             const speed = Math.hypot(a.vx, a.vy);
             const isFainted = a.status === 'fainted';
             const frame = (speed > 0.05 && !isFainted) ? Math.floor(Date.now() / 120) % 4 : 0;
-            const img = asset.img;
+            const img = asset.canvas; // Clean source
             const fw = Math.floor(img.width / 4);
             const fh = img.height;
             
             ctx.save();
             ctx.translate(sx, sy);
             
-            // Dynamics: Scale based on XP (Growth)
-            // Growth formula: 1.0 at 0 XP, 2.0 at 1000 XP
-            const growth = 1.0 + (a.stats.xp / 1000);
-            const size = 40 * growth;
+            // Dynamics: Scale based on XP
+            const growth = 1.0 + (a.stats.xp / 1500);
+            const size = 32 * growth; // Smaller icons
 
             if (isFainted) {
-                ctx.globalAlpha = 0.5;
-                ctx.rotate(Math.PI / 2); // Lay flat
+                ctx.globalAlpha = 0.4;
+                ctx.rotate(Math.PI / 2);
             }
 
             // Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath(); ctx.ellipse(0, 0, 12 * growth, 6 * growth, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(0, 0, 10 * growth, 5 * growth, 0, 0, Math.PI*2); ctx.fill();
 
             if (a.vx < 0 && !isFainted) ctx.scale(-1, 1);
             
-            // Draw Sprite
             ctx.drawImage(img, 
                 frame * fw, 0, fw, fh, 
                 -size/2, -size + 10, size, size
@@ -211,8 +232,10 @@
             
             if(selectedAgent === a) {
                 if (a.vx < 0 && !isFainted) ctx.scale(-1, 1); 
-                ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(0, -15, 25 * growth, 0, Math.PI*2); ctx.stroke();
+                ctx.strokeStyle = 'rgba(0, 188, 212, 0.7)'; ctx.lineWidth = 2;
+                ctx.setLineDash([4, 2]);
+                ctx.beginPath(); ctx.arc(0, -size/2, size*0.8, 0, Math.PI*2); ctx.stroke();
+                ctx.setLineDash([]);
             }
             ctx.restore();
         }
@@ -220,10 +243,23 @@
 
     function drawFood(f, ctx) {
         const [sx, sy] = worldToScreen(f.x, f.y);
-        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+        const t = Date.now() * 0.005;
+        const pulse = 1 + Math.sin(t) * 0.2;
+        
         ctx.fillStyle = f.type === 'R' ? '#ff5252' : (f.type === 'G' ? '#66bb6a' : '#4fc3f7');
-        ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
-        ctx.beginPath(); ctx.arc(sx, sy, 4 * pulse, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
+        
+        ctx.beginPath();
+        // Glowing Diamond
+        ctx.moveTo(sx, sy - 6*pulse);
+        ctx.lineTo(sx + 4*pulse, sy);
+        ctx.lineTo(sx, sy + 6*pulse);
+        ctx.lineTo(sx - 4*pulse, sy);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(sx-1, sy-3, 2, 2);
         ctx.shadowBlur = 0;
     }
 
