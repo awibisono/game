@@ -1751,6 +1751,15 @@ function resetSwarm() {
     }
 }
 
+
+// Box-Muller transform for Gaussian noise
+function randn_bm() {
+    let u = 0, v = 0;
+    while(u === 0) u = Math.random(); // Converting [0,1) to (0,1)
+    while(v === 0) v = Math.random();
+    return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+}
+
 function updateSwarm(w, h) {
     const potType = document.getElementById('sde-potential').value;
     const intType = document.getElementById('sde-interaction').value;
@@ -1786,12 +1795,16 @@ function updateSwarm(w, h) {
             fy -= 0.05 * (p.y - 175); // Centered Y
         }
         else if (potType === 'rastrigin') {
-            // F = -x + A*sin(2*pi*x)
+            // V(x) = x^2 + A*cos(2*pi*x)
+            // F = -Grad(V) = -2x + A*2*pi*sin(2*pi*x)
             // Center pull + local wiggles
             const dx = p.x - 350;
             const dy = p.y - 175;
-            fx -= 0.01 * dx - 20 * Math.sin((p.x-350)*0.1);
-            fy -= 0.01 * dy - 20 * Math.sin((p.y-175)*0.1);
+            fx -= 0.01 * dx; 
+            fy -= 0.01 * dy;
+            // Add sinusoidal ripples
+            fx += 10 * Math.sin((p.x-350)*0.15);
+            fy += 10 * Math.sin((p.y-175)*0.15);
         }
 
         // 2. Interaction Force - (1/N) * sum(Grad(W))
@@ -1835,9 +1848,12 @@ function updateSwarm(w, h) {
             iy /= (N * 0.2);
         }
 
-        // 3. Noise (Exploration)
-        const noiseX = (Math.random()-0.5) * 2 * Math.sqrt(dt) * sigma * 50; 
-        const noiseY = (Math.random()-0.5) * 2 * Math.sqrt(dt) * sigma * 50;
+        // 3. Noise (Exploration) - Gaussian
+        // dX = ... + sqrt(2*sigma)*dW
+        // dW ~ N(0, dt) = sqrt(dt)*N(0,1)
+        const noiseScale = Math.sqrt(2 * sigma * dt) * 50; // 50 is pixel scale
+        const noiseX = randn_bm() * noiseScale;
+        const noiseY = randn_bm() * noiseScale;
         
         // Update
         newPos.push({
@@ -1858,17 +1874,17 @@ function updateSwarm(w, h) {
 }
 
 function drawSwarm(ctx, w, h) {
-    // Fade effect
-    ctx.fillStyle = 'rgba(17, 17, 17, 0.25)';
+    // Fade effect (Trail)
+    ctx.fillStyle = 'rgba(17, 17, 17, 0.2)'; // More transparency = longer trails
     ctx.fillRect(0,0,w,h);
     
     // Draw Agents
     for(let p of swarmAgents) {
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = p.color;
         ctx.fillStyle = p.color;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI*2);
         ctx.fill();
     }
     ctx.shadowBlur = 0;
