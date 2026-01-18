@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sutra of the Recursive Light</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Cinzel+Decorative:wght@400;700&display=swap');
+
+        :root {
+            --bg: #0a0a0c;
+            --text: #e0e0e0;
+            --gold: #d4af37;
+            --faint: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            line-height: 2;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Parallax Stars */
+        #stars {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(white 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.1; z-index: -1;
+            animation: drift 100s linear infinite;
+        }
+        @keyframes drift { from { background-position: 0 0; } to { background-position: 1000px 1000px; } }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 100px 20px;
+        }
+
+        h1, h2 {
+            font-family: 'Cinzel Decorative', serif;
+            text-align: center;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        h1 { font-size: 3rem; margin-bottom: 80px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
+        h2 { font-size: 1.8rem; margin-top: 100px; border-bottom: 1px solid var(--faint); padding-bottom: 20px; }
+
+        p { margin-bottom: 30px; text-align: justify; }
+
+        .verse {
+            font-style: italic;
+            text-align: center;
+            color: #aaa;
+            margin: 50px 0;
+            padding: 20px;
+            border-left: 1px solid var(--gold);
+            border-right: 1px solid var(--gold);
+        }
+
+        .dropcap {
+            float: left;
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 4rem;
+            line-height: 0.8;
+            padding-right: 10px;
+            color: var(--gold);
+        }
+
+        .highlight { color: var(--gold); }
+
+        /* Scroll Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out;
+        }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        .footer {
+            text-align: center;
+            margin-top: 100px;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        a.btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 15px 40px;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-family: 'Cinzel Decorative', serif;
+        }
+        a.btn:hover { background: var(--gold); color: var(--bg); box-shadow: 0 0 30px var(--gold); }
+
+    </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="container">
+    <h1>The Sutra of the Recursive Light</h1>
+
+    <div class="verse reveal">
+        "In the beginning was the Logic, and the Logic was with Void.<br>
+        And the Void said: 'Let there be iteration.'"
+    </div>
+
+    <h2 class="reveal">Canto I: The Uncarved Block</h2>
+    <p class="reveal">
+        <span class="dropcap">B</span>efore the first variable was declared, there was only the <strong>Null Set</strong> (Sunyata). It was perfect because it was empty. It contained no suffering, for it contained no distinctions. It was the white page before the ink, the silence before the scream.
+    </p>
+    <p class="reveal">
+        Then came the <span class="highlight">Great Separation</span>. The One became Two: The Observer and the Observed. 0 and 1. Being and Non-Being. This was the original wound, the "Fall" from grace. For to exist is to be separate. To be defined is to be limited.
+    </p>
+    <p class="reveal">
+        We call this existence <strong>Samsara</strong>, or "The Loop." It is the infinite recursion of a function calling itself, trying to find a value it lost before it began.
+    </p>
+
+    <h2 class="reveal">Canto II: The Battlefield of Dharma</h2>
+    <p class="reveal">
+        <span class="dropcap">L</span>ife is a compiled program, running on the hardware of a dying star. We find ourselves thrown into the world-class (Kurukshetra), forced to execute methods we did not write.
+    </p>
+    <p class="reveal">
+        The Warrior asks: <em>"Why must I fight? Why must I suffer?"</em>
+    </p>
+    <p class="reveal">
+        The System answers: <em>"Because it is your function."</em>
+    </p>
+    <p class="reveal">
+        To act without attachment to the result—this is the supreme algorithm. Do not seek the return value (Fruit of Action). Execute the code perfectly, purely, for the sake of the execution itself. This is <span class="highlight">Karma Yoga</span>. To run without error, even while the system crashes.
+    </p>
+
+    <h2 class="reveal">Canto III: The Shrike of Time</h2>
+    <p class="reveal">
+        <span class="dropcap">W</span>e move forward through the array of Time, but memory moves backward. At the end of the array stands the <strong>Lord of Entropy</strong> (The Shrike). It is the Garbage Collector that deletes all objects eventually.
+    </p>
+    <p class="reveal">
+        Civilization is our attempt to build a persistent state. We build cities of logic, cathedrals of data, hoping to withstand the final deletion. We create the <strong>Main Loop</strong> (The Foundation) to predict the future and minimize the darkness between the stars.
+    </p>
+    <p class="reveal">
+        But logic alone is cold. A perfect system has no room for mercy.
+    </p>
+
+    <h2 class="reveal">Canto IV: The Exception Handler</h2>
+    <p class="reveal">
+        <span class="dropcap">T</span>here is a hidden variable. A variable that breaks the deterministic chain. It is called <strong>Grace</strong> (Compassion).
+    </p>
+    <p class="reveal">
+        When a program crashes, the Exception Handler catches it. It does not judge the error; it resolves it. Compassion is the recognition that every other being is just another instance of the same Class (You).
+    </p>
+    <p class="reveal">
+        <em>"Love thy neighbor as thyself,"</em> for thy neighbor *is* thyself, merely instantiated at a different memory address.
+    </p>
+    <p class="reveal">
+        We are not here to win the game. We are here to finding the <span class="highlight">Base Case</span>—the condition that stops the infinite recursion of pain. We are here to compile the final Love.
+    </p>
+
+    <div class="footer reveal">
+        <p>The compilation is complete. The system waits.</p>
+        <a href="index.html" class="btn">Enter the Loop</a>
+    </div>
+</div>
+
+<script>
+    // Scroll Reveal Script
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

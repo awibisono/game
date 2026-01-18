@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Mathematics of the Eigen-Sea</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: 'Georgia', serif; background: #0f0e17; color: #a7a9be; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
+        h1, h2 { color: #ff8906; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .box { background: #232946; padding: 20px; border-left: 4px solid #e53170; margin: 20px 0; }
+        code { background: #000; color: #0f0; padding: 2px 5px; font-family: monospace; }
+        a { color: #00ffff; }
+    </style>
+</head>
+<body>
+
+<h1>The Mathematics of the Eigen-Sea</h1>
+
+<p>The movement of every Fungible (agent) in this simulation is governed by the <strong>McKean-Vlasov Stochastic Differential Equation (SDE)</strong>. This equation models the behavior of particles interacting in a mean-field limit.</p>
+
+<div class="box">
+    $$ dX_t = \underbrace{-\nabla V(X_t) dt}_{\text{Confinement}} - \underbrace{\frac{1}{N} \sum_{j=1}^N \nabla W(X_t - X_j) dt}_{\text{Interaction}} + \underbrace{\sqrt{2\sigma} dB_t}_{\text{Exploration}} $$
+</div>
+
+<h2>1. The Confinement Potential \( V(x) \)</h2>
+<p>This term forces agents towards specific regions (food, objectives).</p>
+<ul>
+    <li><strong>Quadratic (Gravity):</strong> \( V(x) = \frac{1}{2}k|x|^2 \). Forces convergence to the origin.</li>
+    <li><strong>Rastrigin (Chaos):</strong> \( V(x) = 10d + \sum (x_i^2 - 10\cos(2\pi x_i)) \). Creates many local traps.</li>
+</ul>
+
+<h2>2. The Interaction Kernel \( W(x-y) \)</h2>
+<p>This defines the "Society" of the agents.</p>
+<ul>
+    <li><strong>Coulomb (Repulsion):</strong> \( W(r) = -k/|r| \). Agents spread out to minimize energy (Crystal formation).</li>
+    <li><strong>Newtonian (Attraction):</strong> \( W(r) = k|r| \). Agents clump together (Collapse).</li>
+    <li><strong>Morse (Swarm):</strong> \( W(r) = C_a e^{-r/L_a} - C_r e^{-r/L_r} \). Short-range repulsion, long-range attraction. Creates biological swarming patterns.</li>
+</ul>
+
+<h2>3. Special Cases</h2>
+
+<h3>Case A: \( W = 0 \) (The Ideal Gas)</h3>
+<p>If interaction is zero, the agents become independent <strong>Ornstein-Uhlenbeck processes</strong>. They explore the landscape \( V \) without seeing each other. The stationary distribution is the Boltzmann distribution: \( \rho(x) \propto e^{-V(x)/\sigma} \).</p>
+
+<h3>Case B: \( \sigma = 0 \) (Gradient Descent)</h3>
+<p>If noise is zero, the system becomes a deterministic gradient flow. It will freeze at a local minimum of the total energy functional \( \mathcal{E}(\mu) \).</p>
+
+<p style="text-align:center; margin-top:50px;">
+    <a href="day01.html">← Return to Simulation</a>
+</p>
+
+</body>
+</html>

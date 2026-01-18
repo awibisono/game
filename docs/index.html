@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spectral Homology</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #050505;
+            --node-color: #333;
+            --edge-color: #222;
+            --player-color: #00ffcc; /* Cyan */
+            --enemy-color: #ff0055;
+            --text-color: #eee;
+            --font-ui: 'Rajdhani', sans-serif;
+            --font-title: 'Syncopate', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-ui);
+            font-size: 1.1rem;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Graph Canvas */
+        #graph-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* Overlay UI */
+        #ui-layer {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.7); /* See-through to graph */
+            pointer-events: none; /* Let clicks pass through to canvas if needed */
+        }
+
+        #hud {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto;
+        }
+        .stat-box { font-weight: 500; letter-spacing: 1px; }
+        .val-hp { color: var(--player-color); }
+        .val-mp { color: #cc00ff; }
+
+        #terminal {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            pointer-events: auto;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+        .log-entry { margin-bottom: 10px; opacity: 0; animation: fade 0.5s forwards; }
+        @keyframes fade { to { opacity: 1; } }
+        .narrator { color: #aaa; }
+        .system { color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+        .highlight { color: var(--player-color); font-weight: 700; }
+        .danger { color: var(--enemy-color); font-weight: 700; }
+
+        #controls {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto;
+            background: rgba(0,0,0,0.8);
+        }
+
+        #quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-color);
+            padding: 15px;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { background: var(--player-color); color: #000; box-shadow: 0 0 15px var(--player-color); }
+        
+        .btn-combat { border-color: var(--enemy-color); color: var(--enemy-color); display: none; }
+        .btn-combat:hover { background: var(--enemy-color); color: #fff; box-shadow: 0 0 15px var(--enemy-color); }
+
+        #input-line { display: flex; gap: 10px; }
+        input { flex-grow: 1; background: transparent; border: 1px solid #333; color: #fff; padding: 10px; font-family: var(--font-ui); font-size: 1rem; }
+        input:focus { border-color: var(--player-color); outline: none; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="graph-canvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="hud">
+            <div class="stat-box">PERSISTENCE: <span id="hp-val" class="val-hp">100</span></div>
+            <div class="stat-box">BETTI NUM: <span id="mp-val" class="val-mp">0</span></div>
+            <div style="color:#777">TOPOLOGY: <span id="loc-val" style="color:#fff">ORIGIN</span></div>
+            <div style="margin-left: 20px;"><a href="island.html" style="color:#00ffcc; text-decoration:none; border:1px solid #00ffcc; padding:5px;">ENTER SIMULATION</a></div>
+            <div style="color:#555; font-size:0.8em; margin-left: 10px;">v:2026-01-18-1000</div>
+        </div>
+
+        <div id="terminal">
+            <div class="log-entry system">Initializing Simplicial Complex...</div>
+        </div>
+
+        <div id="controls">
+            <div id="quick-actions">
+                <button onclick="eng.handle('north')">N</button>
+                <button onclick="eng.handle('south')">S</button>
+                <button onclick="eng.handle('west')">W</button>
+                <button onclick="eng.handle('east')">E</button>
+                <button onclick="eng.handle('scan')">SCAN</button>
+                <button onclick="eng.handle('link')">LINK</button>
+                
+                <button class="btn-combat" onclick="eng.handle('map')">MAP</button>
+                <button class="btn-combat" onclick="eng.handle('reduce')">REDUCE</button>
+                <button class="btn-combat" onclick="eng.handle('filter')">FILTER</button>
+                <button class="btn-combat" onclick="eng.handle('flee')">VOID</button>
+            </div>
+            <div id="input-line">
+                <input type="text" id="cmd" placeholder="Enter vector..." autocomplete="off">
+                <button onclick="eng.submit()">EXEC</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GRAPH VISUALIZATION ---
+        const Graph = {
+            nodes: {
+                "origin": { x: 50, y: 50, label: "0", emoji: "🐞" },
+                "simplex_1": { x: 50, y: 30, label: "1", emoji: "🐍" },
+                "simplex_2": { x: 70, y: 50, label: "2", emoji: "🦇" },
+                "simplex_3": { x: 30, y: 50, label: "3", emoji: "🐘" },
+                "void": { x: 50, y: 70, label: "∅", emoji: "🐙" }
+            },
+            edges: [
+                ["origin", "simplex_1"], ["origin", "simplex_2"], ["origin", "simplex_3"], ["origin", "void"],
+                ["simplex_1", "simplex_2"] // A cycle
+            ],
+            playerNode: "origin",
+            
+            draw: function() {
+                const canvas = document.getElementById('graph-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                // const scale = 300; // Unused variable
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Edges
+                ctx.strokeStyle = "#222";
+                ctx.lineWidth = 2;
+                this.edges.forEach(e => {
+                    const n1 = this.nodes[e[0]];
+                    const n2 = this.nodes[e[1]];
+                    ctx.beginPath();
+                    ctx.moveTo(cx + (n1.x-50)*10, cy + (n1.y-50)*10);
+                    ctx.lineTo(cx + (n2.x-50)*10, cy + (n2.y-50)*10);
+                    ctx.stroke();
+                });
+
+                // Draw Nodes (Emojis)
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = "32px serif";
+
+                for (let id in this.nodes) {
+                    const n = this.nodes[id];
+                    const x = cx + (n.x-50)*10;
+                    const y = cy + (n.y-50)*10;
+                    
+                    // Draw Node Emoji
+                    ctx.shadowBlur = 0;
+                    ctx.fillText(n.emoji, x, y);
+
+                    // Draw Player if at this location
+                    if (id === this.playerNode) {
+                        ctx.shadowBlur = 20; 
+                        ctx.shadowColor = "#00ffcc";
+                        // Draw player slightly offset or on top? 
+                        // Let's draw on top, maybe slightly larger or distinct
+                        ctx.font = "40px serif";
+                        ctx.fillText("🧗", x, y - 10); // Player is the Climber
+                        ctx.font = "32px serif"; // Reset
+                    }
+                }
+                
+                requestAnimationFrame(() => this.draw()); // Constant redraw for smoothness
+            }
+        };
+
+        // --- ENGINE ---
+        const Eng = {
+            state: { hp: 100, mp: 0, loc: "origin", combat: false },
+            
+            world: {
+                "origin": { name: "The 0-Simplex (Point)", desc: "A single point of data. Dimensionless.", exits: { "north": "simplex_1", "east": "simplex_2", "west": "simplex_3", "south": "void" } },
+                "simplex_1": { name: "The 1-Simplex (Line)", desc: "A vector stretching into infinity.", exits: { "south": "origin" }, enemies: ["Noise Vector 👾"] },
+                "simplex_2": { name: "The 2-Simplex (Triangle)", desc: "A flat plane of logic.", exits: { "west": "origin" } },
+                "simplex_3": { name: "The 3-Simplex (Tetrahedron)", desc: "Volume. Depth. Complexity.", exits: { "east": "origin" } },
+                "void": { name: "The Null Homology", desc: "Where the cycle breaks.", exits: { "north": "origin" }, enemies: ["The Boundary 🚧"] }
+            },
+
+            init: function() {
+                Graph.draw();
+                this.log("Connected to the Complex.", "system");
+                setTimeout(() => this.log("You are a topological feature. You persist.", "narrator"), 500);
+            },
+
+            log: function(txt, cls) {
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = `log-entry ${cls}`;
+                d.innerHTML = txt;
+                t.appendChild(d);
+                t.scrollTop = t.scrollHeight;
+            },
+
+            handle: function(cmd) {
+                if (this.state.combat) this.combat(cmd);
+                else this.explore(cmd);
+            },
+
+            explore: function(cmd) {
+                const loc = this.world[this.state.loc];
+                
+                if (["north", "south", "east", "west"].includes(cmd)) {
+                    if (loc.exits[cmd]) {
+                        this.state.loc = loc.exits[cmd];
+                        Graph.playerNode = this.state.loc; // Update Graph
+                        this.log(`Translating to ${this.state.loc}...`, "system");
+                        this.look();
+                        this.checkEncounter();
+                    } else {
+                        this.log("Boundary detected. Cannot traverse.", "danger");
+                    }
+                } 
+                else if (cmd === "scan") this.look();
+                else if (cmd === "link") {
+                    this.log("You forge a new edge. Betti Number +1.", "highlight");
+                    this.state.mp++;
+                }
+                this.updateHUD();
+            },
+
+            look: function() {
+                const loc = this.world[this.state.loc];
+                this.log(`LOCATION: ${loc.name}`, "highlight");
+                this.log(loc.desc, "narrator");
+            },
+
+            checkEncounter: function() {
+                const loc = this.world[this.state.loc];
+                if (loc.enemies && Math.random() < 0.5) {
+                    this.state.combat = true;
+                    this.toggleCombat(true);
+                    this.log(`ANOMALY: ${loc.enemies[0]}`, "danger");
+                }
+            },
+
+            combat: function(cmd) {
+                if (cmd === "map") {
+                    this.log("You map the anomaly to a lower dimension. It shrinks.", "highlight");
+                    this.endCombat();
+                } else if (cmd === "reduce") {
+                    this.log("You simplify the complex. Damage dealt.", "highlight");
+                } else if (cmd === "filter") {
+                    this.log("Noise filtered. Persistence restored.", "system");
+                    this.state.hp = Math.min(100, this.state.hp + 10);
+                } else {
+                    this.log("Invalid operation.", "danger");
+                }
+                this.updateHUD();
+            },
+
+            endCombat: function() {
+                this.state.combat = false;
+                this.toggleCombat(false);
+                this.log("Homology computed. Threat removed.", "system");
+            },
+
+            toggleCombat: function(active) {
+                document.querySelectorAll('.btn-combat').forEach(b => b.style.display = active ? 'block' : 'none');
+                document.querySelectorAll('.expl-btn').forEach(b => b.style.display = active ? 'none' : 'block');
+            },
+
+            updateHUD: function() {
+                document.getElementById('hp-val').innerText = this.state.hp;
+                document.getElementById('mp-val').innerText = this.state.mp;
+                document.getElementById('loc-val').innerText = this.state.loc.toUpperCase();
+            },
+
+            submit: function() {
+                const i = document.getElementById('cmd');
+                this.handle(i.value.toLowerCase());
+                i.value = "";
+            }
+        };
+
+        const eng = Eng;
+        document.getElementById('cmd').addEventListener('keypress', e => { if(e.key==='Enter') eng.submit() });
+        window.onload = () => eng.init();
+
+    </script>
+</body>
+</html>

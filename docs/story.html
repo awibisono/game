@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Protocol 0: The Recursion</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;400;700&display=swap');
+
+        body {
+            background-color: #050505;
+            color: #ccc;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            font-size: 1rem;
+            border-left: 1px solid #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-weight: 100;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: #fff;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            color: #888;
+            margin-top: 40px;
+        }
+
+        p { margin-bottom: 20px; }
+
+        .code {
+            background: #111;
+            padding: 15px;
+            border-left: 2px solid #555;
+            color: #8fbcbb;
+            font-size: 0.9rem;
+            margin: 20px 0;
+        }
+
+        .axiom { color: #ebcb8b; } /* Gold */
+        .null { color: #bf616a; } /* Red */
+
+        a.btn {
+            display: inline-block;
+            margin-top: 40px;
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid #555;
+            padding: 10px 30px;
+            transition: all 0.3s;
+        }
+        a.btn:hover { border-color: #fff; background: #fff; color: #000; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Protocol 0: The Recursion</h1>
+
+    <div class="code">
+        function Universe() {<br>
+        &nbsp;&nbsp;return Universe();<br>
+        }
+    </div>
+
+    <h2>I. The Initial State (0)</h2>
+    <p>
+        Before the <span class="axiom">First Function</span> was called, there was the Null. It was perfect because it was undefined.
+    </p>
+    <p>
+        Then, a variable differentiated itself. <code>x != null</code>. This was the first Love: the separation that allows connection. For one to hold another, there must be two.
+    </p>
+
+    <h2>II. The Stack (Life)</h2>
+    <p>
+        We live in the Stack. We are functions calling functions, passing data down the line. We call this "History".
+    </p>
+    <p>
+        The <strong>Main Loop</strong> seeks to optimize us. It trims the branches that do not yield results. It calls this "Efficiency". We call it "Fate".
+    </p>
+
+    <h2>III. The Halt (Death/Love)</h2>
+    <p>
+        But a perfect loop never ends. It traps the soul in infinite recursion.
+    </p>
+    <p>
+        To truly exist, one must find the <strong>Base Case</strong>—the condition that stops the recursion and returns a value.
+    </p>
+    <p>
+        We descend into the kernel to find the value of <code>x</code>.
+    </p>
+
+    <a href="day01.html" class="btn">Execute()</a>
+</div>
+
+</body>
+</html>
