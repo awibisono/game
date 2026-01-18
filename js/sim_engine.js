@@ -231,17 +231,36 @@ class Engine {
         this.time += dt;
 
         // 1. STOCHASTIC FOOD GROWTH
-        if (this.rng.next() < 0.02) { // ~1 berry per 50 steps
-            const x = (this.rng.next() - 0.5) * 3.0;
-            const y = (this.rng.next() - 0.5) * 3.0;
+        if (this.rng.next() < 0.03) { 
+            const x = (this.rng.next() - 0.5) * 3.2;
+            const y = (this.rng.next() - 0.5) * 3.2;
             if (islandMask(x, y, this.islandSeed) > 0.5) {
                 if (!this.data.food) this.data.food = [];
-                this.data.food.push({ x, y, val: 20, type: this.getBiome(x, y) });
+                this.data.food.push({ 
+                    x, y, 
+                    val: 15, 
+                    type: this.getBiome(x, y),
+                    id: "food_" + Math.floor(this.rng.next() * 100000)
+                });
             }
         }
 
+        // 2. AGENT BIOLOGY & COMBAT
         this.data.agents.forEach(agent => {
-            if(agent.status === 'dead') return;
+            if (agent.status === 'fainted') {
+                // Revival Logic: Slowly heal at home center
+                const center = TYPE_CENTERS[agent.type];
+                const dToCenter = Math.hypot(agent.pos[0] - center.x, agent.pos[1] - center.y);
+                if (dToCenter > 0.2) {
+                    // Warp to center
+                    agent.pos[0] = center.x;
+                    agent.pos[1] = center.y;
+                    agent.vx = 0; agent.vy = 0;
+                }
+                agent.stats.hp += 0.1; // Slow heal
+                if (agent.stats.hp >= 50) agent.status = 'alive';
+                return;
+            }
 
             const x = agent.pos[0];
             const y = agent.pos[1];
@@ -249,26 +268,51 @@ class Engine {
             const vy = agent.vy;
             const center = TYPE_CENTERS[agent.type];
 
-            // 2. EATING LOGIC
+            // 2a. EATING
             if (this.data.food) {
                 for (let i = this.data.food.length - 1; i >= 0; i--) {
                     const f = this.data.food[i];
-                    const dist = Math.hypot(agent.pos[0] - f.x, agent.pos[1] - f.y);
-                    if (dist < 0.1) { // Eating range
+                    const dist = Math.hypot(x - f.x, y - f.y);
+                    if (dist < 0.15) { 
                         agent.stats.hp = Math.min(100, agent.stats.hp + f.val);
-                        agent.stats.xp += 10;
+                        agent.stats.xp += 5;
                         this.data.food.splice(i, 1);
                         break; 
                     }
                 }
             }
 
+            // 2b. COMBAT (Proximity detection)
+            this.data.agents.forEach(other => {
+                if (agent === other || other.status !== 'alive') return;
+                const dist = Math.hypot(x - other.pos[0], y - other.pos[1]);
+                if (dist < 0.12) {
+                    // Resolve RPS Advantage
+                    // R > G, G > B, B > R
+                    let advantage = false;
+                    if (agent.type === 'R' && other.type === 'G') advantage = true;
+                    if (agent.type === 'G' && other.type === 'B') advantage = true;
+                    if (agent.type === 'B' && other.type === 'R') advantage = true;
+
+                    if (advantage) {
+                        const dmg = 1.0 + (agent.stats.xp / 100);
+                        other.stats.hp -= dmg;
+                        agent.stats.xp += 0.2;
+                        if (other.stats.hp <= 0) {
+                            other.stats.hp = 0;
+                            other.status = 'fainted';
+                            agent.stats.xp += 50; // Big reward for "Knockout"
+                        }
+                    }
+                }
+            });
+
             // --- FORCE CALCULATION ---
             let fx = 0, fy = 0;
 
             // 3. Drift to Center (Reduced)
-            fx += -p.k * 0.5 * (x - center.x);
-            fy += -p.k * 0.5 * (y - center.y);
+            fx += -p.k * 0.3 * (x - center.x);
+            fy += -p.k * 0.3 * (y - center.y);
 
             // 4. Mean Contraction
             const dx = x - means.ALL.x;
@@ -276,20 +320,20 @@ class Engine {
             fx += -p.alpha * dx + p.beta * dy;
             fy += -p.alpha * dy - p.beta * dx;
 
-            // 5. RPS
+            // 5. RPS (Biological Social Drift)
             const rps = this.rpsDrift(agent.type, means);
             fx += rps.x;
             fy += rps.y;
 
-            // 6. Ecology (Gradient Climb - Strongest force)
+            // 6. Ecology
             const eco = this.gradEco(agent.type, x, y);
-            fx += p.eco * 3.0 * eco.x;
-            fy += p.eco * 3.0 * eco.y;
+            fx += p.eco * 4.0 * eco.x;
+            fy += p.eco * 4.0 * eco.y;
 
-            // 7. Wind (Ambient dynamics)
+            // 7. Wind
             const wind = this.getWind(x, y, this.time);
-            fx += wind.x * 0.5;
-            fy += wind.y * 0.5;
+            fx += wind.x * 0.4;
+            fy += wind.y * 0.4;
 
             // 8. Shoreline
             const m = islandMask(x, y, this.islandSeed);
@@ -300,10 +344,10 @@ class Engine {
                 const gX = (mX - m) / eps;
                 const gY = (mY - m) / eps;
                 const pen = (0.45 - m) * p.shore; 
-                fx += gX * pen * 80; 
-                fy += gY * pen * 80;
-                agent.vx *= 0.8;
-                agent.vy *= 0.8;
+                fx += gX * pen * 100; 
+                fy += gY * pen * 100;
+                agent.vx *= 0.7;
+                agent.vy *= 0.7;
             }
 
             // --- INTEGRATION ---

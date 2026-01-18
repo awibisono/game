@@ -178,7 +178,8 @@
         const asset = sprites[a.type];
         if (asset && asset.loaded) {
             const speed = Math.hypot(a.vx, a.vy);
-            const frame = speed > 0.05 ? Math.floor(Date.now() / 120) % 4 : 0;
+            const isFainted = a.status === 'fainted';
+            const frame = (speed > 0.05 && !isFainted) ? Math.floor(Date.now() / 120) % 4 : 0;
             const img = asset.img;
             const fw = Math.floor(img.width / 4);
             const fh = img.height;
@@ -186,23 +187,32 @@
             ctx.save();
             ctx.translate(sx, sy);
             
+            // Dynamics: Scale based on XP (Growth)
+            // Growth formula: 1.0 at 0 XP, 2.0 at 1000 XP
+            const growth = 1.0 + (a.stats.xp / 1000);
+            const size = 40 * growth;
+
+            if (isFainted) {
+                ctx.globalAlpha = 0.5;
+                ctx.rotate(Math.PI / 2); // Lay flat
+            }
+
             // Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(0, 0, 12 * growth, 6 * growth, 0, 0, Math.PI*2); ctx.fill();
 
-            if (a.vx < 0) ctx.scale(-1, 1);
+            if (a.vx < 0 && !isFainted) ctx.scale(-1, 1);
             
-            const size = 48;
-            // Perfect Centering: -size/2, and align bottom (-size + offset)
+            // Draw Sprite
             ctx.drawImage(img, 
                 frame * fw, 0, fw, fh, 
                 -size/2, -size + 10, size, size
             );
             
             if(selectedAgent === a) {
-                if (a.vx < 0) ctx.scale(-1, 1); 
+                if (a.vx < 0 && !isFainted) ctx.scale(-1, 1); 
                 ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(0, -15, 25, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, -15, 25 * growth, 0, Math.PI*2); ctx.stroke();
             }
             ctx.restore();
         }
