@@ -109,30 +109,57 @@ class Engine {
         this.data = worldData;
         this.seed = worldData.meta.seed || 1337;
         this.rng = new PRNG(this.seed);
-        this.islandSeed = 1337; // Fixed terrain seed for consistency
+        this.islandSeed = 1337;
+        this.time = 0; // Simulation time for wind/waves
         
         // Physics Params (Underdamped)
         this.params = {
-            dt: 0.05,        // Time step
-            sigma: 0.8,      // Noise strength (Diffusion)
-            friction: 2.5,   // Damping (Gamma)
-            mass: 1.0,       // Mass
-            k: 0.5,          // Attraction to type center
-            alpha: 0.6,      // Mean contraction
-            beta: 2.2,       // Rotation
-            rps: 1.2,        // RPS strength
-            eco: 1.5,        // Ecology strength
-            shore: 20.0      // Strong Shoreline repulsion
+            dt: 0.05,
+            sigma: 0.8,
+            friction: 2.5,
+            mass: 1.0,
+            k: 0.5,
+            alpha: 0.6,
+            beta: 2.2,
+            rps: 1.2,
+            eco: 1.5,
+            shore: 20.0
         };
-        
-        // Override with saved params
         if(worldData.config) Object.assign(this.params, worldData.config);
 
-        // Initialize Velocity if missing
+        // Initialize Velocity
         this.data.agents.forEach(a => {
             if (typeof a.vx === 'undefined') a.vx = 0;
             if (typeof a.vy === 'undefined') a.vy = 0;
         });
+    }
+
+    // ------------------------------------------------------------------
+    // BIOME LOGIC (Tri-Sector Island)
+    // ------------------------------------------------------------------
+    
+    getBiome(x, y) {
+        // 3 Sectors: Red (Volcano), Green (Forest), Blue (Swamp)
+        // Angle determines sector, Noise determines boundary wobble
+        const angle = Math.atan2(y, x); // -PI to PI
+        const r = Math.sqrt(x*x + y*y);
+        
+        // Wobble the boundaries
+        const wobble = fbm(x * 2, y * 2, this.islandSeed + 99) * 0.5;
+        const a = angle + wobble;
+
+        // Normalizing angle to [0, 2PI) for easier logic
+        let na = a;
+        if (na < 0) na += Math.PI * 2;
+
+        // Sectors (120 degrees each)
+        // 0 to 2.09 (0 to 120): Red/Volcano
+        // 2.09 to 4.18 (120 to 240): Green/Forest
+        // 4.18 to 6.28 (240 to 360): Blue/Swamp
+        
+        if (na < 2.094) return 'R'; // Volcano
+        if (na < 4.188) return 'G'; // Forest
+        return 'B';                 // Swamp
     }
 
     // Gradient of preferred terrain
@@ -146,11 +173,20 @@ class Engine {
 
     ecoPhi(type, x, y) {
         const m = islandMask(x, y, this.islandSeed);
-        // R: Beach, G: Forest, B: Water (but Inland)
-        if (type === 'R') return smoothstepAB(0.42, 0.48, m) * (1 - smoothstepAB(0.48, 0.62, m));
-        if (type === 'G') return smoothstepAB(0.62, 0.80, m);
-        if (type === 'B') return (m > 0.42 && m < 0.55) ? 1.0 : 0.0; // Puddles/Lowlands
-        return 0;
+        const biome = this.getBiome(x, y);
+        
+        // Base preference: Stay on land
+        if (m < 0.45) return -10.0; // Hate water/void
+
+        // Strong preference for own biome
+        if (biome === type) {
+            // Within own biome, prefer certain features
+            if (type === 'R') return m; // Fire likes high peaks (Volcano)
+            if (type === 'G') return 1.0 - Math.abs(m - 0.6); // Green likes mid-elevation
+            if (type === 'B') return (1.0 - m); // Blue likes low-elevation (Swamp)
+        }
+        
+        return 0.0; // Neutral to other land
     }
 
     rpsDrift(type, means) {
@@ -175,11 +211,24 @@ class Engine {
         return means;
     }
 
+    // Dynamic Wind Field (Curl Noise)
+    getWind(x, y, t) {
+        const scale = 1.5;
+        const speed = 0.5;
+        // Curl of noise potential = (dPsi/dy, -dPsi/dx) -> divergence free
+        const eps = 0.01;
+        const psi = (tx, ty) => fbm(tx * scale + t*speed, ty * scale, this.islandSeed + 123);
+        const wy = (psi(x + eps, y) - psi(x - eps, y)) / (2 * eps);
+        const wx = -(psi(x, y + eps) - psi(x, y - eps)) / (2 * eps);
+        return { x: wx, y: wy };
+    }
+
     step() {
         const means = this.computeMeans();
         const p = this.params;
         const dt = p.dt;
         const sqDt = Math.sqrt(dt);
+        this.time += dt;
 
         this.data.agents.forEach(agent => {
             if(agent.status === 'dead') return;
@@ -193,9 +242,9 @@ class Engine {
             // --- FORCE CALCULATION ---
             let fx = 0, fy = 0;
 
-            // 1. Drift to Center
-            fx += -p.k * (x - center.x);
-            fy += -p.k * (y - center.y);
+            // 1. Drift to Center (Reduced)
+            fx += -p.k * 0.5 * (x - center.x);
+            fy += -p.k * 0.5 * (y - center.y);
 
             // 2. Mean Contraction
             const dx = x - means.ALL.x;
@@ -208,51 +257,71 @@ class Engine {
             fx += rps.x;
             fy += rps.y;
 
-            // 4. Ecology (Gradient Climb)
+            // 4. Ecology (Gradient Climb - Strongest force)
             const eco = this.gradEco(agent.type, x, y);
-            fx += p.eco * eco.x;
-            fy += p.eco * eco.y;
+            fx += p.eco * 3.0 * eco.x;
+            fy += p.eco * 3.0 * eco.y;
 
-            // 5. Shoreline Containment (Hard Soft-Wall)
-            // Calculate mask gradient to know which way is "Inland"
-            const eps = 0.05;
+            // 5. Wind (Ambient dynamics)
+            const wind = this.getWind(x, y, this.time);
+            fx += wind.x * 0.5;
+            fy += wind.y * 0.5;
+
+            // 6. Shoreline
             const m = islandMask(x, y, this.islandSeed);
-            if (m < 0.45) { // Warning Zone
+            if (m < 0.45) {
+                const eps = 0.05;
                 const mX = islandMask(x + eps, y, this.islandSeed);
                 const mY = islandMask(x, y + eps, this.islandSeed);
                 const gX = (mX - m) / eps;
                 const gY = (mY - m) / eps;
-                
-                // Force = Steep push towards higher ground
                 const pen = (0.45 - m) * p.shore; 
-                fx += gX * pen * 50; 
-                fy += gY * pen * 50;
-                
-                // Damping increase in water (muddy)
-                agent.vx *= 0.9;
-                agent.vy *= 0.9;
+                fx += gX * pen * 80; 
+                fy += gY * pen * 80;
+                agent.vx *= 0.8;
+                agent.vy *= 0.8;
             }
 
-            // --- INTEGRATION (Underdamped Langevin) ---
-            // dV = (-gamma*V + F/m)dt + (sigma/m)*dW
-            // dX = V*dt
-            
+            // --- INTEGRATION ---
             const noiseX = this.rng.nextGaussian();
             const noiseY = this.rng.nextGaussian();
 
-            // Update Velocity
             const dvx = (-p.friction * vx + fx / p.mass) * dt + (p.sigma / p.mass) * sqDt * noiseX;
             const dvy = (-p.friction * vy + fy / p.mass) * dt + (p.sigma / p.mass) * sqDt * noiseY;
             
             agent.vx += dvx;
             agent.vy += dvy;
 
-            // Update Position
             agent.pos[0] += agent.vx * dt;
             agent.pos[1] += agent.vy * dt;
         });
     }
 }
 
-// Export for module use if needed, but primarily designed for browser global script inclusion
-if (typeof module !== 'undefined') module.exports = { Engine, PRNG, islandMask, getTerrainColor };
+// Helper to determine pixel color for rendering based on Tri-Biome
+function getTerrainColor(m, x, y, seed) {
+    if (m < 0.42) return [10, 70, 110]; // Ocean
+    if (m < 0.48) return [224, 206, 140]; // Beach
+
+    const eng = new Engine({meta:{}, agents:[]}); // Temp engine for static lookup
+    const biome = eng.getBiome(x, y);
+    const noise = fbm(x*3, y*3, seed + 555); // Texture detail
+
+    if (biome === 'R') {
+        // VOLCANO SECTOR
+        if (m > 0.85) return [50, 20, 20]; // Crater
+        if (m > 0.7) return [100 + noise*40, 50, 40]; // Rock
+        return [80, 40, 30]; // Ash soil
+    }
+    if (biome === 'G') {
+        // FOREST SECTOR
+        if (m > 0.7) return [20, 80 + noise*40, 30]; // Deep forest
+        return [50, 120 + noise*30, 60]; // Grassland
+    }
+    if (biome === 'B') {
+        // SWAMP SECTOR
+        if (m > 0.5 && m < 0.6) return [40, 60, 100 + noise*50]; // Pools
+        return [40, 50, 60]; // Mud
+    }
+    return [200, 200, 200];
+}
