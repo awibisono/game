@@ -119,6 +119,8 @@
             <div class="stat-box">PERSISTENCE: <span id="hp-val" class="val-hp">100</span></div>
             <div class="stat-box">BETTI NUM: <span id="mp-val" class="val-mp">0</span></div>
             <div style="color:#777">TOPOLOGY: <span id="loc-val" style="color:#fff">ORIGIN</span></div>
+            <div style="margin-left: 20px;"><a href="island.html" style="color:#00ffcc; text-decoration:none; border:1px solid #00ffcc; padding:5px;">ENTER SIMULATION</a></div>
+            <div style="color:#555; font-size:0.8em; margin-left: 10px;">v:2026-01-18-1000</div>
         </div>
 
         <div id="terminal">
@@ -150,11 +152,11 @@
         // --- GRAPH VISUALIZATION ---
         const Graph = {
             nodes: {
-                "origin": { x: 50, y: 50, label: "0" },
-                "simplex_1": { x: 50, y: 30, label: "1" },
-                "simplex_2": { x: 70, y: 50, label: "2" },
-                "simplex_3": { x: 30, y: 50, label: "3" },
-                "void": { x: 50, y: 70, label: "∅" }
+                "origin": { x: 50, y: 50, label: "0", emoji: "🐞" },
+                "simplex_1": { x: 50, y: 30, label: "1", emoji: "🐍" },
+                "simplex_2": { x: 70, y: 50, label: "2", emoji: "🦇" },
+                "simplex_3": { x: 30, y: 50, label: "3", emoji: "🐘" },
+                "void": { x: 50, y: 70, label: "∅", emoji: "🐙" }
             },
             edges: [
                 ["origin", "simplex_1"], ["origin", "simplex_2"], ["origin", "simplex_3"], ["origin", "void"],
@@ -170,7 +172,7 @@
                 
                 const cx = canvas.width / 2;
                 const cy = canvas.height / 2;
-                const scale = 300; // Zoom
+                // const scale = 300; // Unused variable
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -186,24 +188,30 @@
                     ctx.stroke();
                 });
 
-                // Draw Nodes
+                // Draw Nodes (Emojis)
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = "32px serif";
+
                 for (let id in this.nodes) {
                     const n = this.nodes[id];
                     const x = cx + (n.x-50)*10;
                     const y = cy + (n.y-50)*10;
                     
-                    ctx.beginPath();
-                    ctx.arc(x, y, id === this.playerNode ? 15 : 5, 0, Math.PI*2);
-                    
+                    // Draw Node Emoji
+                    ctx.shadowBlur = 0;
+                    ctx.fillText(n.emoji, x, y);
+
+                    // Draw Player if at this location
                     if (id === this.playerNode) {
-                        ctx.fillStyle = "#00ffcc";
-                        ctx.shadowBlur = 20; ctx.shadowColor = "#00ffcc";
-                    } else {
-                        ctx.fillStyle = "#333";
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = 20; 
+                        ctx.shadowColor = "#00ffcc";
+                        // Draw player slightly offset or on top? 
+                        // Let's draw on top, maybe slightly larger or distinct
+                        ctx.font = "40px serif";
+                        ctx.fillText("🧗", x, y - 10); // Player is the Climber
+                        ctx.font = "32px serif"; // Reset
                     }
-                    ctx.fill();
-                    ctx.shadowBlur = 0; // Reset
                 }
                 
                 requestAnimationFrame(() => this.draw()); // Constant redraw for smoothness
@@ -216,10 +224,10 @@
             
             world: {
                 "origin": { name: "The 0-Simplex (Point)", desc: "A single point of data. Dimensionless.", exits: { "north": "simplex_1", "east": "simplex_2", "west": "simplex_3", "south": "void" } },
-                "simplex_1": { name: "The 1-Simplex (Line)", desc: "A vector stretching into infinity.", exits: { "south": "origin" }, enemies: ["Noise Vector"] },
+                "simplex_1": { name: "The 1-Simplex (Line)", desc: "A vector stretching into infinity.", exits: { "south": "origin" }, enemies: ["Noise Vector 👾"] },
                 "simplex_2": { name: "The 2-Simplex (Triangle)", desc: "A flat plane of logic.", exits: { "west": "origin" } },
                 "simplex_3": { name: "The 3-Simplex (Tetrahedron)", desc: "Volume. Depth. Complexity.", exits: { "east": "origin" } },
-                "void": { name: "The Null Homology", desc: "Where the cycle breaks.", exits: { "north": "origin" }, enemies: ["The Boundary"] }
+                "void": { name: "The Null Homology", desc: "Where the cycle breaks.", exits: { "north": "origin" }, enemies: ["The Boundary 🚧"] }
             },
 
             init: function() {
