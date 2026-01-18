@@ -230,6 +230,16 @@ class Engine {
         const sqDt = Math.sqrt(dt);
         this.time += dt;
 
+        // 1. STOCHASTIC FOOD GROWTH
+        if (this.rng.next() < 0.02) { // ~1 berry per 50 steps
+            const x = (this.rng.next() - 0.5) * 3.0;
+            const y = (this.rng.next() - 0.5) * 3.0;
+            if (islandMask(x, y, this.islandSeed) > 0.5) {
+                if (!this.data.food) this.data.food = [];
+                this.data.food.push({ x, y, val: 20, type: this.getBiome(x, y) });
+            }
+        }
+
         this.data.agents.forEach(agent => {
             if(agent.status === 'dead') return;
 
@@ -239,35 +249,49 @@ class Engine {
             const vy = agent.vy;
             const center = TYPE_CENTERS[agent.type];
 
+            // 2. EATING LOGIC
+            if (this.data.food) {
+                for (let i = this.data.food.length - 1; i >= 0; i--) {
+                    const f = this.data.food[i];
+                    const dist = Math.hypot(agent.pos[0] - f.x, agent.pos[1] - f.y);
+                    if (dist < 0.1) { // Eating range
+                        agent.stats.hp = Math.min(100, agent.stats.hp + f.val);
+                        agent.stats.xp += 10;
+                        this.data.food.splice(i, 1);
+                        break; 
+                    }
+                }
+            }
+
             // --- FORCE CALCULATION ---
             let fx = 0, fy = 0;
 
-            // 1. Drift to Center (Reduced)
+            // 3. Drift to Center (Reduced)
             fx += -p.k * 0.5 * (x - center.x);
             fy += -p.k * 0.5 * (y - center.y);
 
-            // 2. Mean Contraction
+            // 4. Mean Contraction
             const dx = x - means.ALL.x;
             const dy = y - means.ALL.y;
             fx += -p.alpha * dx + p.beta * dy;
             fy += -p.alpha * dy - p.beta * dx;
 
-            // 3. RPS
+            // 5. RPS
             const rps = this.rpsDrift(agent.type, means);
             fx += rps.x;
             fy += rps.y;
 
-            // 4. Ecology (Gradient Climb - Strongest force)
+            // 6. Ecology (Gradient Climb - Strongest force)
             const eco = this.gradEco(agent.type, x, y);
             fx += p.eco * 3.0 * eco.x;
             fy += p.eco * 3.0 * eco.y;
 
-            // 5. Wind (Ambient dynamics)
+            // 7. Wind (Ambient dynamics)
             const wind = this.getWind(x, y, this.time);
             fx += wind.x * 0.5;
             fy += wind.y * 0.5;
 
-            // 6. Shoreline
+            // 8. Shoreline
             const m = islandMask(x, y, this.islandSeed);
             if (m < 0.45) {
                 const eps = 0.05;

@@ -3,21 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Island Simulation: Viewer</title>
+  <title>The Island: Synchronized Ecosystem</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #0f1116; font-family: 'Courier New', monospace; color: #e9eef5; }
+    body { margin: 0; overflow: hidden; background: #050a10; font-family: 'Verdana', sans-serif; color: #e9eef5; }
     canvas { display: block; cursor: crosshair; }
     
     #ui {
         position: absolute; top: 20px; left: 20px;
-        background: rgba(18, 20, 28, 0.9);
-        padding: 15px; border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px; pointer-events: none;
+        background: rgba(10, 15, 25, 0.85);
+        padding: 15px; border: 1px solid rgba(0, 188, 212, 0.4);
+        border-radius: 10px; pointer-events: none;
+        backdrop-filter: blur(5px);
     }
-    h1 { margin: 0 0 5px 0; font-size: 1.1rem; color: #00bcd4; }
-    .stat { font-size: 0.9rem; color: #aaa; }
+    h1 { margin: 0 0 5px 0; font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
+    .stat { font-size: 0.85rem; color: #8899aa; }
     
-    #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #00bcd4; }
+    #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #00bcd4; font-weight: bold; }
 
     /* STAT CARD POPUP */
     #stat-card {
@@ -25,59 +26,65 @@
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: 320px;
-        background: #1a1a24;
+        width: 340px;
+        background: rgba(20, 25, 35, 0.95);
         border: 2px solid #00bcd4;
-        border-radius: 12px;
-        box-shadow: 0 0 30px rgba(0, 188, 212, 0.3);
-        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 188, 212, 0.2);
+        padding: 25px;
         z-index: 100;
-        font-family: 'Verdana', sans-serif;
+        backdrop-filter: blur(10px);
     }
-    #stat-card h2 { margin-top: 0; color: #fff; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
-    #stat-card .portrait { width: 64px; height: 64px; margin: 0 auto; display: block; image-rendering: pixelated; border: 2px solid #444; border-radius: 50%; background: #000; }
-    #stat-card .row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.9rem; }
-    #stat-card .label { color: #888; }
-    #stat-card .val { color: #fff; font-weight: bold; }
-    #stat-card button { width: 100%; margin-top: 15px; padding: 10px; background: #333; color: white; border: none; cursor: pointer; border-radius: 4px; }
-    #stat-card button:hover { background: #444; }
+    #stat-card h2 { margin-top: 0; color: #fff; text-transform: uppercase; border-bottom: 1px solid #334455; padding-bottom: 10px; letter-spacing: 2px; }
+    #stat-card .portrait-wrap { width: 80px; height: 80px; margin: 0 auto 15px auto; border: 3px solid #334455; border-radius: 50%; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+    #stat-card canvas.portrait { width: 64px; height: 64px; image-rendering: pixelated; }
+    #stat-card .row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9rem; }
+    #stat-card .label { color: #778899; text-transform: uppercase; font-size: 0.75rem; }
+    #stat-card .val { color: #eee; font-weight: bold; }
+    #stat-card button { width: 100%; margin-top: 20px; padding: 12px; background: #00bcd4; color: #000; border: none; cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+    #stat-card button:hover { background: #00e5ff; transform: scale(1.02); }
 
-    /* TYPE COLORS */
-    .type-R { color: #ff5252 !important; border-color: #ff5252 !important; }
-    .type-G { color: #66bb6a !important; border-color: #66bb6a !important; }
-    .type-B { color: #4fc3f7 !important; border-color: #4fc3f7 !important; }
+    /* PROGRESS BARS */
+    .bar-bg { width: 100%; height: 6px; background: #111; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; transition: width 0.5s ease-in-out; }
 
   </style>
 </head>
 <body>
 
 <canvas id="canvas"></canvas>
-<div id="loading">CONNECTING TO SATELLITE...</div>
+<div id="loading">SYNCHRONIZING WITH WORLD STATE...</div>
 
-<div id="ui">
-    <h1>ISLAND MONITOR</h1>
-    <div class="stat">WEEK: <span id="val-week">0</span></div>
-    <div class="stat">POPULATION: <span id="val-pop">0</span></div>
-    <div class="stat" style="margin-top:10px; font-size:0.8em; opacity:0.7;">Click on a Pokemon for details.</div>
+<div id="ui" style="display:none;">
+    <h1>ISLAND SENSOR</h1>
+    <div class="stat">TEMPORAL PHASE: WEEK <span id="val-week">0</span></div>
+    <div class="stat">BIOMASS COUNT: <span id="val-pop">0</span> AGENTS</div>
+    <div class="stat" style="margin-top:10px; font-size:0.75em; color:#556677;">Dynamics: McKean-Vlasov SDE (Synchronized)</div>
 </div>
 
 <div id="stat-card">
-    <canvas id="card-portrait" width="64" height="64" class="portrait"></canvas>
-    <h2 id="card-name" style="text-align:center; margin-top:10px;">Name</h2>
+    <div class="portrait-wrap"><canvas id="card-portrait" width="64" height="64" class="portrait"></canvas></div>
+    <h2 id="card-name" style="text-align:center;">Name</h2>
     
-    <div class="row"><span class="label">Type</span> <span class="val" id="card-type">TYPE</span></div>
-    <div class="row"><span class="label">Status</span> <span class="val" id="card-status">Alive</span></div>
+    <div class="row"><span class="label">Classification</span> <span class="val" id="card-type">TYPE</span></div>
+    <div class="row"><span class="label">Temporal State</span> <span class="val" id="card-status">Active</span></div>
     
-    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
+    <div style="margin-top:15px;">
+        <div class="label">Vitality (HP)</div>
+        <div class="bar-bg"><div id="hp-bar" class="bar-fill" style="width: 100%; background: #66bb6a;"></div></div>
+    </div>
+
+    <div class="row"><span class="label">Evolutionary XP</span> <span class="val" id="card-xp">0</span></div>
+    <div class="row"><span class="label">Velocity Magnitude</span> <span class="val" id="card-vel">0.00</span></div>
     
-    <div class="row"><span class="label">HP</span> <span class="val" id="card-hp">100/100</span></div>
-    <div class="row"><span class="label">XP</span> <span class="val" id="card-xp">0</span></div>
-    <div class="row"><span class="label">Velocity</span> <span class="val" id="card-vel">0.00</span></div>
-    
-    <button onclick="closeCard()">CLOSE</button>
+    <div style="margin-top:15px; font-size:0.8rem; color:#8899aa; font-style:italic; text-align:center;" id="card-personality">
+        "Prefers the damp shadows of the forest."
+    </div>
+
+    <button onclick="closeCard()">DISMISS</button>
 </div>
 
-<!-- Load Shared Engine -->
+<!-- Load Engine -->
 <script src="js/sim_engine.js"></script>
 
 <script>
@@ -87,19 +94,30 @@
     let engine = null;
     let bgCanvas = null;
     let selectedAgent = null;
+    let particles = []; // Wind/Environment particles
 
-    // Sprite Assets
     const sprites = {
-        'R': { img: new Image(), loaded: false, src: 'images/chars/red-walk.png' },
-        'G': { img: new Image(), loaded: false, src: 'images/chars/green-walk.png' },
-        'B': { img: new Image(), loaded: false, src: 'images/chars/blue-walk.png' }
+        'R': { img: new Image(), src: 'images/chars/red-walk.png', loaded: false },
+        'G': { img: new Image(), src: 'images/chars/green-walk.png', loaded: false },
+        'B': { img: new Image(), src: 'images/chars/blue-walk.png', loaded: false }
     };
 
-    // Load Sprites
     Object.keys(sprites).forEach(k => {
         sprites[k].img.src = sprites[k].src;
         sprites[k].img.onload = () => sprites[k].loaded = true;
     });
+
+    // --- WIND PARTICLES ---
+    function initWeather() {
+        for(let i=0; i<60; i++) {
+            particles.push({
+                x: (Math.random() - 0.5) * 3.5,
+                y: (Math.random() - 0.5) * 3.5,
+                size: 1 + Math.random() * 2,
+                alpha: 0.1 + Math.random() * 0.4
+            });
+        }
+    }
 
     // --- INTERACTION ---
     canvas.addEventListener('click', (e) => {
@@ -107,19 +125,14 @@
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        
         let found = null;
-        let minDist = 30; // Pixel click radius
+        let minDist = 40;
 
         engine.data.agents.forEach(a => {
             const [sx, sy] = worldToScreen(a.pos[0], a.pos[1]);
             const d = Math.hypot(sx - mx, sy - my);
-            if(d < minDist) {
-                minDist = d;
-                found = a;
-            }
+            if(d < minDist) { minDist = d; found = a; }
         });
-
         if(found) openCard(found);
         else closeCard();
     });
@@ -127,118 +140,103 @@
     function openCard(agent) {
         selectedAgent = agent;
         const card = document.getElementById('stat-card');
-        const name = document.getElementById('card-name');
-        const type = document.getElementById('card-type');
-        
-        card.style.display = 'block';
-        
-        // Reset classes
-        name.className = '';
-        card.style.borderColor = '#444';
-
-        name.innerText = agent.name;
-        document.getElementById('card-hp').innerText = agent.stats.hp;
+        document.getElementById('stat-card').style.display = 'block';
+        document.getElementById('card-name').innerText = agent.name;
+        document.getElementById('card-hp').innerText = Math.round(agent.stats.hp) + "/100";
         document.getElementById('card-xp').innerText = agent.stats.xp;
         document.getElementById('card-status').innerText = agent.status.toUpperCase();
+        document.getElementById('card-vel').innerText = Math.hypot(agent.vx, agent.vy).toFixed(4);
         
-        const speed = Math.hypot(agent.vx, agent.vy).toFixed(3);
-        document.getElementById('card-vel').innerText = speed;
+        const hpBar = document.getElementById('hp-bar');
+        hpBar.style.width = agent.stats.hp + "%";
+        hpBar.style.background = agent.stats.hp > 50 ? '#66bb6a' : (agent.stats.hp > 20 ? '#fbc02d' : '#ff5252');
 
-        if(agent.type === 'R') { name.style.color = '#ff5252'; card.style.borderColor = '#ff5252'; type.innerText = "FIRE"; }
-        if(agent.type === 'G') { name.style.color = '#66bb6a'; card.style.borderColor = '#66bb6a'; type.innerText = "GRASS"; }
-        if(agent.type === 'B') { name.style.color = '#4fc3f7'; card.style.borderColor = '#4fc3f7'; type.innerText = "WATER"; }
-        
-        // Draw Portrait
-        const pCanvas = document.getElementById('card-portrait');
-        const pCtx = pCanvas.getContext('2d');
+        const pers = {
+            'R': "Driven by the heat of the volcano. Aggressive and fast.",
+            'G': "Seeking harmony in the deep forest elevations.",
+            'B': "Drawn to the low-lying murky swamp waters."
+        };
+        document.getElementById('card-personality').innerText = `"${pers[agent.type]}"`;
+
+        // Portrait
+        const pCtx = document.getElementById('card-portrait').getContext('2d');
         pCtx.clearRect(0,0,64,64);
         if(sprites[agent.type].loaded) {
-            // Draw first frame
-            // Assuming sprite sheet is 4 frames horizontal. Source approx 128x128 total? 
-            // Wait, we need to know sprite sheet dims. Assuming standard square frames.
             const img = sprites[agent.type].img;
             const fw = img.width / 4;
-            const fh = img.height;
-            pCtx.drawImage(img, 0, 0, fw, fh, 0, 0, 64, 64);
+            pCtx.drawImage(img, 0, 0, fw, img.height, 0, 0, 64, 64);
         }
     }
 
-    window.closeCard = function() {
-        document.getElementById('stat-card').style.display = 'none';
-        selectedAgent = null;
-    };
+    window.closeCard = () => { document.getElementById('stat-card').style.display = 'none'; selectedAgent = null; };
 
-    // --- RENDER HELPERS ---
+    // --- RENDERING ---
     function drawAgent(a, ctx) {
-        const [sx, sy] = worldToScreen(a.pos[0], a.pos[1]);
+        let [sx, sy] = worldToScreen(a.pos[0], a.pos[1]);
+        sx = Math.round(sx); sy = Math.round(sy);
         
         const asset = sprites[a.type];
         if (asset && asset.loaded) {
-            // Animation State
             const speed = Math.hypot(a.vx, a.vy);
-            const walking = speed > 0.1; 
-            const frameIndex = walking ? Math.floor(Date.now() / 150) % 4 : 0;
-            
+            const frame = speed > 0.05 ? Math.floor(Date.now() / 120) % 4 : 0;
             const img = asset.img;
-            const fw = img.width / 4;
+            const fw = Math.floor(img.width / 4);
             const fh = img.height;
             
             ctx.save();
             ctx.translate(sx, sy);
             
-            // Flip if moving left
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+
             if (a.vx < 0) ctx.scale(-1, 1);
             
-            // Draw Sprite centered
-            // Scale down to look good on map (e.g., 32x32)
-            const size = 32;
+            const size = 48;
+            // Perfect Centering: -size/2, and align bottom (-size + offset)
             ctx.drawImage(img, 
-                frameIndex * fw, 0, fw, fh, 
-                -size/2, -size/2 - 10, size, size
+                frame * fw, 0, fw, fh, 
+                -size/2, -size + 10, size, size
             );
             
-            // Selection Highlight
             if(selectedAgent === a) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, -10, 20, 0, Math.PI*2);
-                ctx.stroke();
+                if (a.vx < 0) ctx.scale(-1, 1); 
+                ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, -15, 25, 0, Math.PI*2); ctx.stroke();
             }
-
             ctx.restore();
-        } else {
-            // Fallback Circle
-            let col = '#ccc';
-            if(a.type === 'R') col = '#ff5252';
-            if(a.type === 'G') col = '#66bb6a';
-            if(a.type === 'B') col = '#4fc3f7';
-            ctx.fillStyle = col;
-            ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
-        }
-
-        // Name
-        if(selectedAgent === a) {
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(a.name, sx, sy - 30);
         }
     }
 
+    function drawFood(f, ctx) {
+        const [sx, sy] = worldToScreen(f.x, f.y);
+        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+        ctx.fillStyle = f.type === 'R' ? '#ff5252' : (f.type === 'G' ? '#66bb6a' : '#4fc3f7');
+        ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
+        ctx.beginPath(); ctx.arc(sx, sy, 4 * pulse, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    function renderWeather(ctx) {
+        particles.forEach(p => {
+            const wind = engine.getWind(p.x, p.y, engine.time);
+            p.x += wind.x * 0.01; p.y += wind.y * 0.01;
+            if(p.x < -2) p.x = 2; if(p.x > 2) p.x = -2;
+            if(p.y < -2) p.y = 2; if(p.y > 2) p.y = -2;
+            const [sx, sy] = worldToScreen(p.x, p.y);
+            ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+            ctx.fillRect(sx, sy, p.size, p.size);
+        });
+    }
+
     function worldToScreen(x, y) {
-        // Map [-1.75, 1.75] to Screen
         const xmin = -1.75, xmax = 1.75, ymin = -1.75, ymax = 1.75;
-        const sx = (x - xmin) / (xmax - xmin) * W;
-        const sy = (1 - (y - ymin) / (ymax - ymin)) * H;
-        return [sx, sy];
+        return [(x - xmin) / (xmax - xmin) * W, (1 - (y - ymin) / (ymax - ymin)) * H];
     }
     
     function screenToWorld(sx, sy) {
         const xmin = -1.75, xmax = 1.75, ymin = -1.75, ymax = 1.75;
-        const x = xmin + (sx / W) * (xmax - xmin);
-        const y = ymin + (1 - sy / H) * (ymax - ymin);
-        return [x, y];
+        return [xmin + (sx / W) * (xmax - xmin), ymin + (1 - sy / H) * (ymax - ymin)];
     }
 
     function renderTerrain() {
@@ -248,81 +246,52 @@
             const bCtx = bgCanvas.getContext('2d');
             const img = bCtx.createImageData(W, H);
             const data = img.data;
-            const step = 2; // Low res for speed
-            
-            for(let sy=0; sy<H; sy+=step) {
-                for(let sx=0; sx<W; sx+=step) {
+            for(let sy=0; sy<H; sy+=2) {
+                for(let sx=0; sx<W; sx+=2) {
                     const [wx, wy] = screenToWorld(sx, sy);
-                    const m = islandMask(wx, wy, 1337); // Fixed terrain seed
+                    const m = islandMask(wx, wy, 1337);
                     const c = getTerrainColor(m, wx, wy, 1337);
-                    
-                    for(let yy=0; yy<step; yy++) {
-                        for(let xx=0; xx<step; xx++) {
-                            if(sy+yy >= H || sx+xx >= W) continue;
-                            const idx = 4 * ((sy+yy)*W + (sx+xx));
-                            data[idx] = c[0]; data[idx+1] = c[1]; data[idx+2] = c[2]; data[idx+3] = 255;
-                        }
-                    }
+                    const idx = 4 * (sy*W + sx);
+                    for(let i=0; i<8; i++) data[idx+i] = c[i%4]; // rough fill
+                    data[idx] = c[0]; data[idx+1] = c[1]; data[idx+2] = c[2]; data[idx+3] = 255;
                 }
             }
             bCtx.putImageData(img, 0, 0);
-            
-            // Vignette
-            const g = bCtx.createRadialGradient(W/2, H/2, W*0.2, W/2, H/2, W*0.8);
-            g.addColorStop(0, 'rgba(0,0,0,0)');
-            g.addColorStop(1, 'rgba(0,0,0,0.6)');
-            bCtx.fillStyle = g;
-            bCtx.fillRect(0,0,W,H);
+            const g = bCtx.createRadialGradient(W/2, H/2, W*0.1, W/2, H/2, W*0.7);
+            g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)');
+            bCtx.fillStyle = g; bCtx.fillRect(0,0,W,H);
         }
         ctx.drawImage(bgCanvas, 0, 0);
     }
 
     function loop() {
         if(!engine) return;
-        
-        // Run local physics for "Life" (Visual only, not saved)
-        engine.step(); 
-        
-        // Draw
+        engine.step();
         renderTerrain();
+        renderWeather(ctx);
+        if(engine.data.food) engine.data.food.forEach(f => drawFood(f, ctx));
         engine.data.agents.forEach(a => drawAgent(a, ctx));
-        
         requestAnimationFrame(loop);
     }
 
     async function init() {
-        // Fetch World State
         try {
             const res = await fetch('data/world.json?nocache=' + Date.now());
-            if(!res.ok) throw new Error("404 World Not Found");
             const data = await res.json();
-            
             engine = new Engine(data);
-            
+            initWeather();
             document.getElementById('loading').style.display = 'none';
             document.getElementById('ui').style.display = 'block';
             document.getElementById('val-week').innerText = data.meta.week;
             document.getElementById('val-pop').innerText = data.agents.length;
-            
             resize();
             loop();
-        } catch(e) {
-            document.getElementById('loading').innerText = "ERROR LOADING WORLD";
-            console.error(e);
-        }
+        } catch(e) { document.getElementById('loading').innerText = "LINK FAILURE"; console.error(e); }
     }
 
-    function resize() {
-        W = window.innerWidth;
-        H = window.innerHeight;
-        canvas.width = W;
-        canvas.height = H;
-        bgCanvas = null; // Force redraw
-    }
-    
+    function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; bgCanvas = null; }
     window.addEventListener('resize', resize);
     init();
-
 </script>
 </body>
 </html>
