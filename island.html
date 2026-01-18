@@ -6,7 +6,8 @@
   <title>Island Simulation: Viewer</title>
   <style>
     body { margin: 0; overflow: hidden; background: #0f1116; font-family: 'Courier New', monospace; color: #e9eef5; }
-    canvas { display: block; }
+    canvas { display: block; cursor: crosshair; }
+    
     #ui {
         position: absolute; top: 20px; left: 20px;
         background: rgba(18, 20, 28, 0.9);
@@ -15,7 +16,37 @@
     }
     h1 { margin: 0 0 5px 0; font-size: 1.1rem; color: #00bcd4; }
     .stat { font-size: 0.9rem; color: #aaa; }
+    
     #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #00bcd4; }
+
+    /* STAT CARD POPUP */
+    #stat-card {
+        display: none;
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 320px;
+        background: #1a1a24;
+        border: 2px solid #00bcd4;
+        border-radius: 12px;
+        box-shadow: 0 0 30px rgba(0, 188, 212, 0.3);
+        padding: 20px;
+        z-index: 100;
+        font-family: 'Verdana', sans-serif;
+    }
+    #stat-card h2 { margin-top: 0; color: #fff; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    #stat-card .portrait { width: 64px; height: 64px; margin: 0 auto; display: block; image-rendering: pixelated; border: 2px solid #444; border-radius: 50%; background: #000; }
+    #stat-card .row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.9rem; }
+    #stat-card .label { color: #888; }
+    #stat-card .val { color: #fff; font-weight: bold; }
+    #stat-card button { width: 100%; margin-top: 15px; padding: 10px; background: #333; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    #stat-card button:hover { background: #444; }
+
+    /* TYPE COLORS */
+    .type-R { color: #ff5252 !important; border-color: #ff5252 !important; }
+    .type-G { color: #66bb6a !important; border-color: #66bb6a !important; }
+    .type-B { color: #4fc3f7 !important; border-color: #4fc3f7 !important; }
+
   </style>
 </head>
 <body>
@@ -23,11 +54,27 @@
 <canvas id="canvas"></canvas>
 <div id="loading">CONNECTING TO SATELLITE...</div>
 
-<div id="ui" style="display:none;">
+<div id="ui">
     <h1>ISLAND MONITOR</h1>
     <div class="stat">WEEK: <span id="val-week">0</span></div>
     <div class="stat">POPULATION: <span id="val-pop">0</span></div>
-    <div class="stat" style="margin-top:10px; font-size:0.8em; opacity:0.7;">View Mode: Live Estimation</div>
+    <div class="stat" style="margin-top:10px; font-size:0.8em; opacity:0.7;">Click on a Pokemon for details.</div>
+</div>
+
+<div id="stat-card">
+    <canvas id="card-portrait" width="64" height="64" class="portrait"></canvas>
+    <h2 id="card-name" style="text-align:center; margin-top:10px;">Name</h2>
+    
+    <div class="row"><span class="label">Type</span> <span class="val" id="card-type">TYPE</span></div>
+    <div class="row"><span class="label">Status</span> <span class="val" id="card-status">Alive</span></div>
+    
+    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
+    
+    <div class="row"><span class="label">HP</span> <span class="val" id="card-hp">100/100</span></div>
+    <div class="row"><span class="label">XP</span> <span class="val" id="card-xp">0</span></div>
+    <div class="row"><span class="label">Velocity</span> <span class="val" id="card-vel">0.00</span></div>
+    
+    <button onclick="closeCard()">CLOSE</button>
 </div>
 
 <!-- Load Shared Engine -->
@@ -39,31 +86,144 @@
     let W, H;
     let engine = null;
     let bgCanvas = null;
+    let selectedAgent = null;
+
+    // Sprite Assets
+    const sprites = {
+        'R': { img: new Image(), loaded: false, src: 'images/chars/red-walk.png' },
+        'G': { img: new Image(), loaded: false, src: 'images/chars/green-walk.png' },
+        'B': { img: new Image(), loaded: false, src: 'images/chars/blue-walk.png' }
+    };
+
+    // Load Sprites
+    Object.keys(sprites).forEach(k => {
+        sprites[k].img.src = sprites[k].src;
+        sprites[k].img.onload = () => sprites[k].loaded = true;
+    });
+
+    // --- INTERACTION ---
+    canvas.addEventListener('click', (e) => {
+        if(!engine) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        
+        let found = null;
+        let minDist = 30; // Pixel click radius
+
+        engine.data.agents.forEach(a => {
+            const [sx, sy] = worldToScreen(a.pos[0], a.pos[1]);
+            const d = Math.hypot(sx - mx, sy - my);
+            if(d < minDist) {
+                minDist = d;
+                found = a;
+            }
+        });
+
+        if(found) openCard(found);
+        else closeCard();
+    });
+
+    function openCard(agent) {
+        selectedAgent = agent;
+        const card = document.getElementById('stat-card');
+        const name = document.getElementById('card-name');
+        const type = document.getElementById('card-type');
+        
+        card.style.display = 'block';
+        
+        // Reset classes
+        name.className = '';
+        card.style.borderColor = '#444';
+
+        name.innerText = agent.name;
+        document.getElementById('card-hp').innerText = agent.stats.hp;
+        document.getElementById('card-xp').innerText = agent.stats.xp;
+        document.getElementById('card-status').innerText = agent.status.toUpperCase();
+        
+        const speed = Math.hypot(agent.vx, agent.vy).toFixed(3);
+        document.getElementById('card-vel').innerText = speed;
+
+        if(agent.type === 'R') { name.style.color = '#ff5252'; card.style.borderColor = '#ff5252'; type.innerText = "FIRE"; }
+        if(agent.type === 'G') { name.style.color = '#66bb6a'; card.style.borderColor = '#66bb6a'; type.innerText = "GRASS"; }
+        if(agent.type === 'B') { name.style.color = '#4fc3f7'; card.style.borderColor = '#4fc3f7'; type.innerText = "WATER"; }
+        
+        // Draw Portrait
+        const pCanvas = document.getElementById('card-portrait');
+        const pCtx = pCanvas.getContext('2d');
+        pCtx.clearRect(0,0,64,64);
+        if(sprites[agent.type].loaded) {
+            // Draw first frame
+            // Assuming sprite sheet is 4 frames horizontal. Source approx 128x128 total? 
+            // Wait, we need to know sprite sheet dims. Assuming standard square frames.
+            const img = sprites[agent.type].img;
+            const fw = img.width / 4;
+            const fh = img.height;
+            pCtx.drawImage(img, 0, 0, fw, fh, 0, 0, 64, 64);
+        }
+    }
+
+    window.closeCard = function() {
+        document.getElementById('stat-card').style.display = 'none';
+        selectedAgent = null;
+    };
 
     // --- RENDER HELPERS ---
     function drawAgent(a, ctx) {
         const [sx, sy] = worldToScreen(a.pos[0], a.pos[1]);
         
-        // Color
-        let col = '#ccc';
-        if(a.type === 'R') col = '#ff5252';
-        if(a.type === 'G') col = '#66bb6a';
-        if(a.type === 'B') col = '#4fc3f7';
+        const asset = sprites[a.type];
+        if (asset && asset.loaded) {
+            // Animation State
+            const speed = Math.hypot(a.vx, a.vy);
+            const walking = speed > 0.1; 
+            const frameIndex = walking ? Math.floor(Date.now() / 150) % 4 : 0;
+            
+            const img = asset.img;
+            const fw = img.width / 4;
+            const fh = img.height;
+            
+            ctx.save();
+            ctx.translate(sx, sy);
+            
+            // Flip if moving left
+            if (a.vx < 0) ctx.scale(-1, 1);
+            
+            // Draw Sprite centered
+            // Scale down to look good on map (e.g., 32x32)
+            const size = 32;
+            ctx.drawImage(img, 
+                frameIndex * fw, 0, fw, fh, 
+                -size/2, -size/2 - 10, size, size
+            );
+            
+            // Selection Highlight
+            if(selectedAgent === a) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, -10, 20, 0, Math.PI*2);
+                ctx.stroke();
+            }
 
-        // Body
-        ctx.fillStyle = col;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = col;
-        ctx.beginPath();
-        ctx.arc(sx, sy, 5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+            ctx.restore();
+        } else {
+            // Fallback Circle
+            let col = '#ccc';
+            if(a.type === 'R') col = '#ff5252';
+            if(a.type === 'G') col = '#66bb6a';
+            if(a.type === 'B') col = '#4fc3f7';
+            ctx.fillStyle = col;
+            ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
+        }
 
         // Name
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(a.name, sx, sy - 10);
+        if(selectedAgent === a) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(a.name, sx, sy - 30);
+        }
     }
 
     function worldToScreen(x, y) {
